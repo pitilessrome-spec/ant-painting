@@ -104,6 +104,7 @@
     document.getElementById('ah-how').hidden = true;
     open = true;
     if (window.AntPolish) window.AntPolish.onMenuOpened();
+    if (window.AntMystery) window.AntMystery.hide();
     if (window.Ads && typeof Ads.gameplay === 'function') Ads.gameplay(false);
   }
   function start() {
@@ -112,6 +113,7 @@
     open = false;
     root.classList.add('ah-leave');
     if (window.AntPolish) window.AntPolish.onGameOpened();
+    if (window.AntMystery) window.AntMystery.show();
     if (window.Ads && typeof Ads.gameplay === 'function') Ads.gameplay(true);
     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch (_) {}
