@@ -2,7 +2,7 @@
 const $=s=>document.querySelector(s);
 const VW=360,VH=318,SPEEDS=[1,2,3];
 const stage=$('#stage'),glc=$('#gl'),fxc=$('#fx'),fx=fxc.getContext('2d');
-let S=1,DPR=1,G=null,LV=1,MAXLV=1,spIdx=0,x3ok=false,unlocks=2,reshuf=false,hintT=0,adT=0,adCb=null,SND=1,shown='',lastUI=0,PAR=[],anims=new Map(),shakeCol=-1,shakeUntil=0,toastH=0;
+let S=1,DPR=1,G=null,LV=1,MAXLV=1,spIdx=0,x3ok=false,unlocks=2,reshuf=false,hintT=0,adT=0,adCb=null,SND=1,shown='',lastUI=0,PAR=[],anims=new Map(),shakeCol=-1,shakeUntil=0,toastH=0,PROJECTILES=[];
 let R3=null,scene=null,cam=null,mesh=null,DM=null,VEC=null,CLR=null,CW=.1,ZC=0,ZTOP=0,AC=null;
 let st={};try{st=JSON.parse(localStorage.getItem('mbh3'))||{}}catch(e){}
 MAXLV=st.maxLv||1;SND=st.snd===undefined?1:st.snd;
@@ -91,6 +91,10 @@ function drawAnt(a,now){
  if(a.ph===1){fx.fillStyle=G.pal[a.c];fx.strokeStyle='rgba(0,0,0,.45)';fx.lineWidth=.35;fx.fillRect(-1.6,-1.4,2.8,2.8);fx.strokeRect(-1.6,-1.4,2.8,2.8)}
  fx.restore();
 }
+function blastParticles(i,c){
+ const p=proj(i%G.n+.5,Math.floor(i/G.n)+.5,ZTOP);
+ for(let k=0;k<15;k++)PAR.push({x:p[0],y:p[1],vx:(Math.random()-.5)*7,vy:(Math.random()-.5)*7-2,l:440,c:G.pal[c]});
+}
 function drawFX(dt,now){
  fx.setTransform(DPR,0,0,DPR,0,0);fx.clearRect(0,0,VW,VH);
  if(!G)return;
@@ -98,11 +102,24 @@ function drawFX(dt,now){
  PAR=PAR.filter(p=>p.l>0);
  for(const p of PAR){fx.globalAlpha=Math.max(0,Math.min(1,p.l/400));fx.fillStyle=p.c;fx.fillRect(p.x-2.2,p.y-2.2,4.4,4.4)}
  fx.globalAlpha=1;
+ // Colored bolts fly from the ant tunnel and hit only the already-authorized matching target.
+ for(let i=PROJECTILES.length-1;i>=0;i--){
+   const sh=PROJECTILES[i];sh.age+=dt*(G.speed||1);
+   const t=Math.min(1,sh.age/290),smooth=1-Math.pow(1-t,2);
+   const a=proj(G.n/2,G.n+.58,.02),b=proj(sh.i%G.n+.5,Math.floor(sh.i/G.n)+.5,ZTOP);
+   const x=a[0]+(b[0]-a[0])*smooth,y=a[1]+(b[1]-a[1])*smooth;
+   fx.save();fx.globalAlpha=Math.min(1,t*7);fx.strokeStyle=G.pal[sh.c];fx.lineWidth=3.8;fx.shadowBlur=11;fx.shadowColor=G.pal[sh.c];
+   fx.beginPath();fx.moveTo(a[0]+(x-a[0])*.67,a[1]+(y-a[1])*.67);fx.lineTo(x,y);fx.stroke();
+   fx.fillStyle='#fff';fx.beginPath();fx.arc(x,y,3.3,0,Math.PI*2);fx.fill();fx.restore();
+   if(t>=1){anims.set(sh.i,0);blastParticles(sh.i,sh.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);beep(800+Math.random()*260,.075,.035);PROJECTILES.splice(i,1)}
+ }
  for(const a of G.ants)drawAnt(a,now);
 }
 function handleEv(){
  for(const e of G.ev){
-  if(e.t==='eat'){anims.set(e.i,0);burst(e.i,e.c);beep(560+Math.random()*420,.07,.035)}
+  if(e.t==='eat'){anims.set(e.i,0);burst(e.i,e.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);beep(560+Math.random()*420,.07,.035)}
+  else if(e.t==='shot'){PROJECTILES.push({i:e.i,c:e.c,age:0})}
+  else if(e.t==='blastReady'){toast('🌈 Color Blast! Special ants ready');beep(990,.15,.05)}
   else if(e.t==='claim'&&mesh){mesh.setColorAt(e.i,CLR.set(mix(G.pal[e.c],'#ffffff',.35)));mesh.instanceColor.needsUpdate=true}
   else if(e.t==='reshuffle')toast('No moves left, boxes reshuffled');
   else if(e.t==='stall')toast('No box can move right now. Think about what to load next');
@@ -114,7 +131,8 @@ function handleEv(){
 function renderUI(){
  if(!G)return;
  $('#lv').textContent='Level '+LV;
- $('#pv').textContent=G.pct()+'%';
+ $('#pv').textContent=G.visualPct()+'%';
+ if(window.AntWorkshop)window.AntWorkshop.render(G);
  $('#spd').textContent=(spIdx===1&&!x3ok)?'×2 ▸ ×3 (ad)':'×'+SPEEDS[spIdx];
  $('#rsh').classList.toggle('off',LV<10);
  $('#rsh').textContent=reshuf?'Reshuffle ▶':'Reshuffle';
@@ -143,17 +161,19 @@ function newLevel(lv){
  window.ANT_CANVAS_CURRENT_LEVEL=LV;
  spIdx=Math.min(spIdx,LV>=10?1:0);x3ok=false;
  G=makeGame(LV,{speed:SPEEDS[spIdx]});
- MAXLV=Math.max(MAXLV,LV);reshuf=false;unlocks=3;shown='play';hintT=0;PAR=[];anims.clear();
+ window.ANT_CANVAS_GAME=G;
+ MAXLV=Math.max(MAXLV,LV);reshuf=false;unlocks=3;shown='play';hintT=0;PAR=[];PROJECTILES=[];anims.clear();
  $('#win').classList.remove('on');$('#lose').classList.remove('on');
  buildBoard();placeHole();save();renderUI();Ads.gameplay(!window.AntHome||!window.AntHome.isOpen);
  if(window.AntTelegram) window.AntTelegram.onLevelStart(LV);
  if(window.AntPolish) window.AntPolish.onLevelStart(LV);
 }
 function onWin(){
+ if(window.AntCanvasProfile)window.AntCanvasProfile.complete(LV);
  if(window.AntTelegram) window.AntTelegram.onLevelComplete(LV);
  if(window.AntPolish) window.AntPolish.onWin(G,LV);
  MAXLV=Math.max(MAXLV,Math.min(999999,LV+1));save();
- $('#winSub').textContent='Level '+LV+' complete · 100%';
+ $('#winSub').textContent='Level '+LV+' complete · 100%'+(window.AntCanvasProfile?' · '+window.AntCanvasProfile.rarity(LV).symbol+' '+window.AntCanvasProfile.rarity(LV).title:'');
  $('#win').classList.add('on');
  [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.25,.05),i*120));
  for(let i=0;i<70;i++)PAR.push({x:Math.random()*VW,y:-10-Math.random()*60,vx:(Math.random()-.5)*1.2,vy:1+Math.random()*2,l:2600,c:G.pal[(Math.random()*8)|0]});
@@ -188,6 +208,7 @@ stage.addEventListener('pointerdown',e=>{
  else if(a==='next'&&LV<MAXLV)newLevel(LV+1);
  else if(a==='nextLv')Ads.midgame(()=>newLevel(LV+1));
  else if(a==='retry')newLevel(LV);
+ else if(a==='viewGallery'){location.href='collection.html'}
  else if(a==='reviveAd')ad(()=>{G.revive();$('#lose').classList.remove('on');shown='play';renderUI()});
  else if(a==='snd'){SND=SND?0:1;save();toast(SND?'Sound on':'Sound off')}
 });
