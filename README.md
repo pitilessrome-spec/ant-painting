@@ -107,3 +107,15 @@ Uncomment the CrazyGames SDK line in `index.html`, then set `provider: 'crazygam
 - Game logic and pictures were tested in headless Chromium and with Node scripts. They were not tested on real phones.
 - Use your own name for the game and your own artwork before publishing. Do not copy another game's name or look.
 - Before publishing, write a short privacy policy that says whether the game shows ads and what data it collects.
+
+## Telegram release status (23 November 2026)
+
+The published browser game includes a Telegram Mini App dashboard (Scores, Share), Telegram SDK integration, local progress, and a secure client for verified online progress. The Telegram backend is deployed at https://ant-canvas-telegram-api.vercel.app/api/health (currently returns `botConfigured=false` and `storageConfigured=false`).
+
+The existing Telegram account received BotFather's message "You have currently no bots" and its `/newbot` request was refused. **Do not describe the game as a registered Telegram game until that restriction has been removed**. The Mini App and native `/newgame` bot cannot be activated without a BotFather-created bot, server-only token, and Postgres storage.
+
+Backend source, PostgreSQL schema, HMAC initialization validation, native game callback code, setup scripts and tests are documented in [telegram-backend/README.md](telegram-backend/README.md).
+
+Advertisements: while no AdsGram publisher account and real unit IDs are approved, boosts are free (the production config uses `provider: 'free'`, never a simulated paid impression). To monetize later, follow AdsGram's official publisher flow at https://partner.adsgram.ai/ and then configure `provider: 'adsgram'` with actual ad block IDs. The privacy notice is [privacy.html](privacy.html).
+
+**Browser game:** https://pitilessrome-spec.github.io/ant-painting/
