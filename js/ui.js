@@ -224,6 +224,7 @@ function frame(now){
    if(adT<=0&&!Ads.busy&&(!window.AntHome||!window.AntHome.isOpen)&&G.state==='play')G.tick(dt);
    if(window.AntPolish)window.AntPolish.onTick(G);
    handleEv();
+   if(window.AntPolish)window.AntPolish.onProgress(G);
    if(hintT>0)hintT-=dt;
    if(G.state!==shown){
      shown=G.state;
