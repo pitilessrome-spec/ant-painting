@@ -1,54 +1,85 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ant Village — ANT CANVAS</title><meta name="theme-color" content="#4ea66c">
-<style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 0%,#d5f7e8 0%,#a3d9f1 55%,#e8f6ff 100%);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;color:#284b51}
-header{background:#193d57;color:white;padding:12px max(18px,calc((100vw - 1010px)/2));display:flex;align-items:center;justify-content:space-between;box-shadow:0 5px 18px #24546960}
-header b{font-size:18px;letter-spacing:.3px}header a{color:white;border:1px solid #ffffff66;border-radius:14px;padding:8px 12px;text-decoration:none;font-size:12px;font-weight:800}
-main{max-width:1010px;margin:auto;padding:25px 15px 60px}h1{font-size:clamp(28px,5vw,42px);line-height:1.1;margin:0 0 9px;color:#28635f}.subtitle{margin:0 0 19px;color:#497980}
-.stats{display:flex;flex-wrap:wrap;gap:9px}.stat{background:#ffffffdc;border:2px solid #fff;box-shadow:0 4px 16px #2e728c1f;padding:10px 13px;border-radius:15px;flex:1;min-width:115px}.stat b{display:block;font-size:23px}.stat span{font-size:11px;font-weight:850;color:#66858b}
-.layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:18px;margin-top:18px}
-.scene{position:relative;overflow:hidden;min-height:410px;border:5px solid #fff;border-radius:27px;background:linear-gradient(#83caff 0%,#d1f7f0 47%,#73c792 48%,#459d67 100%);box-shadow:0 9px 30px #267c8c3f}
-.skycloud{position:absolute;top:43px;left:44px;font-size:46px;opacity:.9;animation:cloud 7s ease-in-out infinite}.skycloud.second{left:auto;right:26px;top:10px;font-size:35px;animation-delay:-4s}
-.sun{position:absolute;right:56px;top:30px;font-size:56px;filter:drop-shadow(0 0 20px #ffdb66)}
-.ground{position:absolute;left:-10%;right:-10%;bottom:-50px;height:270px;border-radius:50% 50% 0 0;background:linear-gradient(#9bea8b,#4baf69);box-shadow:inset 0 15px #b3f6a24d}
-.hill{position:absolute;bottom:60px;right:0;font-size:42px;opacity:.7}
-.central{position:absolute;left:50%;bottom:108px;transform:translateX(-50%);z-index:3;text-align:center;white-space:nowrap}
-.central .colony{font-size:70px;line-height:1;filter:drop-shadow(0 7px 3px #386e4b66)}
-.central label{display:block;font-size:12px;font-weight:900;padding:4px 12px;border-radius:20px;color:#fff;background:#21495a99;margin-top:5px}
-.plots{position:absolute;inset:110px 8px 15px;z-index:4;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:10px}
-.plot{background:#d8f7b522;border:2px dashed #ebffcf95;border-radius:19px;color:#19574c;cursor:pointer;position:relative;display:grid;place-items:center;font-size:38px;min-width:0;min-height:0;text-shadow:0 2px #ffffff59;transition:background .15s,transform .15s}
-.plot .slot-label{position:absolute;bottom:3px;left:0;right:0;font:800 9px system-ui;color:#fff;text-shadow:0 1px 3px #226744}
-.plot:focus-visible,.item:focus-visible{outline:3px solid #ffffff;outline-offset:2px}
-.plot.empty:hover{background:#fff5}.plot.selected{border:3px solid #fff5b7;background:#ffffff4d;transform:translateY(-3px)}
-.plot.home{pointer-events:none;background:transparent;border:0}
-.shop{background:#ffffffdc;border:2px solid #fff;border-radius:25px;box-shadow:0 9px 28px #296b821d;padding:17px}
-.shop h2{margin:0;font-size:22px;color:#32606b}.hint{color:#70939a;margin:3px 0 14px;font-size:12px}
-.shop-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
-.item{border:2px solid #d9ece9;border-radius:15px;background:#f9fffb;text-align:left;cursor:pointer;padding:9px 8px;min-width:0;box-shadow:0 3px 0 #bfdcd3}
-.item .emo{font-size:30px;display:block;text-align:center}.item b{display:block;font-size:11px;min-height:30px}.item span{font:800 10px system-ui;color:#468069}
-.item.selected{border-color:#ffb34f;background:#fff5dc;box-shadow:0 3px 0 #d59d48}
-.item:disabled{opacity:.6;cursor:not-allowed}
-.buy{width:100%;border:0;border-radius:15px;padding:13px;background:linear-gradient(#ffdd7f,#ffae4c);font-weight:950;color:#6b4b2a;font-size:14px;margin-top:14px;box-shadow:0 4px #b97a36;cursor:pointer}.buy:disabled{opacity:.6}
-#message{min-height:38px;color:#52798c;font-size:12px;margin-top:12px;line-height:1.5}
-footer{margin-top:22px;font-size:12px;color:#5f8793}
-@keyframes cloud{0%,100%{transform:translateX(0)}50%{transform:translateX(14px)}}
-@media(max-width:700px){.layout{grid-template-columns:1fr}.scene{min-height:385px}.shop-grid{grid-template-columns:repeat(3,1fr)}}
-@media(prefers-reduced-motion:reduce){.skycloud{animation:none}}
-</style></head><body>
-<header><b>🐜 ANT CANVAS</b><a href="./">← Back to game</a></header>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#244769">
+<meta name="description" content="Build a cozy village for your tiny ants. Unlock magical buildings, open milestone chests, and discover hidden treasures.">
+<title>My Ant Village · ANT CANVAS</title>
+<link rel="stylesheet" href="css/village-world.css?v=village-world-v2">
+</head>
+<body>
+<header class="topbar">
+ <div class="brand"><span class="brand-icon" aria-hidden="true">🐜</span><span>ANT CANVAS <span style="opacity:.55">/</span> ANT VILLAGE</span></div>
+ <a class="return" href="./">← Back to Puzzles</a>
+</header>
 <main>
-<h1>🌿 My Ant Village</h1><p class="subtitle">Every painting you finish earns materials. Build a tiny world one decoration at a time.</p>
-<div class="stats"><div class="stat"><b id="wood">0</b><span>🪵 WOOD</span></div><div class="stat"><b id="petals">0</b><span>🌸 PETALS</span></div><div class="stat"><b id="chests">0</b><span>🎁 MILESTONE CHESTS</span></div><div class="stat"><b id="placed">0 / 8</b><span>🏘 DECORATED PLOTS</span></div></div>
-<div class="layout">
-<section class="scene" aria-label="Your village decoration garden">
-<div class="sun" aria-hidden="true">☀️</div><div class="skycloud" aria-hidden="true">☁️</div><div class="skycloud second" aria-hidden="true">☁️</div>
-<div class="ground" aria-hidden="true"></div><div class="hill" aria-hidden="true">🌲</div>
-<div class="central"><div class="colony">🐜🏠</div><label>YOUR ANT COLONY</label></div>
-<div class="plots" id="plots" aria-label="Nine village plots with a central colony"></div>
-</section>
-<aside class="shop"><h2>🛠️ Decoration Workshop</h2><p class="hint">1. Pick an empty plot. 2. Choose a decoration. 3. Build it with materials earned by clearing puzzles.</p>
-<div class="shop-grid" id="shop"></div><button type="button" class="buy" id="build">Build selected decoration</button><div id="message" aria-live="polite">Choose any empty plot to get started.</div>
-</aside></div>
-<footer>Every cleared level grants wood and petals. Every 5th cleared level includes a bonus chest. Rare paintings provide additional materials. This is a local, cosmetic-only village with no payments or chance-based purchases.</footer>
+ <div class="eyebrow">YOUR TINY LIVING WORLD</div>
+ <h1>Welcome home, little ants.</h1>
+ <p class="lead">Every finished painting helps your village grow. Watch your ant friends wander, build colorful landmarks, open secret chests and discover magical decoration sets.</p>
+ <div class="resource-line">
+  <div class="stat"><span class="stat-icon">🪵</span><div><strong id="wood">0</strong><small>WOOD</small></div></div>
+  <div class="stat"><span class="stat-icon">🌸</span><div><strong id="petals">0</strong><small>PETALS</small></div></div>
+  <div class="stat"><span class="stat-icon">🎁</span><div><strong id="chests">0</strong><small>UNOPENED CHESTS</small></div></div>
+  <div class="stat"><span class="stat-icon">🏡</span><div><strong id="placed">0 / 8</strong><small>DECORATED PLOTS</small></div></div>
+ </div>
+ <div class="main-grid">
+  <div class="world-panel" id="world-panel">
+   <svg id="village-world" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 610" role="img" aria-label="An animated illustrated ant village with interactive building locations">
+    <rect width="960" height="610" fill="#a8e5fc"></rect>
+    <text x="480" y="305" text-anchor="middle" font-size="19" font-weight="bold" fill="#336579">Growing your ant village...</text>
+   </svg>
+   <div class="world-plaque"><small>ANT CANVAS WORLD</small>🌿 My Little Village</div>
+   <div class="world-tools"><button id="day-night" type="button" aria-pressed="false">🌙 Night</button><button id="world-sound" type="button">✨ Ants at work</button></div>
+   <div class="world-story" id="world-story" aria-live="polite">Tap a glowing plot to start building your little world.</div>
+  </div>
+  <div class="side">
+   <section class="panel">
+    <h2>🛠️ Decoration Workshop</h2>
+    <p class="sub">Select a plot on the map, then choose a building. You can upgrade each building from level 1 to level 3.</p>
+    <div class="shop-grid" id="shop"></div>
+    <div class="build-detail" id="build-detail"><b>Choose a building plot</b>Use your collected materials to create something wonderful.</div>
+    <div class="btn-row">
+     <button class="btn" id="build" type="button" disabled>Build decoration</button>
+     <button class="btn secondary" id="upgrade" type="button" disabled>Upgrade</button>
+    </div>
+    <div id="village-message" role="status" aria-live="polite">Build your first Flower Garden with materials from your first painting.</div>
+   </section>
+   <section class="panel treasure-panel">
+    <h2>🎁 Secret Treasure Chest</h2>
+    <p class="sub">Every 5 levels adds a real chest you can open for a hidden souvenir and extra materials.</p>
+    <div class="treasure-wrap">
+     <div class="chest-figure" id="chest-figure" aria-hidden="true">🧰</div>
+     <div class="chest-info"><strong id="chest-head">No unopened chests</strong><p>Play, paint and return for a surprise!</p></div>
+    </div>
+    <button id="chest-open" type="button" class="chest-open" disabled>Open a mystery chest ✨</button>
+    <div class="treasure-result" id="treasure-result" aria-live="polite"></div>
+   </section>
+  </div>
+ </div>
+ <div class="lower-grid">
+  <section class="panel">
+   <h2>🔒 Secret Souvenir Collection</h2>
+   <p class="sub">Discover six hidden keepsakes inside milestone chests. Each unopened silhouette is a mystery.</p>
+   <div id="collection" class="collection-grid" aria-label="Hidden collectible souvenirs"></div>
+  </section>
+  <section class="panel">
+   <h2>✨ Magical Village Themes</h2>
+   <p class="sub">Upgrade the two matching buildings to level 2 and unlock an exclusive village decoration set.</p>
+   <div id="combos" class="combo-list" aria-label="Three special building combinations"></div>
+  </section>
+ </div>
+ <p class="notice">Your village saves locally in this browser. Existing buildings and materials are preserved during this update. Chest contents follow a fair, deterministic cosmetic sequence; there are no payments or chance-based purchases. Cross-device Telegram saving requires the connected backend.</p>
 </main>
-<script src="js/village.js?v=village-v1"></script>
-<script src="js/village-page.js?v=village-v1"></script></body></html>
+<div id="reveal-modal" hidden role="dialog" aria-modal="true" aria-labelledby="reveal-title">
+ <div class="modal-card">
+  <span class="big" id="reveal-emoji">✨</span>
+  <h2 id="reveal-title">Treasure found!</h2>
+  <p id="reveal-desc"></p>
+  <button type="button" class="btn" id="reveal-close">Back to the village</button>
+ </div>
+</div>
+<script src="js/village.js?v=village-world-v2"></script>
+<script src="js/village-scene.js?v=village-world-v2"></script>
+<script src="js/village-page.js?v=village-world-v2"></script>
+</body></html>
