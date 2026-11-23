@@ -145,7 +145,7 @@ function newLevel(lv){
  G=makeGame(LV,{speed:SPEEDS[spIdx]});
  MAXLV=Math.max(MAXLV,LV);reshuf=false;unlocks=3;shown='play';hintT=0;PAR=[];anims.clear();
  $('#win').classList.remove('on');$('#lose').classList.remove('on');
- buildBoard();placeHole();save();renderUI();Ads.gameplay(true);
+ buildBoard();placeHole();save();renderUI();Ads.gameplay(!window.AntHome||!window.AntHome.isOpen);
  if(window.AntTelegram) window.AntTelegram.onLevelStart(LV);
 }
 function onWin(){
@@ -198,7 +198,7 @@ function frame(now){
    if(adT<=0){adT=0;$('#ad').classList.remove('on');const f=adCb;adCb=null;if(f)f()}
  }
  if(G){
-   if(adT<=0&&!Ads.busy&&G.state==='play')G.tick(dt);
+   if(adT<=0&&!Ads.busy&&(!window.AntHome||!window.AntHome.isOpen)&&G.state==='play')G.tick(dt);
    handleEv();
    if(hintT>0)hintT-=dt;
    if(G.state!==shown){
@@ -219,4 +219,5 @@ if(window.Telegram&&window.Telegram.WebApp){window.Telegram.WebApp.ready();windo
 if(!R3)toast('3D view failed to load, please check your connection');
 fit();window.addEventListener('resize',fit);
 newLevel(st.lv||MAXLV);
+if(window.AntHome)window.AntHome.afterBoot();
 requestAnimationFrame(frame);
