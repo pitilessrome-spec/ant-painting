@@ -119,7 +119,7 @@ function renderUI(){
  $('#rsh').classList.toggle('off',LV<10);
  $('#rsh').textContent=reshuf?'Reshuffle ▶':'Reshuffle';
  let sh='';
- for(let i=0;i<G.cap;i++){const b=G.slots[i];sh+=b?`<div class="tile tk" style="${tokStyle(b.c)}"><span>${b.n}</span></div>`:'<div class="tile empty"></div>'}
+ for(let i=0;i<G.cap;i++){const b=G.slots[i];sh+=b?`<div class="tile tk" style="${tokStyle(b.c)}"><span>${G.slotDisplayCount(b)}</span></div>`:'<div class="tile empty"></div>'}
  if(G.cap<7&&unlocks>0)sh+='<div class="tile unlock" data-act="unlock">+</div>';
  $('#slots').innerHTML=sh;
  const hc=G.state==='play'?G.hint():-1;
