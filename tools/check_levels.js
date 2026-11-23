@@ -25,7 +25,7 @@ console.log(`[图案] ${N} 关：不重复 ${seen.size} 关，重复 ${dups} 关
 
 // 2) 通关检查：抽一些关卡，每次都按提示（顺序最靠前的盒子）放
 function play(lv, policy) {
-  const g = new Game(lv, { rand: rng(lv * 977 + 3) });
+  const g = makeGame(lv);
   let guard = 0;
   while (g.state === 'play' && guard++ < 900000) {
     for (let k = 0; k < 6; k++) {
@@ -44,7 +44,7 @@ let wins = 0, maxBuild = 0;
 const t1 = Date.now();
 for (const lv of sample) {
   const b0 = Date.now();
-  new Game(lv, { rand: rng(lv) });
+  makeGame(lv);
   maxBuild = Math.max(maxBuild, Date.now() - b0);
   if (play(lv, g => g.hint()) === 'win') wins++;
 }

@@ -1,11 +1,11 @@
-/* 蚂蚁搬画 · 游戏逻辑（盒子排法、吃格子规则、复活与重排） */
+/* ANT CANVAS · 游戏逻辑（盒子排法、吃格子规则、复活与重排） */
 'use strict';
 /* ---------- 难度：随关卡变化 ---------- */
 function levelParams(lv) {
   return {
     cap: lv <= 30 ? 6 : lv <= 400 ? 5 : 4,
-    cmin: lv <= 150 ? 8 : lv <= 500 ? 10 : 12,
-    cmax: lv <= 150 ? 20 : lv <= 500 ? 25 : 30
+    cmin: lv <= 10 ? 8 : lv <= 300 ? 12 : 30,
+    cmax: lv <= 10 ? 20 : lv <= 300 ? 30 : 50
   };
 }
 
@@ -90,12 +90,18 @@ class Game {
     this.cap = o.cap || prm.cap; this.slots = new Array(this.cap).fill(null);
     this.cols = [[], [], [], []]; this.ants = []; this.ev = [];
     this.state = 'play'; this.speed = o.speed || 1; this._R = null; this.stalled = false;
+    this.visualMs = 200;   // 槽位里每隔这么久放出一只蚂蚁（只影响动画）
     this.rebuild();
   }
   pct() { return Math.floor((this.total - this.left) / this.total * 100); }
   R() { if (!this._R) this._R = reachDist(this.eaten, this.n); return this._R; }
-  // 把还没吃的格子重新排成盒子（一定能搬完）
+
+  // 把还没吃的格子重新排成盒子（一定能搬完）。槽位里没放出去的蚂蚁先放出去，免得格子一直留着
   rebuild() {
+    for (const s of this.slots) {
+      if (!s) continue;
+      for (const job of s.q) { this.spawnVisual(job); this.ev.push({ t: 'eat', i: job.idx, c: job.c }); }
+    }
     const seq = makeSeqFrom(this.role, this.n, this.eaten, this.rand, this.cmin, this.cmax);
     this.cols = [[], [], [], []];
     seq.forEach((b, i) => this.cols[i % 4].push({ c: b.c, n: b.n, id: i }));
@@ -106,7 +112,7 @@ class Game {
   revive() { if (this.state !== 'lose') return false; this.addSlot(); this.rebuild(); this.state = 'play'; return true; }
   addSlot() { if (this.cap < 7) { this.cap++; this.slots.push(null); } }
 
-  // 这个颜色现在能不能搬（有没有露出来的同色格子），返回要吃的那一格，没有则 -1
+  // 这个颜色现在能不能吃：返回要吃的那一格，没有则 -1
   target(c) { return nearestCell(this.eaten, this.n, this.role, c, this.R().dist); }
   // 蚂蚁的路：从洞口进来，只经过已经吃空的格子（要在吃之前算）
   route(i) {
@@ -124,7 +130,29 @@ class Game {
     if (!virt && bj >= 0) { for (let j = bj; j >= 0 && j < N; j = par[j]) list.push(j); list.reverse(); }
     return list;
   }
-  // 点顶上的盒子进槽位：不管现在能不能搬都可以放，放错了会卡住
+  eatCell(i) { this.eaten[i] = 1; this.left--; this._R = null; }
+
+  // 逻辑：槽位里的盒子能吃就吃（按槽位顺序，吃到不能吃为止）。只看格子，不看时间。
+  cascade() {
+    let progress = true;
+    while (progress) {
+      progress = false;
+      for (const s of this.slots) {
+        if (!s) continue;
+        while (s.n > 0) {
+          const idx = this.target(s.c);
+          if (idx < 0) break;
+          const path = this.route(idx);
+          this.eatCell(idx);
+          s.q.push({ idx, path, c: s.c });
+          s.n--;
+          progress = true;
+        }
+      }
+    }
+  }
+
+  // 点顶上的盒子进槽位：不管现在能不能搬都可以放，搬不动的会在槽位里等
   // 返回 1 成功，2 槽位满了，0 没有盒子
   place(ci) {
     if (this.state !== 'play') return 0;
@@ -133,10 +161,12 @@ class Game {
     const si = this.slots.indexOf(null);
     if (si < 0) return 2;
     col.shift();
-    this.slots[si] = { c: b.c, n: b.n, t: 0, id: b.id };
+    this.slots[si] = { c: b.c, n: b.n, id: b.id, q: [], t: 0 };
+    this.stalled = false;
+    this.cascade();
     return 1;
   }
-  // 提示：剩下的盒子里顺序最靠前的那一个（照这个顺序放，一定能搬完）
+  // 提示：剩下的盒子里顺序最靠前的那一个（照这个顺序放，能通关，见 makeGame 里的验证）
   hint() {
     let best = -1, bid = Infinity;
     this.cols.forEach((col, ci) => {
@@ -145,37 +175,34 @@ class Game {
     });
     return best;
   }
-  eatCell(i, c) {
-    this.eaten[i] = 1; this.left--; this._R = null;
-    this.ev.push({ t: 'eat', i, c });
-  }
-  spawn(path, idx, c) {
+
+  spawnVisual(job) {
     const n = this.n, pts = [[n / 2, n + 0.9]];
-    for (const j of path) pts.push([j % n + 0.5, Math.floor(j / n) + 0.5]);
-    pts.push([idx % n + 0.5, Math.floor(idx / n) + 0.5]);
-    this.ants.push({ c, idx, pts, k: 1, x: pts[0][0], y: pts[0][1], ph: 0, ux: 0, uy: -1 });
+    for (const j of job.path) pts.push([j % n + 0.5, Math.floor(j / n) + 0.5]);
+    pts.push([job.idx % n + 0.5, Math.floor(job.idx / n) + 0.5]);
+    this.ants.push({ c: job.c, idx: job.idx, pts, k: 1, x: pts[0][0], y: pts[0][1], ph: 0, ux: 0, uy: -1 });
   }
-  // 盒子出一只蚂蚁：吃掉离洞口最近的同色格子
-  emit(b) {
-    const idx = this.target(b.c);
-    if (idx < 0) return false;
-    const path = this.route(idx);
-    this.eatCell(idx, b.c);
-    this.spawn(path, idx, b.c);
-    return true;
-  }
+
   tick(dt) {
     if (this.state !== 'play') return;
     const sp = this.speed;
+    // 1) 槽位里的盒子按节奏把蚂蚁放出来（只是动画），搬完的槽位空出来
     for (let si = 0; si < this.slots.length; si++) {
-      const b = this.slots[si];
-      if (!b) continue;
-      b.t += dt * sp;
-      if (b.t < 200) continue;
-      if (!this.emit(b)) continue;
-      b.t = 0;
-      if (--b.n <= 0) this.slots[si] = null;
+      const s = this.slots[si];
+      if (!s) continue;
+      if (!s.q.length) s.t = 0;
+      else {
+        s.t += dt * sp;
+        if (s.t >= this.visualMs) {
+          s.t = 0;
+          const job = s.q.shift();
+          this.spawnVisual(job);
+          this.ev.push({ t: 'eat', i: job.idx, c: job.c });
+        }
+      }
+      if (s.n <= 0 && !s.q.length) this.slots[si] = null;
     }
+    // 2) 蚂蚁走路
     const step = 0.028 * dt * sp;
     for (const a of this.ants) {
       let d = step;
@@ -194,13 +221,57 @@ class Game {
       }
     }
     this.ants = this.ants.filter(a => !a.done);
-    if (this.left <= 0 && !this.ants.length) { this.state = 'win'; return; }
-    if (this.ants.length) return;
-    if (this.slots.some(b => b && this.target(b.c) >= 0)) { this.stalled = false; return; }
-    // 槽位里的盒子都搬不动，也没有蚂蚁在路上
-    const full = this.slots.every(b => b);
+    // 3) 输赢
+    if (this.left <= 0) {
+      if (!this.ants.length && this.slots.every(s => !s)) this.state = 'win';
+      return;
+    }
+    if (this.ants.length || this.slots.some(s => s && s.q.length)) return;
+    // 槽位里的盒子都搬不动（没有蚂蚁在路上，也没有排队的蚂蚁）
+    const full = this.slots.every(s => s);
     const noBoxes = this.cols.every(c => c.length === 0);
     if (full || noBoxes) { this.state = 'lose'; return; }
-    if (!this.stalled) { this.stalled = true; this.ev.push({ t: 'stall' }); }
+    if (this.slots.some(s => s) && !this.stalled) { this.stalled = true; this.ev.push({ t: 'stall' }); }
   }
+
+  // 验证用：一直放提示的盒子，能不能搬完（只算逻辑，不看时间）
+  hintWins() {
+    for (let guard = 0; guard < 100000 && this.left > 0; guard++) {
+      for (let si = 0; si < this.slots.length; si++) {
+        const s = this.slots[si];
+        if (s && s.n <= 0) this.slots[si] = null;
+      }
+      if (this.slots.indexOf(null) < 0) return false;
+      const c = this.hint();
+      if (c < 0) return false;
+      if (this.place(c) !== 1) return false;
+    }
+    return this.left <= 0;
+  }
+  snapshot() {
+    return {
+      eaten: this.eaten.slice(), left: this.left,
+      cols: this.cols.map(col => col.map(b => ({ ...b }))),
+      slots: this.slots.map(s => s ? { ...s, q: [] } : null)
+    };
+  }
+  restore(sn) {
+    this.eaten = sn.eaten; this.left = sn.left; this.cols = sn.cols; this.slots = sn.slots;
+    this._R = null; this.ants = []; this.ev = []; this.stalled = false; this.state = 'play';
+  }
+}
+
+// 生成一关：每个随机种子生成一套盒子，用“一直放提示的盒子”验证能通关；不能通关就换个种子重来
+function makeGame(lv, o) {
+  o = o || {};
+  let last = null;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const g = new Game(lv, Object.assign({}, o, { rand: rng(lv * 977 + 3 + attempt * 7919) }));
+    const sn = g.snapshot();
+    const ok = g.hintWins();
+    g.restore(sn);
+    if (ok) return g;
+    last = g;
+  }
+  return last;
 }

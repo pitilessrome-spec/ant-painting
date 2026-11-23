@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="utf-8">
+<html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>蚂蚁搬画</title>
+<title>ANT CANVAS</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation}
@@ -56,7 +56,7 @@ body{background:radial-gradient(120% 70% at 50% 8%,#f6fcff 0%,#c6e6fb 42%,#7aaee
 <div id="stage">
  <div id="top" class="a">
   <button id="snd" data-act="snd">♪</button>
-  <div id="lvbox" class="glass"><button class="nav" data-act="prev">◀</button><span id="lv">第1关</span><button class="nav" data-act="next">▶</button></div>
+  <div id="lvbox" class="glass"><button class="nav" data-act="prev">◀</button><span id="lv">Level 1</span><button class="nav" data-act="next">▶</button></div>
   <div id="pct" class="glass"><span id="pv">0%</span></div>
  </div>
  <div id="board" class="a">
@@ -64,18 +64,24 @@ body{background:radial-gradient(120% 70% at 50% 8%,#f6fcff 0%,#c6e6fb 42%,#7aaee
  </div>
  <div id="slots" class="a"></div>
  <div id="toast" class="a"></div>
- <div id="tip" class="a">点盒子进槽位 · 从下往上一层层吃 · 提示键看下一个该放哪个</div>
+ <div id="tip" class="a">Tap a box to load a slot · Eat the grid from the bottom up · Hint shows the next box</div>
  <div id="tok" class="a"></div>
  <div id="tools" class="a">
-  <button class="btn" data-act="speed">加速 <span id="spd">×1</span></button>
-  <button class="btn gold" data-act="hint">提示</button>
-  <button class="btn grn" id="rsh" data-act="reshuffle">换盒子</button>
+  <button class="btn" data-act="speed">Speed <span id="spd">×1</span></button>
+  <button class="btn gold" data-act="hint">Hint</button>
+  <button class="btn grn" id="rsh" data-act="reshuffle">Reshuffle</button>
  </div>
- <div id="win" class="over"><div class="card"><h2>过关！</h2><p id="winSub"></p><button class="cbtn" data-act="nextLv">下一关</button></div></div>
- <div id="lose" class="over"><div class="card"><h2>没有能搬的了</h2><p>看一段广告复活：多 1 个槽位，并把剩下的盒子重新排好，可以继续。</p><button class="cbtn" data-act="reviveAd">看广告复活</button><button class="cbtn ghost" data-act="retry">重来本关</button></div></div>
- <div id="ad" class="over"><div class="card"><h2>广告</h2><p>（广告位，待接入）</p><div id="adbox"><div id="adbar"></div></div></div></div>
+ <div id="win" class="over"><div class="card"><h2>Level cleared!</h2><p id="winSub"></p><button class="cbtn" data-act="nextLv">Next level</button></div></div>
+ <div id="lose" class="over"><div class="card"><h2>No moves left</h2><p>Watch an ad to revive: +1 slot, and the remaining boxes are reshuffled so you can keep going.</p><button class="cbtn" data-act="reviveAd">Watch ad to revive</button><button class="cbtn ghost" data-act="retry">Retry level</button></div></div>
+ <div id="ad" class="over"><div class="card"><h2>Ad</h2><p>(Ad placeholder)</p><div id="adbox"><div id="adbar"></div></div></div></div>
 </div>
 <script src="vendor/three.min.js"></script>
+<!-- 上线到 CrazyGames 时，取消下一行的注释，并在 js/ads.js 里把 provider 改成 'crazygames' -->
+<!-- <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script> -->
+<!-- Telegram 小程序用：Telegram 的网页 SDK 和 AdsGram 广告 SDK。本地测试可以不加载 -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+<script src="js/ads.js"></script>
 <script src="js/art.js"></script>
 <script src="js/game.js"></script>
 <script src="js/ui.js"></script>

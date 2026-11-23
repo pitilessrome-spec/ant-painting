@@ -1,4 +1,4 @@
-/* 蚂蚁搬画 · 关卡图案生成器（随机组合，每关一个随机种子） */
+/* ANT CANVAS · 关卡图案生成器（随机组合，每关一个随机种子） */
 'use strict';
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));

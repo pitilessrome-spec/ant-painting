@@ -1,8 +1,8 @@
-/* 蚂蚁搬画 · 页面与界面逻辑 */
+/* ANT CANVAS · 页面与界面逻辑 */
 const $=s=>document.querySelector(s);
 const VW=360,VH=318,SPEEDS=[1,2,3];
 const stage=$('#stage'),glc=$('#gl'),fxc=$('#fx'),fx=fxc.getContext('2d');
-let S=1,DPR=1,G=null,LV=1,MAXLV=1,spIdx=0,unlocks=2,reshuf=false,hintT=0,adT=0,adCb=null,SND=1,shown='',lastUI=0,PAR=[],anims=new Map(),shakeCol=-1,shakeUntil=0,toastH=0;
+let S=1,DPR=1,G=null,LV=1,MAXLV=1,spIdx=0,x3ok=false,unlocks=2,reshuf=false,hintT=0,adT=0,adCb=null,SND=1,shown='',lastUI=0,PAR=[],anims=new Map(),shakeCol=-1,shakeUntil=0,toastH=0;
 let R3=null,scene=null,cam=null,mesh=null,DM=null,VEC=null,CLR=null,CW=.1,ZC=0,ZTOP=0,AC=null;
 let st={};try{st=JSON.parse(localStorage.getItem('mbh3'))||{}}catch(e){}
 MAXLV=st.maxLv||1;SND=st.snd===undefined?1:st.snd;
@@ -10,7 +10,10 @@ MAXLV=st.maxLv||1;SND=st.snd===undefined?1:st.snd;
 function save(){try{localStorage.setItem('mbh3',JSON.stringify({lv:LV,maxLv:MAXLV,snd:SND}))}catch(e){}}
 function beep(f,d,v){if(!SND)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(v||.05,AC.currentTime);g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toastH);toastH=setTimeout(()=>e.classList.remove('on'),1400)}
-function ad(cb){adCb=cb;adT=1500;$('#ad').classList.add('on')}
+// 占位广告（provider 为 mock 时用）：1.5 秒后当作看完
+function startMockAd(cb){adCb=cb;adT=1500;$('#ad').classList.add('on')}
+// 所有激励广告都走 Ads 接入层；没看完不给奖励
+function ad(cb){Ads.rewarded(cb,()=>toast('No ad available right now, please try again later'))}
 function rrPath(p,x,y,w,h,r){p.moveTo(x+r,y);p.lineTo(x+w-r,y);p.quadraticCurveTo(x+w,y,x+w,y+r);p.lineTo(x+w,y+h-r);p.quadraticCurveTo(x+w,y+h,x+w-r,y+h);p.lineTo(x+r,y+h);p.quadraticCurveTo(x,y+h,x,y+h-r);p.lineTo(x,y+r);p.quadraticCurveTo(x,y,x+r,y)}
 function mix(a,b,t){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return '#'+[16,8,0].map(s=>{const p=x>>s&255,q=y>>s&255;return Math.round(p+(q-p)*t).toString(16).padStart(2,'0')}).join('')}
 function tokStyle(role){const base=G.pal[role];const r=parseInt(base.slice(1,3),16),g=parseInt(base.slice(3,5),16),b=parseInt(base.slice(5,7),16);const lum=.299*r+.587*g+.114*b;return `--c:${base};--l:${mix(base,'#ffffff',.3)};--d:${mix(base,'#000000',.3)};--t:${lum>168?'#2b2d42':'#ffffff'}`}
@@ -101,8 +104,8 @@ function handleEv(){
  for(const e of G.ev){
   if(e.t==='eat'){anims.set(e.i,0);burst(e.i,e.c);beep(560+Math.random()*420,.07,.035)}
   else if(e.t==='claim'&&mesh){mesh.setColorAt(e.i,CLR.set(mix(G.pal[e.c],'#ffffff',.35)));mesh.instanceColor.needsUpdate=true}
-  else if(e.t==='reshuffle')toast('没有能搬的，盒子已重新排好');
-  else if(e.t==='stall')toast('现在没有能搬的盒子，想想下一步该放哪个');
+  else if(e.t==='reshuffle')toast('No moves left, boxes reshuffled');
+  else if(e.t==='stall')toast('No box can move right now. Think about what to load next');
  }
  G.ev.length=0;
 }
@@ -110,13 +113,14 @@ function handleEv(){
 /* ---------- 界面（HTML） ---------- */
 function renderUI(){
  if(!G)return;
- $('#lv').textContent='第'+LV+'关';
+ $('#lv').textContent='Level '+LV;
  $('#pv').textContent=G.pct()+'%';
- $('#spd').textContent='×'+SPEEDS[spIdx];
- $('#rsh').classList.toggle('off',LV<10||reshuf);
+ $('#spd').textContent=(spIdx===1&&!x3ok)?'×2 ▸ ×3 (ad)':'×'+SPEEDS[spIdx];
+ $('#rsh').classList.toggle('off',LV<10);
+ $('#rsh').textContent=reshuf?'Reshuffle ▶':'Reshuffle';
  let sh='';
  for(let i=0;i<G.cap;i++){const b=G.slots[i];sh+=b?`<div class="tile tk" style="${tokStyle(b.c)}"><span>${b.n}</span></div>`:'<div class="tile empty"></div>'}
- if(G.cap<7&&unlocks>0)sh+='<div class="tile unlock" data-act="unlock">＋</div>';
+ if(G.cap<7&&unlocks>0)sh+='<div class="tile unlock" data-act="unlock">+</div>';
  $('#slots').innerHTML=sh;
  const hc=G.state==='play'?G.hint():-1;
  let th='';
@@ -136,14 +140,15 @@ function renderUI(){
 /* ---------- 关卡与流程 ---------- */
 function newLevel(lv){
  LV=Math.max(1,Math.min(999999,lv));
- G=new Game(LV,{speed:SPEEDS[spIdx]});
+ spIdx=Math.min(spIdx,LV>=10?1:0);x3ok=false;
+ G=makeGame(LV,{speed:SPEEDS[spIdx]});
  MAXLV=Math.max(MAXLV,LV);reshuf=false;unlocks=2;shown='play';hintT=0;PAR=[];anims.clear();
  $('#win').classList.remove('on');$('#lose').classList.remove('on');
- buildBoard();placeHole();save();renderUI();
+ buildBoard();placeHole();save();renderUI();Ads.gameplay(true);
 }
 function onWin(){
  MAXLV=Math.max(MAXLV,Math.min(999999,LV+1));save();
- $('#winSub').textContent='第'+LV+'关完成 · 进度 100%';
+ $('#winSub').textContent='Level '+LV+' complete · 100%';
  $('#win').classList.add('on');
  [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.25,.05),i*120));
  for(let i=0;i<70;i++)PAR.push({x:Math.random()*VW,y:-10-Math.random()*60,vx:(Math.random()-.5)*1.2,vy:1+Math.random()*2,l:2600,c:G.pal[(Math.random()*8)|0]});
@@ -155,27 +160,31 @@ stage.addEventListener('pointerdown',e=>{
  if(el.dataset.col!==undefined){
    const c=+el.dataset.col,r=G.place(c);
    if(r===1){beep(520,.07,.05);renderUI()}
-   else if(r===2)toast('槽位满了，先等等');
-   else if(r===3){toast('这个颜色现在搬不了，找绿点的');shakeCol=c;shakeUntil=performance.now()+400;renderUI()}
+   else if(r===2)toast('All slots are full, wait a moment');
+   else if(r===3){toast("This color can't be eaten yet");shakeCol=c;shakeUntil=performance.now()+400;renderUI()}
    return;
  }
  const a=el.dataset.act;
- if(a==='unlock')ad(()=>{G.addSlot();unlocks--;renderUI();toast('多了一个槽位')});
- else if(a==='speed'){spIdx=(spIdx+1)%SPEEDS.length;G.speed=SPEEDS[spIdx];renderUI()}
- else if(a==='hint')ad(()=>{hintT=6000;toast('闪烁的盒子就是现在能搬的')});
+ if(a==='unlock')ad(()=>{G.addSlot();unlocks--;renderUI();toast('Extra slot added')});
+ else if(a==='speed'){
+   if(spIdx===0){ if(LV<10)toast('×2 unlocks at level 10'); else{spIdx=1;G.speed=SPEEDS[spIdx]} }
+   else if(spIdx===1){ if(x3ok){spIdx=2;G.speed=SPEEDS[spIdx]} else ad(()=>{x3ok=true;spIdx=2;G.speed=SPEEDS[spIdx];renderUI();toast('×3 unlocked for this level')}) }
+   else{ spIdx=0; G.speed=SPEEDS[spIdx] }
+   renderUI()
+ }
+ else if(a==='hint')ad(()=>{hintT=6000;toast('The glowing box is the next one to load')});
  else if(a==='reshuffle'){
-   if(LV<10)toast('第10关解锁');
-   else if(reshuf)toast('本关已用过一次');
-   else if(G.ants.length)toast('等蚂蚁搬完再换');
-   else if(G.reshuffle()){reshuf=true;toast('盒子重新排好了')}
-   renderUI();
+   if(LV<10)toast('Reshuffle unlocks at level 10');
+   else if(G.ants.length)toast('Wait for the ants to finish first');
+   else if(!reshuf){ G.reshuffle(); reshuf=true; toast('Boxes reshuffled'); renderUI(); }
+   else ad(()=>{ if(G.reshuffle())toast('Boxes reshuffled'); renderUI(); });
  }
  else if(a==='prev'&&LV>1)newLevel(LV-1);
  else if(a==='next'&&LV<MAXLV)newLevel(LV+1);
- else if(a==='nextLv')newLevel(LV+1);
+ else if(a==='nextLv')Ads.midgame(()=>newLevel(LV+1));
  else if(a==='retry')newLevel(LV);
  else if(a==='reviveAd')ad(()=>{G.revive();$('#lose').classList.remove('on');shown='play';renderUI()});
- else if(a==='snd'){SND=SND?0:1;save();toast(SND?'声音已开':'声音已关')}
+ else if(a==='snd'){SND=SND?0:1;save();toast(SND?'Sound on':'Sound off')}
 });
 
 let last=performance.now();
@@ -186,7 +195,7 @@ function frame(now){
    if(adT<=0){adT=0;$('#ad').classList.remove('on');const f=adCb;adCb=null;if(f)f()}
  }
  if(G){
-   if(adT<=0&&G.state==='play')G.tick(dt);
+   if(adT<=0&&!Ads.busy&&G.state==='play')G.tick(dt);
    handleEv();
    if(hintT>0)hintT-=dt;
    if(G.state!==shown){
@@ -201,7 +210,9 @@ function frame(now){
 }
 
 init3D();
-if(!R3)toast('3D 画面加载失败，请检查网络');
+Ads.init();
+if(window.Telegram&&window.Telegram.WebApp){window.Telegram.WebApp.ready();window.Telegram.WebApp.expand();}
+if(!R3)toast('3D view failed to load, please check your connection');
 fit();window.addEventListener('resize',fit);
 newLevel(st.lv||MAXLV);
 requestAnimationFrame(frame);
