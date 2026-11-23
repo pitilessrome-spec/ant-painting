@@ -3,7 +3,7 @@
 'use strict';
 const KEY='ant_canvas_village_v1';
 const catalog=Object.freeze({
- flower:{name:'Flower Garden',symbol:'🌼',wood:3,petals:2,description:'A colorful little flower bed'},
+ flower:{name:'Flower Garden',symbol:'🌼',wood:2,petals:1,description:'Your very first flowering garden'},
  mushroom:{name:'Mushroom House',symbol:'🍄',wood:5,petals:3,description:'A cozy home for tiny ants'},
  lantern:{name:'Firefly Lantern',symbol:'🏮',wood:8,petals:4,description:'A warm light for night visits'},
  fountain:{name:'Rainbow Fountain',symbol:'⛲',wood:13,petals:8,description:'A sparkling village centerpiece'},
