@@ -144,7 +144,7 @@ function renderUI(){
  $('#rsh').textContent=reshuf?'Reshuffle ▶':'Reshuffle';
  let sh='';
  for(let i=0;i<G.cap;i++){const b=G.slots[i];sh+=b?`<div class="tile tk" style="${tokStyle(b.c)}"><span>${G.slotDisplayCount(b)}</span></div>`:'<div class="tile empty"></div>'}
- if(G.cap<7&&unlocks>0)sh+='<div class="tile unlock" data-act="unlock">+</div>';
+ if(G.cap===4)sh+='<button type="button" class="tile unlock ad-slot" data-act="unlock" aria-label="Unlock fifth slot by watching a rewarded advertisement" title="Watch a rewarded ad to unlock the fifth slot">🎬<small>AD SLOT</small></button>';
  $('#slots').innerHTML=sh;
  const hc=G.state==='play'?G.hint():-1;
  let th='';
@@ -201,7 +201,11 @@ stage.addEventListener('pointerdown',e=>{
    return;
  }
  const a=el.dataset.act;
- if(a==='unlock')ad(()=>{G.addSlot();unlocks--;renderUI();toast('Extra slot added')});
+ if(a==='unlock'){
+   if(G.cap!==4)return;
+   if(!Ads.canRewardSlot()){toast('Rewarded ads coming soon · fifth slot not yet available');return}
+   Ads.rewardedSlot(()=>{if(G&&G.cap===4){G.addSlot();renderUI();toast('🎉 Fifth slot unlocked by rewarded ad!')}},()=>toast('Ad skipped or unavailable · no slot unlocked'));
+  }
  else if(a==='speed'){
    if(spIdx===0){ if(LV<10)toast('×2 unlocks at level 10'); else{spIdx=1;G.speed=SPEEDS[spIdx]} }
    else if(spIdx===1){ if(x3ok){spIdx=2;G.speed=SPEEDS[spIdx]} else ad(()=>{x3ok=true;spIdx=2;G.speed=SPEEDS[spIdx];renderUI();toast('×3 unlocked for this level')}) }
