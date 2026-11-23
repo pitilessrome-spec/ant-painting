@@ -21,6 +21,68 @@ if(!Number.isSafeInteger(state.claimedHigh)){
  delete state.claimed;write();
 }
 state.claimedExtra=state.claimedExtra||[];
+state.upgrades=state.upgrades||{};
+state.openedChest=Number.isInteger(state.openedChest)?Math.max(0,state.openedChest):0;
+state.souvenirs=state.souvenirs||{};
+state.discovered=state.discovered||{};
+const SOUVENIRS=Object.freeze([
+ {id:'star',name:'Starlight Pebble',symbol:'⭐',description:'A shimmering keepsake from a secret chest'},
+ {id:'crystal',name:'Moon Crystal',symbol:'💎',description:'The crystal ants found under the hill'},
+ {id:'seed',name:'Rainbow Seed',symbol:'🌈',description:'A magical seed for future gardens'},
+ {id:'shell',name:'River Shell',symbol:'🐚',description:'A souvenir from the village stream'},
+ {id:'feather',name:'Golden Feather',symbol:'🪶',description:'A rare and brilliant tiny feather'},
+ {id:'compass',name:'Explorer Compass',symbol:'🧭',description:'A travel charm from an adventurous ant'}
+]);
+const COMBOS=Object.freeze([
+ {id:'garden',name:'Mushroom Meadow',symbol:'🌸',items:['flower','mushroom'],require:2,description:'A glowing garden around a cozy mushroom home'},
+ {id:'festival',name:'Lantern Festival',symbol:'🎆',items:['lantern','fountain'],require:2,description:'The village glows with colorful night lights'},
+ {id:'royal',name:'Royal Butterfly Grove',symbol:'🦋',items:['butterfly','castle'],require:2,description:'A royal garden visited by rare butterflies'}
+]);
+function getLevel(slot){return Math.max(1,Math.min(3,Number(state.upgrades[slot])||1))}
+function upgradeCost(slot){
+ const item=state.placements[slot];if(!item)return null;
+ const level=getLevel(slot);if(level>=3)return null;
+ return {wood:catalog[item].wood*level+2,petals:catalog[item].petals*level+1};
+}
+function activeCombos(){
+ return COMBOS.filter(c=>c.items.every(id=>
+   Object.keys(state.placements).some(k=>state.placements[k]===id&&getLevel(k)>=c.require)));
+}
+function refreshCombos(){
+ const newly=[];
+ for(const combo of activeCombos())if(!state.discovered[combo.id]){
+   state.discovered[combo.id]=1;newly.push(combo.id);
+ }
+ return newly;
+}
+function upgrade(slot){
+ const index=Number(slot),item=state.placements[index];
+ if(!Number.isInteger(index)||index<0||index>8||!item)return {ok:false,error:'Choose an existing building'};
+ const level=getLevel(index),cost=upgradeCost(index);
+ if(!cost)return {ok:false,error:'This building is already at level 3'};
+ if(state.wood<cost.wood||state.petals<cost.petals)return {ok:false,error:'Collect more materials to upgrade'};
+ state.wood-=cost.wood;state.petals-=cost.petals;state.upgrades[index]=level+1;
+ const combos=refreshCombos();write();
+ return {ok:true,item,level:level+1,combos};
+}
+function unopenedChests(){return Math.max(0,state.chests-state.openedChest)}
+function openChest(){
+ if(unopenedChests()===0)return {ok:false,error:'Clear more paintings. Every fifth level brings a chest!'};
+ const seq=state.openedChest,choice=SOUVENIRS[seq%SOUVENIRS.length];
+ state.openedChest++;state.souvenirs[choice.id]=(state.souvenirs[choice.id]||0)+1;
+ // Transparent, deterministic cosmetics; chests are never paid for.
+ const wood=2+(seq%3),petals=1+(seq%2);
+ state.wood+=wood;state.petals+=petals;write();
+ return {ok:true,souvenir:choice,wood,petals,remaining:unopenedChests()};
+}
+function discoveries(){
+ return {
+  items:SOUVENIRS.map(item=>Object.assign({},item,{unlocked:!!state.souvenirs[item.id],count:state.souvenirs[item.id]||0})),
+  combos:COMBOS.map(c=>Object.assign({},c,{unlocked:!!state.discovered[c.id]})),
+  active:activeCombos()
+ };
+}
+
 function alreadyAwarded(lv){return lv<=state.claimedHigh||state.claimedExtra.includes(lv)}
 function trackAward(lv){
  if(lv===state.claimedHigh+1){
@@ -58,9 +120,9 @@ function place(slot,item){
  if(state.placements[index])return {ok:false,error:'This plot is already decorated'};
  if(state.wood<it.wood||state.petals<it.petals)return {ok:false,error:'Not enough materials yet. Clear more paintings!'};
  state.wood-=it.wood;state.petals-=it.petals;
- state.placements[index]=item;write();
+ state.placements[index]=item;state.upgrades[index]=1;refreshCombos();write();
  return {ok:true,item};
 }
 function count(){return Object.keys(state.placements).length}
-global.AntVillage=Object.freeze({award,place,snapshot,count,catalog});
+global.AntVillage=Object.freeze({award,place,upgrade,upgradeCost,getLevel,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
 })(typeof window==='undefined'?globalThis:window);
