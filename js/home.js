@@ -26,11 +26,12 @@
       "</div>",
       "<div class='ah-progress' aria-live='polite'>",
         "<div><small>YOUR ADVENTURE</small><strong id='ah-resume-level'>Level 1</strong></div>",
-        "<div class='ah-endless'>✦ ENDLESS<br>PUZZLES</div>",
+        "<button type='button' class='ah-toggle' data-home-action='mode'>🌈 HYBRID ANTS<b id='ah-mode'>ON</b></button>",
       "</div>",
       "<button type='button' class='ah-start' data-home-action='play'><span>▶</span><span id='ah-play-copy'>PLAY NOW</span><span class='ah-arrow'>→</span></button>",
       "<div class='ah-secondary-row'>",
         "<button type='button' class='ah-secondary' data-home-action='how'>❔ How to play</button>",
+        "<button type='button' class='ah-secondary' data-home-action='gallery'>🖼 Gallery</button>",
         "<button type='button' class='ah-secondary' data-home-action='share'>↗ Share game</button>",
       "</div>",
       "<p class='ah-footer'>SORT THE COLORS · REVEAL THE MAGIC</p>",
@@ -93,6 +94,7 @@
     document.getElementById('ah-resume-level').textContent = 'Level ' + progress.lv;
     document.getElementById('ah-play-copy').textContent = progress.best > 1 ? 'CONTINUE PLAYING' : 'PLAY NOW';
     if (typeof SND !== 'undefined') document.getElementById('ah-sound').textContent = SND ? '♫ ON' : '♫ OFF';
+    if(window.AntWorkshop)window.AntWorkshop.render(window.ANT_CANVAS_GAME||null);
   }
   function show() {
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
@@ -133,6 +135,8 @@
     else if (action === 'how') { document.getElementById('ah-how').hidden = false; }
     else if (action === 'back') { document.getElementById('ah-how').hidden = true; }
     else if (action === 'share') share();
+    else if (action === 'gallery') window.location.href='collection.html';
+    else if (action === 'mode' && window.AntWorkshop){window.AntWorkshop.toggle();updateHome();}
     else if (action === 'sound' && typeof SND !== 'undefined') {
       SND = SND ? 0 : 1;
       if (typeof save === 'function') save();
