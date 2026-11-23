@@ -61,16 +61,19 @@
         <h3 style="font-size:14px;text-align:left;margin:15px 0 5px">🏆 Global leaderboard</h3>
         <ol id="tg-ranks"><li>Waiting for Telegram game service</li></ol>
         <button class="tgbtn" id="tg-invite" type="button">Invite friends</button>
+        <button class="tgbtn secondary" id="tg-online-start" type="button" hidden>Play verified level</button>
         <button class="tgbtn secondary" id="tg-refresh" type="button">Refresh rankings</button>
         <button class="tgbtn secondary" id="tg-close" type="button">Continue playing</button>
         <p id="tg-toast"></p>
         <p class="tgbadge">Telegram identity is verified on the server; your browser's saved game stays available.</p>
+        <p class="tgbadge"><a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a> · <a href="terms.html" target="_blank" rel="noopener noreferrer">Terms</a></p>
       </div>`;
     $('#stage').appendChild(overlay);
     $('#tg-profile-btn').addEventListener('click', openPanel);
     $('#tg-share-btn').addEventListener('click', share);
     $('#tg-invite').addEventListener('click', share);
     $('#tg-refresh').addEventListener('click', fetchRanks);
+    $('#tg-online-start').addEventListener('click', () => { closePanel(); if (typeof window.newLevel === 'function') window.newLevel(bestOnline + 1); });
     $('#tg-close').addEventListener('click', closePanel);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closePanel(); });
     render();
@@ -100,6 +103,7 @@
     if (!$('#telegram-hub')) return;
     $('#tg-local-best').textContent = currentLevel();
     $('#tg-global-best').textContent = validated ? bestOnline : '—';
+    $('#tg-online-start').hidden = !validated;
     let account = active ? 'Telegram detected · connecting securely' : 'Browser mode · local progress';
     if (validated) account = 'Telegram player ' + playerId;
     $('#tg-account').textContent = account;
