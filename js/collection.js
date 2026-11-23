@@ -35,7 +35,7 @@ function appendItem(lv){
     const q=document.createElement('span');q.className='question';q.textContent='?';preview.appendChild(q);
   }
   const meta=document.createElement('div');meta.className='meta';
-  const name=document.createElement('b');name.textContent='Level '+lv;
+  const name=document.createElement('b');name.textContent='Level '+lv+(owned&&lv%5===0?' · 🎁 Secret':'');
   const sub=document.createElement('span');sub.textContent=owned?'Collected masterpiece':'🔒 Mystery painting';
   meta.append(name,sub);b.append(preview,meta);
   if(owned)b.addEventListener('click',()=>openDetail(lv));
@@ -55,7 +55,16 @@ function render(){
 function openDetail(lv){
   if(!P.contains(lv))return;
   shownLv=lv;
-  const holder=$('detail-art');holder.replaceChildren(makeArt(lv,5).canvas);
+  const holder=$('detail-art');holder.replaceChildren();
+  const normal=makeArt(lv,5),primary=document.createElement('div');
+  primary.textContent='YOUR CLEARED ARTWORK';primary.style.cssText='font:900 11px system-ui;color:#53718d;margin:9px 0';
+  holder.append(primary,normal.canvas);
+  if(lv%5===0){
+    const secret=document.createElement('div');
+    secret.textContent='🎁 SECRET BONUS MASTERPIECE';
+    secret.style.cssText='font:900 11px system-ui;color:#a67838;margin:16px 0 10px';
+    holder.append(secret,makeArt(lv+100001000,5).canvas);
+  }
   $('detail-title').textContent='Level '+lv+' · '+P.rarity(lv).symbol+' '+P.rarity(lv).title;
   const Pict=buildPicture(lv);
   $('detail-desc').textContent=(Pict.theme||'Mystery art')+' · Collected masterpiece';
@@ -72,8 +81,8 @@ $('detail').addEventListener('click',e=>{if(e.target===$('detail'))closeDetail()
 addEventListener('keydown',e=>{if(e.key==='Escape')closeDetail()});
 $('detail-save').onclick=()=>{
  if(!P.contains(shownLv))return;
- const pic=makeArt(shownLv,8).canvas;
- const a=document.createElement('a');a.download='ant-canvas-level-'+shownLv+'.png';a.href=pic.toDataURL('image/png');a.click();
+ const pic=makeArt(shownLv%5===0?shownLv+100001000:shownLv,8).canvas;
+ const a=document.createElement('a');a.download='ant-canvas-'+(shownLv%5===0?'secret-':'')+'level-'+shownLv+'.png';a.href=pic.toDataURL('image/png');a.click();
 };
 updateStats();render();
 })();
