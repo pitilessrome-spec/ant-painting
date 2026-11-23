@@ -56,7 +56,7 @@
   }
  }
  function onTick(game){
-  if(!active||step!==1||!game||game.lv!==1)return;
+  if(!active||step!==1||!game||game.lv!==1||(window.AntHome&&window.AntHome.isOpen))return;
   // The first visual launch proves that ants, rather than taps, drive the slot number.
   if(game.ants.length>0){
    setStep(2);
