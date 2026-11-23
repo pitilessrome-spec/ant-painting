@@ -301,7 +301,7 @@ function makeGame(lv, o) {
   for (let attempt = 0; attempt < 8; attempt++) {
     const playerSeed=canvasPlayerSeed();
     const raw=lv*977+3+attempt*7919;
-    const boxSeed=playerSeed===0?raw:mix32(raw^mix32(playerSeed));
+    const boxSeed=lv>999999&&typeof window!=='undefined'&&window.AntCanvasProfile?window.AntCanvasProfile.levelSeed(lv,977+attempt*7919):playerSeed===0?raw:mix32(raw^mix32(playerSeed));
     const g = new Game(lv, Object.assign({}, o, { rand: rng(boxSeed) }));
     const sn = g.snapshot();
     const ok = g.hintWins();
