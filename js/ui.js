@@ -140,13 +140,16 @@ function renderUI(){
 /* ---------- Levels and flow ---------- */
 function newLevel(lv){
  LV=Math.max(1,Math.min(999999,lv));
+ window.ANT_CANVAS_CURRENT_LEVEL=LV;
  spIdx=Math.min(spIdx,LV>=10?1:0);x3ok=false;
  G=makeGame(LV,{speed:SPEEDS[spIdx]});
  MAXLV=Math.max(MAXLV,LV);reshuf=false;unlocks=3;shown='play';hintT=0;PAR=[];anims.clear();
  $('#win').classList.remove('on');$('#lose').classList.remove('on');
  buildBoard();placeHole();save();renderUI();Ads.gameplay(true);
+ if(window.AntTelegram) window.AntTelegram.onLevelStart(LV);
 }
 function onWin(){
+ if(window.AntTelegram) window.AntTelegram.onLevelComplete(LV);
  MAXLV=Math.max(MAXLV,Math.min(999999,LV+1));save();
  $('#winSub').textContent='Level '+LV+' complete · 100%';
  $('#win').classList.add('on');
@@ -211,6 +214,7 @@ function frame(now){
 
 init3D();
 Ads.init();
+if(window.AntTelegram) window.AntTelegram.init();
 if(window.Telegram&&window.Telegram.WebApp){window.Telegram.WebApp.ready();window.Telegram.WebApp.expand();}
 if(!R3)toast('3D view failed to load, please check your connection');
 fit();window.addEventListener('resize',fit);
