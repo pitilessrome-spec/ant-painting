@@ -22,8 +22,10 @@ function hsl(h, s, l) {
   return [f(0), f(8), f(4)].map(v => Math.round(v * 255));
 }
 const hex = rgb => '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('');
+function canvasPlayerSeed(){return typeof window!=='undefined'&&window.AntCanvasProfile?window.AntCanvasProfile.seed:0;}
 function palette(lv) {
-  const R = rng(lv * 31 + 5), j = (R() * 2 - 1) * 14, dl = (R() * 2 - 1) * 4;
+  const seed=canvasPlayerSeed();
+  const R = rng(seed===0?(lv*31+5):mix32((lv*31+5)^mix32(seed))), j = (R() * 2 - 1) * 14, dl = (R() * 2 - 1) * 4;
   return MATS.map(m => {
     const sat = m[2], lig = clamp(m[3] + (sat > 0 ? dl : 0), 0, 100);
     const h = (m[1] + (sat > 0 ? j : 0) + 360) % 360;
@@ -336,6 +338,7 @@ function kButterfly(C, R, sc) {
   C.add(ell(cx + w * 0.2, cy - h * 0.8, w * 0.3, 0.012, 0.5), [M.OUT, M.OUT, M.OUT]);
 }
 const KINDS = [kBlob, kTree, kFlower, kMush, kHouse, kHeart, kStar, kSun, kCloud, kFish, kBoat, kGem, kRainbow, kButterfly];
+const KIND_THEMES = ['Cute creature','Nature','Nature','Nature','Cozy places','Treasures','Wonders','Nature','Nature','Ocean life','Ocean life','Treasures','Wonders','Cute creature'];
 
 // Clouds in the sky (drawn on the background only)
 function clouds(C, R) {
@@ -368,7 +371,9 @@ function coverage(C) { let c = 0; for (let i = 0; i < C.obj.length; i++) if (C.o
 /* ---------- Pictures: each level number maps to one random combination; no repeats ---------- */
 function gridN(lv) { return Math.min(56, 40 + Math.floor(lv / 25)); }
 function buildPicture(lv) {
-  const R = rng(mix32(lv * 7919 + 101)), n = gridN(lv), C = new Cv(n);
+  const playerSeed=canvasPlayerSeed();
+  const seed=playerSeed===0?mix32(lv*7919+101):mix32((lv*7919+101)^mix32(playerSeed));
+  const R = rng(seed), n = gridN(lv), C = new Cv(n);
   const bi = Math.floor(R() * BGS.length);
   BGS[bi](C, R);
   if (R() < 0.35) {
@@ -376,11 +381,16 @@ function buildPicture(lv) {
     C.paint((u, v, x, y) => v > g ? (v < g + 0.02 ? 2 : (((x + y) & 1) && v < g + 0.05 ? 0 : 1)) : -1, f, 0);
   }
   const nObj = 2 + Math.floor(R() * 3);
-  for (let i = 0; i < nObj; i++) KINDS[Math.floor(R() * KINDS.length)](C, R, i === 0 ? 1.0 + R() * 0.6 : 0.6 + R() * 0.5);
+  let mainKind=0;
+  for (let i = 0; i < nObj; i++) {
+    const kind=Math.floor(R()*KINDS.length);
+    if(i===0)mainKind=kind;
+    KINDS[kind](C,R,i===0?1.0+R()*0.6:0.6+R()*0.5);
+  }
   // If the objects cover too little of the picture, add one more, larger object
   for (let t = 0; t < 3 && coverage(C) < 0.25; t++) KINDS[Math.floor(R() * KINDS.length)](C, R, 1.2 + R() * 0.5);
   if (R() < 0.6) clouds(C, R);
   sparkles(C, R);
   C.outline();
-  return { n, role: C.role, subj: bi };
+  return { n, role: C.role, subj: bi, kind: mainKind, theme: KIND_THEMES[mainKind] };
 }
