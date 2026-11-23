@@ -91,11 +91,12 @@ class Game {
     this.cols = [[], [], [], []]; this.ants = []; this.ev = [];
     this.state = 'play'; this.speed = o.speed || 1; this._R = null; this.stalled = false;
     this.blastEnabled=typeof window!=='undefined'&&!!(window.AntWorkshop&&window.AntWorkshop.enabled);
-    this.blastCharge=0;this.blastRemaining=0;this.blastShots=0;
+    this.blastCharge=0;this.blastRemaining=0;this.blastShots=0;this.visualDone=0;
     this.visualMs = 200;   // time between ants leaving a slot (animation only)
     this.rebuild();
   }
   pct() { return Math.floor((this.total - this.left) / this.total * 100); }
+  visualPct() { return Math.floor(Math.min(this.total,this.visualDone) / this.total * 100); }
   // UI count: logical remaining (n) + ants queued to walk (q).
   // Decrement only when each queued ant actually leaves the slot in tick().
   slotDisplayCount(s) { return s ? s.n + s.q.length : 0; }
