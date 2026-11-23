@@ -1,10 +1,10 @@
-/* ANT CANVAS · 关卡图案生成器（随机组合，每关一个随机种子） */
+/* ANT CANVAS · level picture generator (random combinations, one random seed per level) */
 'use strict';
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-/* ---------- 颜色：22 个材质，每关色相整体轻微偏移 ---------- */
-// [名字, 色相, 饱和度, 亮度]；饱和度为 0 的是中性色，不随关卡变色
+/* ---------- Colors: 22 materials, the hue shifts slightly per level ---------- */
+// [name, hue, saturation, lightness]; saturation 0 = neutral, does not change per level
 const MATS = [
   ['OUT', 0, 0, 14], ['WHITE', 40, 20, 97], ['GRAY', 215, 8, 76], ['GRAYD', 215, 10, 52],
   ['SKYL', 195, 80, 90], ['SKY', 200, 72, 78], ['SKYD', 212, 62, 60], ['BLU', 225, 70, 50],
@@ -31,7 +31,7 @@ function palette(lv) {
   });
 }
 
-/* ---------- 随机与噪声 ---------- */
+/* ---------- Random numbers and noise ---------- */
 function mix32(z) {
   z = (z ^ (z >>> 16)) >>> 0; z = Math.imul(z, 0x7feb352d) >>> 0;
   z = (z ^ (z >>> 15)) >>> 0; z = Math.imul(z, 0x846ca68b) >>> 0;
@@ -57,8 +57,8 @@ function vn(x, y, s) {
 }
 function fbm(x, y, s) { return vn(x, y, s) * 0.55 + vn(x * 2.03, y * 2.03, s + 7) * 0.3 + vn(x * 4.1, y * 4.1, s + 13) * 0.15; }
 
-/* ---------- 形状：f(u,v,x,y) -> -1 外面 / 0 底色 / 1 暗面 / 2 高光 ---------- */
-// 明暗统一规则：s 在 [-1,1]，越靠右下越暗；过渡带打格子，颜色更柔和
+/* ---------- Shapes: f(u,v,x,y) -> -1 outside / 0 base / 1 shade / 2 highlight ---------- */
+// Shading rule: s in [-1,1], darker toward the bottom-right; the transition band uses a checkerboard for a softer look
 function tone(s, x, y) {
   if (s > 0.06 && s <= 0.15 && ((x + y) & 1)) return 1;
   return s > 0.15 ? 1 : 0;
@@ -82,7 +82,7 @@ function rr(x0, y0, x1, y1, r) {
     return tone((u - x0) / (x1 - x0) + (v - y0) / (y1 - y0) - 1, x, y);
   };
 }
-// 圆环的一段：从角度 a1 转到 a2（屏幕坐标，y 向下）
+// A segment of a ring: from angle a1 to a2 (screen coordinates, y pointing down)
 function arc(cx, cy, r1, r2, a1, a2) {
   return (u, v, x, y) => {
     const dx = u - cx, dy = v - cy, d = Math.hypot(dx, dy);
@@ -131,7 +131,7 @@ function starPts(cx, cy, R1, R2, k, rot) {
 function hull(...fs) { return (u, v, x, y) => { for (const f of fs) { const t = f(u, v, x, y); if (t >= 0) return t; } return -1; }; }
 function cloudShape(cx, cy, w) { return hull(ell(cx, cy, w, w * 0.5), ell(cx - w * 0.8, cy + w * 0.2, w * 0.6, w * 0.42), ell(cx + w * 0.8, cy + w * 0.2, w * 0.6, w * 0.42)); }
 
-/* ---------- 画布：先画背景，再一层层画物体，最后描黑边 ---------- */
+/* ---------- Canvas: paint the background, then the objects layer by layer, then outlines ---------- */
 class Cv {
   constructor(n) { this.n = n; this.role = new Uint8Array(n * n); this.obj = new Uint16Array(n * n); this.nid = 1; }
   bg(f) { const n = this.n; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) this.role[y * n + x] = f(x, y, (x + 0.5) / n, (y + 0.5) / n); }
@@ -143,7 +143,7 @@ class Cv {
     }
   }
   add(f, m) { this.paint(f, m, this.nid++); }
-  // 物体的边缘挨着后面的东西，就描成黑边
+  // Object edges touching something behind them get a black outline
   outline() {
     const n = this.n, o = this.obj, mark = [];
     for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
@@ -155,7 +155,7 @@ class Cv {
   }
 }
 
-/* ---------- 颜色家族：每个家族是 [底色, 暗面, 高光] ---------- */
+/* ---------- Color families: each is [base, shade, highlight] ---------- */
 const FAM = {
   red: [M.RED, M.REDD, M.PNK], pink: [M.PNK, M.PNKD, M.WHITE], orange: [M.ORG, M.ORGD, M.YEL], yellow: [M.YEL, M.YELD, M.WHITE],
   green: [M.GRN, M.GRND, M.GRNL], lime: [M.GRNL, M.GRN, M.YEL], sky: [M.SKY, M.SKYD, M.SKYL], blue: [M.BLU, M.SKYD, M.SKYL],
@@ -165,7 +165,7 @@ const OBJ_FAMS = ['red', 'pink', 'orange', 'yellow', 'green', 'lime', 'sky', 'bl
 const BG_FAMS = ['sky', 'blue', 'green', 'lime', 'pink', 'purple', 'yellow', 'orange', 'gray', 'brown'];
 const famOf = (R, list) => FAM[list[Math.floor(R() * list.length)]];
 
-/* ---------- 背景：八种，每种都有随机的颜色和花纹 ---------- */
+/* ---------- Backgrounds: eight kinds, each with random colors and patterns ---------- */
 function bgBands(C, R) {
   const f = famOf(R, BG_FAMS), e1 = 0.25 + R() * 0.25, e2 = e1 + 0.2 + R() * 0.3;
   C.bg((x, y, u, v) => {
@@ -226,7 +226,7 @@ function bgMeadow(C, R) {
 }
 const BGS = [bgBands, bgRadial, bgFoliage, bgPolka, bgStripes, bgWaves, bgNight, bgMeadow];
 
-/* ---------- 物体：十四种，每一种位置、大小、颜色、脸、装饰都随机 ---------- */
+/* ---------- Objects: fourteen kinds; position, size, colors, faces and decorations are random ---------- */
 function kBlob(C, R, sc) {
   const cx = 0.3 + R() * 0.4, cy = 0.36 + R() * 0.3, w = (0.14 + R() * 0.07) * sc * 1.6, h = w * (0.85 + R() * 0.35);
   const f = famOf(R, OBJ_FAMS);
@@ -337,7 +337,7 @@ function kButterfly(C, R, sc) {
 }
 const KINDS = [kBlob, kTree, kFlower, kMush, kHouse, kHeart, kStar, kSun, kCloud, kFish, kBoat, kGem, kRainbow, kButterfly];
 
-// 天上的云朵（只画在背景上）
+// Clouds in the sky (drawn on the background only)
 function clouds(C, R) {
   const k = 1 + Math.floor(R() * 2);
   for (let s = 0; s < k; s++) {
@@ -350,7 +350,7 @@ function clouds(C, R) {
     }
   }
 }
-// 背景上撒小星星（只画在没有物体的地方）
+// Small stars scattered on the background (only where there are no objects)
 function sparkles(C, R) {
   const k = 3 + Math.floor(R() * 5), n = C.n;
   for (let s = 0; s < k; s++) {
@@ -365,7 +365,7 @@ function sparkles(C, R) {
 
 function coverage(C) { let c = 0; for (let i = 0; i < C.obj.length; i++) if (C.obj[i]) c++; return c / C.obj.length; }
 
-/* ---------- 图案：每个关卡号对应一套随机组合，不会重复 ---------- */
+/* ---------- Pictures: each level number maps to one random combination; no repeats ---------- */
 function gridN(lv) { return Math.min(56, 40 + Math.floor(lv / 25)); }
 function buildPicture(lv) {
   const R = rng(mix32(lv * 7919 + 101)), n = gridN(lv), C = new Cv(n);
@@ -377,7 +377,7 @@ function buildPicture(lv) {
   }
   const nObj = 2 + Math.floor(R() * 3);
   for (let i = 0; i < nObj; i++) KINDS[Math.floor(R() * KINDS.length)](C, R, i === 0 ? 1.0 + R() * 0.6 : 0.6 + R() * 0.5);
-  // 物体盖住的面积太少（画面太空），就再补一个大一点的物体
+  // If the objects cover too little of the picture, add one more, larger object
   for (let t = 0; t < 3 && coverage(C) < 0.25; t++) KINDS[Math.floor(R() * KINDS.length)](C, R, 1.2 + R() * 0.5);
   if (R() < 0.6) clouds(C, R);
   sparkles(C, R);

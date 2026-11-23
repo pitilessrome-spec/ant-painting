@@ -1,10 +1,10 @@
-// 检查脚本：node tools/check_levels.js [关卡数，默认 3000]
-// 1) 每一关的图案是否都不一样；2) 按提示搬，能不能通关；3) 生成一关要多久。
+// Check script: node tools/check_levels.js [number of levels, default 3000]
+// 1) every level picture is different; 2) following the hint clears the level; 3) how long one level takes to generate.
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-// 和浏览器里一样，按顺序加载两个脚本（它们都是普通脚本，没有 import）
+// Load the two scripts in order, like the browser does (plain scripts, no imports)
 const jsDir = path.join(__dirname, '..', 'js');
 for (const f of ['art.js', 'game.js']) {
   vm.runInThisContext(fs.readFileSync(path.join(jsDir, f), 'utf8'), { filename: f });
@@ -12,7 +12,7 @@ for (const f of ['art.js', 'game.js']) {
 
 const N = Math.max(100, parseInt(process.argv[2], 10) || 3000);
 
-// 1) 重复检查：图案的格子和颜色都相同，才算重复
+// 1) Duplicate check: a picture counts as a duplicate only if cells and colors are identical
 let dups = 0;
 const seen = new Set();
 const t0 = Date.now();
@@ -21,9 +21,9 @@ for (let lv = 1; lv <= N; lv++) {
   const key = P.n + ':' + Buffer.from(P.role).toString('base64');
   if (seen.has(key)) dups++; else seen.add(key);
 }
-console.log(`[图案] ${N} 关：不重复 ${seen.size} 关，重复 ${dups} 关，用时 ${Date.now() - t0} ms`);
+console.log(`[pictures] ${N} levels: ${seen.size} unique, ${dups} duplicates, took ${Date.now() - t0} ms`);
 
-// 2) 通关检查：抽一些关卡，每次都按提示（顺序最靠前的盒子）放
+// 2) Clear check: sample some levels and always load the hinted box
 function play(lv, policy) {
   const g = makeGame(lv);
   let guard = 0;
@@ -48,9 +48,9 @@ for (const lv of sample) {
   maxBuild = Math.max(maxBuild, Date.now() - b0);
   if (play(lv, g => g.hint()) === 'win') wins++;
 }
-console.log(`[通关] 抽 ${sample.length} 关，按提示通关 ${wins} 关，用时 ${Date.now() - t1} ms`);
-console.log(`[生成] 一关生成最长 ${maxBuild} ms（不含通关模拟）`);
+console.log(`[clear] sampled ${sample.length} levels, hint cleared ${wins}, took ${Date.now() - t1} ms`);
+console.log(`[generate] slowest level ${maxBuild} ms (excluding the clear simulation)`);
 
 const ok = dups === 0 && wins === sample.length;
-console.log(ok ? '全部通过' : '有问题，请看上面的结果');
+console.log(ok ? 'All checks passed' : 'Something failed, see above');
 process.exit(ok ? 0 : 1);

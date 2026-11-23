@@ -1,171 +1,109 @@
-# ANT CANVAS（网页版源码，原名蚂蚁搬画）
+# ANT CANVAS (web source)
 
-一个用三维格子画和程序生成图案做的解压小游戏。关卡没有上限，每一关的图案都由代码随机组合出来，不会重复。
+A puzzle game built with three.js and procedurally generated pictures. Levels are unlimited, and every level's picture is generated from code, so no two levels share the same picture.
 
-## 怎么运行
+## Run it
 
-最简单：直接双击 `index.html` 用浏览器打开。
+Easiest: double-click `index.html` to open it in a browser.
 
-如果浏览器限制本地文件的脚本加载，就在这个文件夹里启动一个本地服务器：
+If the browser blocks local scripts, start a local server in this folder:
 
 ```
 python3 -m http.server 8000
 ```
 
-然后打开 http://localhost:8000 。
+Then open http://localhost:8000
 
-## 目录
+## Files
 
-| 文件 | 作用 |
+| File | What it does |
 | --- | --- |
-| `index.html` | 游戏页面（界面、三维托盘、弹窗） |
-| `js/art.js` | **关卡图案生成器**：颜色、形状、8 种背景、14 种物体、装饰，每关用关卡号做种子随机组合 |
-| `js/game.js` | 游戏逻辑：盒子顺序、吃格子的规则、停滞与死局判断、复活与重排；`makeGame` 会验证每一关按提示能通关，不能通关就换种子重来 |
-| `js/ui.js` | 页面逻辑：点击、提示、广告占位、弹窗、画面绘制 |
-| `vendor/three.min.js` | three.js r128（三维显示用，已经放在本地，不需要联网） |
-| `gallery.html` | 图案预览页：打开后可以看任意一段关卡的图案，检查生成效果 |
-| `tools/check_levels.js` | 检查脚本：不重复检查、按提示通关检查、生成耗时 |
+| `index.html` | Game page (UI, 3D tray, popups) |
+| `js/art.js` | **Level picture generator**: colors, shapes, 8 backgrounds, 14 object kinds, decorations. Each level number seeds its own random combination |
+| `js/game.js` | Game logic: box order, eating rules, stall and lose detection, revive and reshuffle. `makeGame` checks that following the hint clears each level, and retries with another seed if not |
+| `js/ui.js` | Page logic: clicks, hint, ad placeholders, popups, drawing |
+| `js/ads.js` | Ad integration layer (placeholder, AdsGram, CrazyGames) |
+| `vendor/three.min.js` | three.js r128, bundled locally |
+| `gallery.html` | Picture preview: browse the pictures of any range of levels |
+| `tools/check_levels.js` | Check script: duplicate check, hint clear check, generation time |
 
-## 图案是怎么生成的（js/art.js）
+## How pictures are generated (js/art.js)
 
-每一关的图案只由关卡号决定：
+Each level's picture depends only on its level number:
 
-1. 关卡号 → 随机种子（`mix32`），同一关每次生成都一样，不同关卡的种子不同。
-2. 选一种背景（条纹、波点、渐变、径向、云雾树林、海浪、夜空、草地）。
-3. 随机决定有没有草地。
-4. 随机放 2 到 4 个物体，每个物体从 14 种里选：小动物脸、树、花、蘑菇、房子、爱心、星星、太阳、云、鱼、帆船、宝石、彩虹、蝴蝶。位置、大小、颜色家族、脸和装饰都随机。
-5. 物体盖住的面积不到 25% 时，再补一个大一点的物体。
-6. 撒云朵、小星星，最后给物体的边缘描黑边。
+1. Level number -> random seed (`mix32`). The same level always gives the same picture, and different levels get different seeds.
+2. Pick one background (stripes, dots, gradient, radial, foliage, waves, night sky, meadow).
+3. Maybe add grass at the bottom.
+4. Place 2 to 4 objects, chosen from 14 kinds: animal face, tree, flower, mushroom, house, heart, star, sun, cloud, fish, sailboat, gem, rainbow, butterfly. Position, size, color family, face and decorations are random.
+5. If the objects cover less than 25% of the picture, add one more, larger object.
+6. Scatter clouds and stars, then outline the object edges in black.
 
-颜色用的是 22 个材质（`MATS`），每关的色相有一点随机偏移。
+Colors use 22 materials (`MATS`), and the hue shifts slightly per level.
 
-要增加新的物体或背景，写一个新函数（参数是 `(C, R, sc)`，`C.add(形状, 颜色家族)` 画一个部件），然后加到 `KINDS` 或 `BGS` 数组里就行。
+To add an object or background, write a new function (arguments `(C, R, sc)`, call `C.add(shape, colorFamily)` for each part), then add it to the `KINDS` or `BGS` array.
 
-## 游戏规则（js/game.js）
+## Game rules (js/game.js)
 
-- 盒子从上面的 4 列里取，放进下面的槽位（5 个起，前期 6 个，后期 4 个）。
-- 盒子放进槽位后，会立刻按顺序吃掉离洞口最近的同色格子（蚂蚁一只一只走出来只是动画）。格子只能从下往上一层层吃，外面挡住的里面吃不到。
-- 逻辑只跟放的顺序有关，跟时间无关。所以每关都能用模拟验证：一直放提示的盒子，一定能通关。
-- 盒子可以随便放。放了搬不动的盒子，会一直占着槽位。
-- 槽位满了，而且里面的盒子都搬不动，就没路了，弹出“看广告复活”。
-- 复活会多一个槽位，并把剩下的盒子重新排好，一定能继续。
-- 提示：高亮剩下盒子里顺序最靠前的那一个。照这个顺序放，一定能搬完（生成关卡时已经验证过）。
+- Boxes come from the top of 4 columns and go into slots below. You start with 4 slots; each watched ad adds one more, up to 7.
+- A box loaded into a slot immediately eats the nearest matching cells in order. Ants walk out one by one as an animation only.
+- Cells are eaten from the bottom up. A cell covered by other cells cannot be eaten yet.
+- You can load any box, even one that cannot move yet. It waits in its slot.
+- If every slot is full of stuck boxes, the game is over. You can watch an ad to revive: one more slot, and the remaining boxes are reshuffled so you can continue.
+- Hint: highlights the next box in order. Following that order always clears the level (checked for every generated level).
+- Speed: x2 is free from level 10. x3 needs an ad, for the current level only.
+- Reshuffle: free once per level from level 10; after that, each reshuffle needs an ad.
 
-## 检查
+## Box sizes and difficulty
+
+Set in `levelParams` in `js/game.js`:
+
+- Levels 1 to 10: 8 to 20 ants per box
+- Levels 11 to 300: 12 to 30 ants per box
+- Level 301 and up: 30 to 50 ants per box
+
+Starting slots: `cap` in `levelParams`. Grid size: `gridN` in `js/art.js` (up to 56 x 56).
+
+## Checking
 
 ```
 node tools/check_levels.js 3000
 ```
 
-会检查 3000 关的图案有没有重复，抽 20 关按提示通关，并输出生成耗时。
+Checks 3000 levels for duplicates, clears 20 random levels by following the hint, and reports generation time. Generating one level takes about half a second, including its check.
 
-生成一关大约需要 0.5 秒（包括验证），进入关卡时会有一点等待。
+## Ads and publishing (Telegram + AdsGram)
 
-## 调整难度
+Ad placements:
 
-在 `js/game.js` 的 `levelParams(lv)` 里改：
-
-- `cap`：槽位数量
-- `cmin`、`cmax`：盒子里蚂蚁数的范围。现在是：第 1 到 10 关 8 到 20 只；第 11 到 300 关 12 到 30 只；第 301 关起 30 到 50 只。
-
-在 `js/art.js` 的 `gridN(lv)` 里改格子数（现在最多 56×56）。
-
-## 已知限制
-
-- 图案是程序组合出来的，不是画家手绘，复杂的组合会有点乱。
-- 广告只是占位（`ad()` 函数里 1.5 秒后自动完成），接入真实广告时改 `js/ui.js` 里的 `ad()`。
-- 只在无头浏览器里测过（点击、通关、复活、弹窗都正常），没有在手机上测过。
-
-## 广告与上线
-
-广告统一走 `js/ads.js`，游戏里有这几个地方会用到：
-
-| 位置 | 类型 | 说明 |
+| Where | Type | Notes |
 | --- | --- | --- |
-| 复活 | 激励广告 | 看完才复活（多一个槽位，剩下的盒子重新排好） |
-| 提示 | 激励广告 | 看完才显示下一步该放哪个 |
-| 解锁槽位 | 激励广告 | 看完才多一个槽位（每关最多两次） |
-| 加速到 ×3 | 激励广告 | 第 10 关起免费开 ×2；要 ×3 看一次广告，本关有效，换关后要重新看 |
-| 换盒子 | 激励广告 | 第 10 关起，每关第一次免费，之后每次看广告 |
-| 下一关 | 插页广告 | 关卡之间播一次，播完才进入下一关 |
+| Revive | Rewarded | Reward only after the ad is fully watched |
+| Hint | Rewarded | |
+| Add slot | Rewarded | Up to 3 per level |
+| Speed x3 | Rewarded | Current level only |
+| Reshuffle (after the first free one) | Rewarded | |
+| Next level | Interstitial | Shown between levels |
 
-### 1. 本地测试（默认）
+### 1. Local testing (default)
 
-`js/ads.js` 里 `provider: 'mock'`，广告是占位：点了等 1.5 秒就当作看完，方便测试。
+`provider: 'mock'` in `js/ads.js` shows a placeholder ad that counts as watched after 1.5 seconds.
 
-### 2. 上线到 CrazyGames（网页游戏平台，按广告分成）
+### 2. Telegram mini app with AdsGram
 
-1. 到 CrazyGames 开发者后台注册，提交游戏，等待审核（平台会检查广告规则和 QA）。
-2. 打开 `index.html`，取消 SDK 那一行的注释：
-   `<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>`
-3. 打开 `js/ads.js`，把 `provider` 改成 `'crazygames'`。
-4. 把整个文件夹上传到平台，或者按平台要求打包。
+1. Host the files on HTTPS (GitHub Pages, Netlify, or Vercel are free).
+2. In Telegram, use @BotFather: `/newbot` to create a bot, then `/newapp` to create the mini app with your HTTPS URL. `/myapps` gives you the direct link.
+3. Register at https://partner.adsgram.ai and add the mini app (use the direct link and Web App URL from step 2).
+4. Create a rewarded ad unit (numeric ID) and an interstitial ad unit (ID starts with `int-`).
+5. Set `provider: 'adsgram'` and the two IDs in `AD_CONFIG` in `js/ads.js`. Keep `debug: true` while testing; set it to `false` before launch.
 
-接入层已经按 CrazyGames 的 v3 SDK 写好：`init()`、`ad.requestAd('rewarded' / 'midgame', 回调)`、`game.gameplayStart()/gameplayStop()`。广告播放时游戏暂停，只有 `adFinished`（看完）才给奖励，没有广告或出错时不给奖励。
+Without ad unit IDs, the ad buttons show "No ad available right now" and give no reward.
 
-### 3. 其他平台
+### 3. CrazyGames
 
-接入层的写法可以照搬，在 `js/ads.js` 里加一个分支即可：
+Uncomment the CrazyGames SDK line in `index.html`, then set `provider: 'crazygames'` in `js/ads.js`.
 
-- **Telegram Mini App**：已经接入 AdsGram，见上面“发布到 Telegram”。
-- **TikTok**：要用 TikTok Minis 的游戏包格式和 `TTMinis.game` 接口，还要企业认证、签合同、在后台开通广告位。这一项最麻烦，需要按 TikTok 开发者文档单独做。
-- **X**：目前没有可以放 HTML5 游戏并按广告分成的入口。只能用来引流（发游戏视频，链接到上面的平台）。
+## Notes
 
-### 上线前必须注意
-
-- 激励广告必须是用户主动点的，看完才给奖励。不能用假的广告按钮，也不能在没有广告时给奖励。
-- 广告只能通过平台的 SDK 显示，不能自己在页面里加广告。
-- 游戏名称和美术要原创。如果参考了别人的游戏名字或画风，上架后可能会被投诉下架。
-- 上架前写一份隐私政策，说明收集哪些数据、有没有广告。欧盟和美国用户需要同意弹窗。
-- 广告收入取决于流量和国家。先用小流量测试，看看每千次展示的收入，再决定要不要投放推广。
-
-## 发布到 Telegram（个人开发者，用 AdsGram 赚广告费）
-
-你需要：一个 Telegram 账号、一个 TON 钱包地址、一个能放网页的免费空间（比如 GitHub Pages、Netlify、Vercel，都是个人可以用的）。
-
-### 第 1 步：把游戏放到 HTTPS 网址上
-
-Telegram 只接受 HTTPS 网址。把整个文件夹（`index.html`、`js/`、`vendor/` 等）上传到上面任一服务，拿到一个 `https://你的地址/` 的网址。
-
-### 第 2 步：在 Telegram 里创建小程序（@BotFather）
-
-1. 在 Telegram 里找 @BotFather，发送 `/newbot`，按提示创建一个机器人，记下它的用户名。
-2. 发送 `/newapp`，选择刚才的机器人，填写小程序名称、描述、图标（640×360），最后把第 1 步的 HTTPS 网址发给它。
-3. 完成后会得到一个链接 `t.me/机器人用户名/小程序短名`，在 Telegram 里打开就能玩。
-
-### 第 3 步：注册 AdsGram，拿到广告位 ID
-
-1. 打开 https://partner.adsgram.ai ，用你的个人账号注册。
-2. 添加你的 Telegram 小程序（填入第 2 步的链接）。
-3. 创建两个广告位：一个激励广告（`blockId` 是纯数字），一个插页广告（`blockId` 是 `int-` 开头）。
-4. 在 AdsGram 后台填入你的 TON 钱包地址，用于收款（具体在哪里填，以后台页面为准）。
-
-### 第 4 步：把广告位 ID 填进游戏
-
-打开 `js/ads.js`，修改最上面的 `AD_CONFIG`：
-
-```js
-const AD_CONFIG = {
-  provider: 'adsgram',          // 改成 adsgram
-  adsgram: {
-    rewardedBlockId: '12345',   // 你的激励广告 ID
-    interstitialBlockId: 'int-12345', // 你的插页广告 ID
-    debug: true                 // 测试时用 true，正式上线前改成 false
-  }
-};
-```
-
-`debug: true` 时显示的是测试广告，不会产生收入。正式上线前改成 `false`。
-
-### 第 5 步：测试和上线
-
-1. 在 Telegram 里打开小程序，测试复活、提示、加速、换盒子，确认广告能播放、看完才给奖励。
-2. 没有填广告位 ID 时，点广告按钮会提示“这次没有广告”，不会给奖励。这是故意的，避免白送。
-3. 确认没问题后，把 `debug` 改成 `false`，重新上传到你的网址。
-4. 等 AdsGram 的审核通过后，广告才会有真实展示。收入要等后台统计，具体提现条件以 AdsGram 后台为准。
-
-### 注意
-
-- 收入取决于玩家数量和国家。刚上线时收入会很少，先推广到有人玩，再看数据。
-- 游戏名称和画面要原创，不要用参考视频里别人游戏的名字。
-- 个人开发者上线前，建议写一份简单的隐私政策（说明有没有广告、收集哪些数据）。
+- Game logic and pictures were tested in headless Chromium and with Node scripts. They were not tested on real phones.
+- Use your own name for the game and your own artwork before publishing. Do not copy another game's name or look.
+- Before publishing, write a short privacy policy that says whether the game shows ads and what data it collects.

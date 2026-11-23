@@ -1,16 +1,16 @@
-/* ANT CANVAS · 游戏逻辑（盒子排法、吃格子规则、复活与重排） */
+/* ANT CANVAS · game logic (box order, eating rules, revive and reshuffle) */
 'use strict';
-/* ---------- 难度：随关卡变化 ---------- */
+/* ---------- Difficulty: changes with the level ---------- */
 function levelParams(lv) {
   return {
-    cap: lv <= 30 ? 6 : lv <= 400 ? 5 : 4,
+    cap: 4,   // 4 slots at the start; watching ads adds more (up to 7)
     cmin: lv <= 10 ? 8 : lv <= 300 ? 12 : 30,
     cmax: lv <= 10 ? 20 : lv <= 300 ? 30 : 50
   };
 }
 
-/* ---------- 吃格子的规则 ---------- */
-// 从洞口出发，只能走已经吃空、且连着洞口的格子
+/* ---------- Eating rules ---------- */
+// Starting from the hole, ants can only walk through eaten cells that connect to the hole
 function reachDist(eaten, n) {
   const N = n * n;
   const dist = new Int16Array(N + n).fill(-1), par = new Int32Array(N + n).fill(-1);
@@ -29,7 +29,7 @@ function reachDist(eaten, n) {
   }
   return { dist, par };
 }
-// 没吃的格子：最下面一排一直露在外面；其他的要相邻的格子已经连着洞口
+// Uneaten cells: the bottom row is always exposed; other cells need a neighbor that already connects to the hole
 function expoAt(dist, n, x, y) {
   if (y + 1 >= n) return true;
   for (const [a, b] of [[x, y + 1], [x, y - 1], [x - 1, y], [x + 1, y]]) {
@@ -38,7 +38,7 @@ function expoAt(dist, n, x, y) {
   }
   return false;
 }
-// 同色、露在外面、离洞口最近的一格（蚂蚁每次都吃这一格）
+// The exposed cell of this color closest to the hole (ants always eat this one)
 function nearestCell(eaten, n, role, c, dist) {
   let best = -1, bd = Infinity; const hx = n / 2, hy = n + 0.9;
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
@@ -49,7 +49,7 @@ function nearestCell(eaten, n, role, c, dist) {
   }
   return best;
 }
-// 模拟一遍正确的搬法，得到盒子顺序：照这个顺序搬，一定能搬完
+// Simulate a correct play to build the box order: following this order always clears the level
 function makeSeqFrom(role, n, init, R, cmin, cmax) {
   const N = n * n, eaten = Uint8Array.from(init);
   let left = 0; for (let i = 0; i < N; i++) if (!eaten[i]) left++;
@@ -90,13 +90,13 @@ class Game {
     this.cap = o.cap || prm.cap; this.slots = new Array(this.cap).fill(null);
     this.cols = [[], [], [], []]; this.ants = []; this.ev = [];
     this.state = 'play'; this.speed = o.speed || 1; this._R = null; this.stalled = false;
-    this.visualMs = 200;   // 槽位里每隔这么久放出一只蚂蚁（只影响动画）
+    this.visualMs = 200;   // time between ants leaving a slot (animation only)
     this.rebuild();
   }
   pct() { return Math.floor((this.total - this.left) / this.total * 100); }
   R() { if (!this._R) this._R = reachDist(this.eaten, this.n); return this._R; }
 
-  // 把还没吃的格子重新排成盒子（一定能搬完）。槽位里没放出去的蚂蚁先放出去，免得格子一直留着
+  // Rebuild the boxes from the uneaten cells (always clearable). Ants still queued in slots are released first so no cell is left hanging
   rebuild() {
     for (const s of this.slots) {
       if (!s) continue;
@@ -112,9 +112,9 @@ class Game {
   revive() { if (this.state !== 'lose') return false; this.addSlot(); this.rebuild(); this.state = 'play'; return true; }
   addSlot() { if (this.cap < 7) { this.cap++; this.slots.push(null); } }
 
-  // 这个颜色现在能不能吃：返回要吃的那一格，没有则 -1
+  // Can this color be eaten right now? Returns the cell to eat, or -1
   target(c) { return nearestCell(this.eaten, this.n, this.role, c, this.R().dist); }
-  // 蚂蚁的路：从洞口进来，只经过已经吃空的格子（要在吃之前算）
+  // Ant path: from the hole, only through eaten cells (computed before eating)
   route(i) {
     const n = this.n, N = n * n, { dist, par } = this.R();
     const x = i % n, y = (i - x) / n;
@@ -132,7 +132,7 @@ class Game {
   }
   eatCell(i) { this.eaten[i] = 1; this.left--; this._R = null; }
 
-  // 逻辑：槽位里的盒子能吃就吃（按槽位顺序，吃到不能吃为止）。只看格子，不看时间。
+  // Logic: boxes in slots eat whatever they can, in slot order, until nothing more can be eaten. Depends only on cells, never on time
   cascade() {
     let progress = true;
     while (progress) {
@@ -152,8 +152,8 @@ class Game {
     }
   }
 
-  // 点顶上的盒子进槽位：不管现在能不能搬都可以放，搬不动的会在槽位里等
-  // 返回 1 成功，2 槽位满了，0 没有盒子
+  // Load the top box into a slot: allowed even if it cannot move yet; it waits in the slot
+  // Returns 1 on success, 2 if all slots are full, 0 if there is no box
   place(ci) {
     if (this.state !== 'play') return 0;
     const col = this.cols[ci], b = col && col[0];
@@ -166,7 +166,7 @@ class Game {
     this.cascade();
     return 1;
   }
-  // 提示：剩下的盒子里顺序最靠前的那一个（照这个顺序放，能通关，见 makeGame 里的验证）
+  // Hint: the next box in order (following this order wins; verified in makeGame)
   hint() {
     let best = -1, bid = Infinity;
     this.cols.forEach((col, ci) => {
@@ -186,7 +186,7 @@ class Game {
   tick(dt) {
     if (this.state !== 'play') return;
     const sp = this.speed;
-    // 1) 槽位里的盒子按节奏把蚂蚁放出来（只是动画），搬完的槽位空出来
+    // 1) Boxes in slots release ants at a steady pace (animation only); finished slots are freed
     for (let si = 0; si < this.slots.length; si++) {
       const s = this.slots[si];
       if (!s) continue;
@@ -202,7 +202,7 @@ class Game {
       }
       if (s.n <= 0 && !s.q.length) this.slots[si] = null;
     }
-    // 2) 蚂蚁走路
+    // 2) Ants walk
     const step = 0.028 * dt * sp;
     for (const a of this.ants) {
       let d = step;
@@ -221,20 +221,20 @@ class Game {
       }
     }
     this.ants = this.ants.filter(a => !a.done);
-    // 3) 输赢
+    // 3) Win / lose
     if (this.left <= 0) {
       if (!this.ants.length && this.slots.every(s => !s)) this.state = 'win';
       return;
     }
     if (this.ants.length || this.slots.some(s => s && s.q.length)) return;
-    // 槽位里的盒子都搬不动（没有蚂蚁在路上，也没有排队的蚂蚁）
+    // Every box in the slots is stuck (no ants walking, none queued)
     const full = this.slots.every(s => s);
     const noBoxes = this.cols.every(c => c.length === 0);
     if (full || noBoxes) { this.state = 'lose'; return; }
     if (this.slots.some(s => s) && !this.stalled) { this.stalled = true; this.ev.push({ t: 'stall' }); }
   }
 
-  // 验证用：一直放提示的盒子，能不能搬完（只算逻辑，不看时间）
+  // Verification: keep loading the hinted box; can the level be cleared? (logic only, no timing)
   hintWins() {
     for (let guard = 0; guard < 100000 && this.left > 0; guard++) {
       for (let si = 0; si < this.slots.length; si++) {
@@ -261,7 +261,7 @@ class Game {
   }
 }
 
-// 生成一关：每个随机种子生成一套盒子，用“一直放提示的盒子”验证能通关；不能通关就换个种子重来
+// Generate a level: each random seed builds a box order, which is checked by always loading the hinted box; if it cannot be cleared, try the next seed
 function makeGame(lv, o) {
   o = o || {};
   let last = null;

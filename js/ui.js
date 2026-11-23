@@ -1,4 +1,4 @@
-/* ANT CANVAS · 页面与界面逻辑 */
+/* ANT CANVAS · page and UI logic */
 const $=s=>document.querySelector(s);
 const VW=360,VH=318,SPEEDS=[1,2,3];
 const stage=$('#stage'),glc=$('#gl'),fxc=$('#fx'),fx=fxc.getContext('2d');
@@ -10,15 +10,15 @@ MAXLV=st.maxLv||1;SND=st.snd===undefined?1:st.snd;
 function save(){try{localStorage.setItem('mbh3',JSON.stringify({lv:LV,maxLv:MAXLV,snd:SND}))}catch(e){}}
 function beep(f,d,v){if(!SND)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(v||.05,AC.currentTime);g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toastH);toastH=setTimeout(()=>e.classList.remove('on'),1400)}
-// 占位广告（provider 为 mock 时用）：1.5 秒后当作看完
+// Placeholder ad (provider "mock"): counts as watched after 1.5 seconds
 function startMockAd(cb){adCb=cb;adT=1500;$('#ad').classList.add('on')}
-// 所有激励广告都走 Ads 接入层；没看完不给奖励
+// All rewarded ads go through the Ads layer; no reward unless the ad is watched
 function ad(cb){Ads.rewarded(cb,()=>toast('No ad available right now, please try again later'))}
 function rrPath(p,x,y,w,h,r){p.moveTo(x+r,y);p.lineTo(x+w-r,y);p.quadraticCurveTo(x+w,y,x+w,y+r);p.lineTo(x+w,y+h-r);p.quadraticCurveTo(x+w,y+h,x+w-r,y+h);p.lineTo(x+r,y+h);p.quadraticCurveTo(x,y+h,x,y+h-r);p.lineTo(x,y+r);p.quadraticCurveTo(x,y,x+r,y)}
 function mix(a,b,t){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return '#'+[16,8,0].map(s=>{const p=x>>s&255,q=y>>s&255;return Math.round(p+(q-p)*t).toString(16).padStart(2,'0')}).join('')}
 function tokStyle(role){const base=G.pal[role];const r=parseInt(base.slice(1,3),16),g=parseInt(base.slice(3,5),16),b=parseInt(base.slice(5,7),16);const lum=.299*r+.587*g+.114*b;return `--c:${base};--l:${mix(base,'#ffffff',.3)};--d:${mix(base,'#000000',.3)};--t:${lum>168?'#2b2d42':'#ffffff'}`}
 
-/* ---------- 3D 托盘与格子（three.js 正交相机，斜着看） ---------- */
+/* ---------- 3D tray and cells (three.js orthographic camera, angled view) ---------- */
 function init3D(){
  if(typeof THREE==='undefined')return;
  R3=new THREE.WebGLRenderer({canvas:glc,antialias:true,alpha:true});
@@ -71,7 +71,7 @@ function fit(){
  fxc.width=Math.round(VW*DPR);fxc.height=Math.round(VH*DPR);
 }
 
-/* ---------- 蚂蚁、粒子（画在 2D 画布上） ---------- */
+/* ---------- Ants and particles (drawn on the 2D canvas) ---------- */
 function burst(i,c){const n=G.n,p=proj(i%n+.5,Math.floor(i/n)+.5,ZTOP);for(let k=0;k<6;k++)PAR.push({x:p[0],y:p[1],vx:(Math.random()-.5)*2.6,vy:-Math.random()*2.4-.6,l:480,c:G.pal[c]})}
 function drawAnt(a,now){
  const z=a.y<G.n+.2?ZTOP+.05:.02;
@@ -110,7 +110,7 @@ function handleEv(){
  G.ev.length=0;
 }
 
-/* ---------- 界面（HTML） ---------- */
+/* ---------- UI (HTML) ---------- */
 function renderUI(){
  if(!G)return;
  $('#lv').textContent='Level '+LV;
@@ -137,12 +137,12 @@ function renderUI(){
  $('#tok').innerHTML=th;
 }
 
-/* ---------- 关卡与流程 ---------- */
+/* ---------- Levels and flow ---------- */
 function newLevel(lv){
  LV=Math.max(1,Math.min(999999,lv));
  spIdx=Math.min(spIdx,LV>=10?1:0);x3ok=false;
  G=makeGame(LV,{speed:SPEEDS[spIdx]});
- MAXLV=Math.max(MAXLV,LV);reshuf=false;unlocks=2;shown='play';hintT=0;PAR=[];anims.clear();
+ MAXLV=Math.max(MAXLV,LV);reshuf=false;unlocks=3;shown='play';hintT=0;PAR=[];anims.clear();
  $('#win').classList.remove('on');$('#lose').classList.remove('on');
  buildBoard();placeHole();save();renderUI();Ads.gameplay(true);
 }
