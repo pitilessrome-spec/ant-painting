@@ -90,6 +90,8 @@ class Game {
     this.cap = o.cap || prm.cap; this.slots = new Array(this.cap).fill(null);
     this.cols = [[], [], [], []]; this.ants = []; this.ev = [];
     this.state = 'play'; this.speed = o.speed || 1; this._R = null; this.stalled = false;
+    this.blastEnabled=typeof window!=='undefined'&&!!(window.AntWorkshop&&window.AntWorkshop.enabled);
+    this.blastCharge=0;this.blastRemaining=0;this.blastShots=0;
     this.visualMs = 200;   // time between ants leaving a slot (animation only)
     this.rebuild();
   }
@@ -179,8 +181,12 @@ class Game {
     return best;
   }
 
-  spawnVisual(job) {
+  spawnVisual(job, mode) {
     const n = this.n, pts = [[n / 2, n + 0.9]];
+    if(mode==='blast'){
+      this.ants.push({mode:'blast',c:job.c,idx:job.idx,x:n/2,y:n+0.9,ux:0,uy:-1,age:0,done:false,ph:0});
+      return;
+    }
     for (const j of job.path) pts.push([j % n + 0.5, Math.floor(j / n) + 0.5]);
     pts.push([job.idx % n + 0.5, Math.floor(job.idx / n) + 0.5]);
     this.ants.push({ c: job.c, idx: job.idx, pts, k: 1, x: pts[0][0], y: pts[0][1], ph: 0, ux: 0, uy: -1 });
@@ -199,8 +205,22 @@ class Game {
         if (s.t >= this.visualMs) {
           s.t = 0;
           const job = s.q.shift();
-          this.spawnVisual(job);
-          this.ev.push({ t: 'eat', i: job.idx, c: job.c });
+          const charged=this.blastEnabled&&this.blastRemaining>0;
+          if(charged){
+            this.blastRemaining--;this.blastShots++;
+            this.spawnVisual(job,'blast');
+            this.ev.push({t:'shot',i:job.idx,c:job.c});
+          }else{
+            this.spawnVisual(job);
+            this.ev.push({t:'eat',i:job.idx,c:job.c});
+            if(this.blastEnabled){
+              this.blastCharge++;
+              if(this.blastCharge>=42){
+                this.blastCharge=0;this.blastRemaining=7;
+                this.ev.push({t:'blastReady'});
+              }
+            }
+          }
         }
       }
       if (s.n <= 0 && !s.q.length) this.slots[si] = null;
@@ -208,6 +228,15 @@ class Game {
     // 2) Ants walk
     const step = 0.028 * dt * sp;
     for (const a of this.ants) {
+      if(a.mode==='blast'){
+        a.age+=dt*sp;
+        const t=Math.min(1,a.age/460);
+        a.x=this.n/2+Math.sin((a.idx%7)*.8)*.36;
+        a.y=this.n+.9-.32*Math.sin(Math.PI*t);
+        a.ux=0;a.uy=-1;
+        if(t>=1)a.done=true;
+        continue;
+      }
       let d = step;
       while (d > 0 && !a.done) {
         const T = a.pts[a.k], dx = T[0] - a.x, dy = T[1] - a.y, L = Math.hypot(dx, dy);
