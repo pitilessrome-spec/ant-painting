@@ -18,6 +18,22 @@
  function draw(dt,fx,G,proj,onHit){
    if(!G)return;
    const hole=proj(G.n/2,G.n+.65,0);
+   // The empowered ant is deliberately oversized so it reads on mobile screens.
+   if(announce>0||bolts.length>0){
+     const color=bolts.length?G.pal[bolts[0].c]:'#ff85e8';
+     fx.save();fx.translate(hole[0],hole[1]);fx.shadowColor=color;fx.shadowBlur=23;
+     fx.fillStyle='rgba(255,232,121,.36)';fx.beginPath();fx.arc(0,0,24,0,6.283);fx.fill();
+     fx.strokeStyle='#ffffff';fx.lineWidth=2.6;fx.beginPath();fx.arc(0,0,20,0,6.283);fx.stroke();
+     fx.shadowBlur=8;fx.lineWidth=2;fx.strokeStyle='#251c4c';fx.fillStyle=color;
+     fx.beginPath();fx.ellipse(-8,3,10,8,-.15,0,6.283);fx.fill();fx.stroke();
+     fx.fillStyle='#31264e';fx.beginPath();fx.ellipse(6,1,8,6,.1,0,6.283);fx.fill();fx.stroke();
+     fx.fillStyle='#fff';fx.beginPath();fx.arc(9,-1,2,0,6.283);fx.fill();
+     fx.strokeStyle='#372254';fx.lineWidth=3;fx.beginPath();fx.moveTo(4,-4);fx.lineTo(14,-17);fx.stroke();
+     fx.strokeStyle=color;fx.lineWidth=9;fx.beginPath();fx.moveTo(8,-7);fx.lineTo(18,-21);fx.stroke();
+     fx.strokeStyle='#fff1c9';fx.lineWidth=4;fx.beginPath();fx.moveTo(8,-7);fx.lineTo(18,-21);fx.stroke();
+     fx.fillStyle='#fff';fx.beginPath();fx.arc(18,-21,5,0,6.283);fx.fill();
+     fx.restore();
+   }
    if(announce>0){
      announce=Math.max(0,announce-dt);
      if(announce<500)banner.style.opacity=String(announce/500);
