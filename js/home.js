@@ -13,7 +13,7 @@
     "<div class='ah-inner'>",
       "<header class='ah-head'>",
         "<div class='ah-brand'><span class='ah-brand-mark' aria-hidden='true'>🐜</span><span>ANT CANVAS</span></div>",
-        "<button type='button' data-home-action='sound' aria-label='Toggle sound'><span id='ah-sound'>♫ ON</span></button>",
+        "<div style='display:flex;gap:6px;align-items:center'><button type='button' data-home-action='share' aria-label='Share ANT CANVAS'>↗ Share</button><button type='button' data-home-action='sound' aria-label='Toggle sound'><span id='ah-sound'>♫ ON</span></button></div>",
       "</header>",
       "<div class='ah-eyebrow'>A LITTLE COLOR ADVENTURE</div>",
       "<h1 class='ah-title'>Little ants.<br><em>Big art.</em></h1>",
@@ -32,7 +32,7 @@
       "<div class='ah-secondary-row'>",
         "<button type='button' class='ah-secondary' data-home-action='how'>❔ How to play</button>",
         "<button type='button' class='ah-secondary' data-home-action='gallery'>🖼 Gallery</button>",
-        "<button type='button' class='ah-secondary' data-home-action='share'>↗ Share game</button>",
+        "<button type='button' class='ah-secondary' data-home-action='village'>🌿 Village</button>",
       "</div>",
       "<p class='ah-footer'>SORT THE COLORS · REVEAL THE MAGIC</p>",
     "</div>",
@@ -138,6 +138,7 @@
     else if (action === 'back') { document.getElementById('ah-how').hidden = true; }
     else if (action === 'share') share();
     else if (action === 'gallery') window.location.href='collection.html';
+    else if (action === 'village') window.location.href='village.html';
     else if (action === 'mode' && window.AntWorkshop){window.AntWorkshop.toggle();updateHome();}
     else if (action === 'sound' && typeof SND !== 'undefined') {
       SND = SND ? 0 : 1;
