@@ -12,13 +12,32 @@ const catalog=Object.freeze({
 });
 function safeGet(){try{const j=JSON.parse(localStorage.getItem(KEY)||'null');return j&&j.v===1?j:null}catch(_){return null}}
 function write(){try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(_){return false}}
-let state=safeGet()||{v:1,wood:0,petals:0,chests:0,placements:{},claimed:{},last:null};
-state.placements=state.placements||{};state.claimed=state.claimed||{};
+let state=safeGet()||{v:1,wood:0,petals:0,chests:0,placements:{},claimedHigh:0,claimedExtra:[],last:null};
+state.placements=state.placements||{};
+if(!Number.isSafeInteger(state.claimedHigh)){
+ const old=Object.keys(state.claimed||{}).map(Number).filter(Number.isSafeInteger).sort((a,b)=>a-b);
+ let high=0;while(old.includes(high+1))high++;
+ state.claimedHigh=high;state.claimedExtra=old.filter(x=>x>high);
+ delete state.claimed;write();
+}
+state.claimedExtra=state.claimedExtra||[];
+function alreadyAwarded(lv){return lv<=state.claimedHigh||state.claimedExtra.includes(lv)}
+function trackAward(lv){
+ if(lv===state.claimedHigh+1){
+   state.claimedHigh=lv;
+   while(state.claimedExtra.includes(state.claimedHigh+1)){
+     state.claimedHigh++;
+     state.claimedExtra=state.claimedExtra.filter(x=>x!==state.claimedHigh);
+   }
+ }else if(state.claimedExtra.length<1000)state.claimedExtra.push(lv);
+ else return false;
+ return true;
+}
 function snapshot(){return JSON.parse(JSON.stringify(state))}
 function award(lv,rarity){
- if(!Number.isSafeInteger(lv)||lv<1||state.claimed[lv])return null;
- // The caller must verify a FIRST-TIME legitimate local level completion.
- state.claimed[lv]=1;
+ if(!Number.isSafeInteger(lv)||lv<1||alreadyAwarded(lv))return null;
+ // The caller must verify a FIRST-TIME local level completion.
+ if(!trackAward(lv))return null;
  let wood=2,petals=1;
  const r=rarity&&rarity.id||'common';
  if(r==='rare'){wood+=3;petals+=1}
