@@ -147,9 +147,11 @@ function newLevel(lv){
  $('#win').classList.remove('on');$('#lose').classList.remove('on');
  buildBoard();placeHole();save();renderUI();Ads.gameplay(!window.AntHome||!window.AntHome.isOpen);
  if(window.AntTelegram) window.AntTelegram.onLevelStart(LV);
+ if(window.AntPolish) window.AntPolish.onLevelStart(LV);
 }
 function onWin(){
  if(window.AntTelegram) window.AntTelegram.onLevelComplete(LV);
+ if(window.AntPolish) window.AntPolish.onWin(G,LV);
  MAXLV=Math.max(MAXLV,Math.min(999999,LV+1));save();
  $('#winSub').textContent='Level '+LV+' complete · 100%';
  $('#win').classList.add('on');
@@ -162,7 +164,7 @@ stage.addEventListener('pointerdown',e=>{
  const el=e.target.closest('[data-col],[data-act]');if(!el)return;
  if(el.dataset.col!==undefined){
    const c=+el.dataset.col,r=G.place(c);
-   if(r===1){beep(520,.07,.05);renderUI()}
+   if(r===1){beep(520,.07,.05);renderUI();if(window.AntPolish)window.AntPolish.onPlaced(G)}
    else if(r===2)toast('All slots are full, wait a moment');
    else if(r===3){toast("This color can't be eaten yet");shakeCol=c;shakeUntil=performance.now()+400;renderUI()}
    return;
@@ -199,6 +201,7 @@ function frame(now){
  }
  if(G){
    if(adT<=0&&!Ads.busy&&(!window.AntHome||!window.AntHome.isOpen)&&G.state==='play')G.tick(dt);
+   if(window.AntPolish)window.AntPolish.onTick(G);
    handleEv();
    if(hintT>0)hintT-=dt;
    if(G.state!==shown){
