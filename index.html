@@ -72,7 +72,7 @@ body{background:radial-gradient(120% 70% at 50% 8%,#f6fcff 0%,#c6e6fb 42%,#7aaee
   <button class="btn grn" id="rsh" data-act="reshuffle">Reshuffle</button>
  </div>
  <div id="win" class="over"><div class="card"><h2>Level cleared!</h2><p id="winSub"></p><button class="cbtn" data-act="nextLv">Next level</button></div></div>
- <div id="lose" class="over"><div class="card"><h2>No moves left</h2><p>Watch an ad to revive: +1 slot, and the remaining boxes are reshuffled so you can keep going.</p><button class="cbtn" data-act="reviveAd">Watch ad to revive</button><button class="cbtn ghost" data-act="retry">Retry level</button></div></div>
+ <div id="lose" class="over"><div class="card"><h2>No moves left</h2><p>Get a revive: +1 slot, and the remaining boxes are reshuffled so you can keep going.</p><button class="cbtn" data-act="reviveAd">Revive (+1 slot)</button><button class="cbtn ghost" data-act="retry">Retry level</button></div></div>
  <div id="ad" class="over"><div class="card"><h2>Ad</h2><p>(Ad placeholder)</p><div id="adbox"><div id="adbar"></div></div></div></div>
 </div>
 <script src="vendor/three.min.js"></script>
@@ -82,6 +82,7 @@ body{background:radial-gradient(120% 70% at 50% 8%,#f6fcff 0%,#c6e6fb 42%,#7aaee
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 <script src="js/ads.js"></script>
+<script src="js/telegram.js"></script>
 <script src="js/art.js"></script>
 <script src="js/game.js"></script>
 <script src="js/ui.js"></script>
