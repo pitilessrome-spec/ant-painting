@@ -114,12 +114,18 @@ function drawFX(dt,now){
    if(t>=1){anims.set(sh.i,0);blastParticles(sh.i,sh.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);beep(800+Math.random()*260,.075,.035);PROJECTILES.splice(i,1)}
  }
  for(const a of G.ants)drawAnt(a,now);
+ if(window.AntBlastFX)window.AntBlastFX.draw(dt,fx,G,proj,(i,c)=>{
+   anims.set(i,0);blastParticles(i,c);
+   G.visualDone=Math.min(G.total,(G.visualDone||0)+1);
+   if(window.AntMystery)window.AntMystery.reveal(i);
+   beep(840+Math.random()*220,.1,.05);
+ });
 }
 function handleEv(){
  for(const e of G.ev){
-  if(e.t==='eat'){anims.set(e.i,0);burst(e.i,e.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);beep(560+Math.random()*420,.07,.035)}
-  else if(e.t==='shot'){PROJECTILES.push({i:e.i,c:e.c,age:0})}
-  else if(e.t==='blastReady'){toast('🌈 Color Blast! Special ants ready');beep(990,.15,.05)}
+  if(e.t==='eat'){anims.set(e.i,0);burst(e.i,e.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);if(window.AntMystery)window.AntMystery.reveal(e.i);beep(560+Math.random()*420,.07,.035)}
+  else if(e.t==='shot'){if(window.AntBlastFX)window.AntBlastFX.fire(e.i,e.c);else PROJECTILES.push({i:e.i,c:e.c,age:0})}
+  else if(e.t==='blastReady'){if(window.AntBlastFX)window.AntBlastFX.ready();else toast('🌈 Color Blast!');beep(990,.17,.07)}
   else if(e.t==='claim'&&mesh){mesh.setColorAt(e.i,CLR.set(mix(G.pal[e.c],'#ffffff',.35)));mesh.instanceColor.needsUpdate=true}
   else if(e.t==='reshuffle')toast('No moves left, boxes reshuffled');
   else if(e.t==='stall')toast('No box can move right now. Think about what to load next');
@@ -162,6 +168,8 @@ function newLevel(lv){
  spIdx=Math.min(spIdx,LV>=10?1:0);x3ok=false;
  G=makeGame(LV,{speed:SPEEDS[spIdx]});
  window.ANT_CANVAS_GAME=G;
+ if(window.AntBlastFX)window.AntBlastFX.reset();
+ if(window.AntMystery)window.AntMystery.begin(G);
  MAXLV=Math.max(MAXLV,LV);reshuf=false;unlocks=3;shown='play';hintT=0;PAR=[];PROJECTILES=[];anims.clear();
  $('#win').classList.remove('on');$('#lose').classList.remove('on');
  buildBoard();placeHole();save();renderUI();Ads.gameplay(!window.AntHome||!window.AntHome.isOpen);
@@ -172,6 +180,7 @@ function onWin(){
  if(window.AntCanvasProfile)window.AntCanvasProfile.complete(LV);
  if(window.AntTelegram) window.AntTelegram.onLevelComplete(LV);
  if(window.AntPolish) window.AntPolish.onWin(G,LV);
+ if(window.AntMystery)window.AntMystery.complete();
  MAXLV=Math.max(MAXLV,Math.min(999999,LV+1));save();
  $('#winSub').textContent='Level '+LV+' complete · 100%'+(window.AntCanvasProfile?' · '+window.AntCanvasProfile.rarity(LV).symbol+' '+window.AntCanvasProfile.rarity(LV).title:'');
  $('#win').classList.add('on');
