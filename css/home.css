@@ -1,0 +1,81 @@
+/* ANT CANVAS — animated first-play landing screen.
+   All selectors are scoped to #ant-home so the existing puzzle layout is untouched. */
+#ant-home{position:absolute;inset:0;z-index:72;overflow:hidden;color:#fff;
+ background:radial-gradient(ellipse 95% 55% at 51% 35%,#655ddb 0%,transparent 68%),
+ radial-gradient(ellipse 70% 48% at 0% 96%,#255fae 0%,transparent 70%),
+ linear-gradient(165deg,#172052 0%,#242369 45%,#0c224c 100%);
+ transition:opacity .36s ease,transform .36s ease;isolation:isolate}
+#ant-home[hidden],#ant-home .ah-how[hidden]{display:none!important}
+#ant-home.ah-leave{opacity:0;pointer-events:none;transform:translateY(-12px)}
+#ant-home:before{content:"";position:absolute;width:280px;height:280px;left:50%;top:240px;transform:translateX(-50%);
+ border:1px solid rgba(255,255,255,.09);border-radius:50%;box-shadow:0 0 0 46px rgba(255,255,255,.025),0 0 0 94px rgba(255,255,255,.022)}
+#ant-home:after{content:"";position:absolute;width:360px;height:190px;left:-80px;bottom:-116px;border-radius:50%;
+ background:#2683d4;filter:blur(65px);opacity:.45;pointer-events:none}
+#ant-home .ah-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;height:100%;padding:17px 22px 15px}
+#ant-home .ah-head{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:39px}
+#ant-home .ah-brand{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:1000;letter-spacing:.3px}
+#ant-home .ah-brand-mark{width:35px;height:35px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(145deg,#ffda72,#ff8a43);
+ box-shadow:0 3px 0 #b4682d,0 6px 16px #10133a70;font-size:20px}
+#ant-home .ah-head button{border:1px solid #ffffff36;background:#ffffff17;box-shadow:inset 0 1px #ffffff34;
+ color:#fff;border-radius:16px;height:32px;min-width:65px;font-size:11px;font-weight:800;cursor:pointer}
+#ant-home .ah-eyebrow{margin-top:23px;padding:5px 12px;border:1px solid #c3bbff4f;border-radius:20px;
+ background:#a19df025;color:#edebff;font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase}
+#ant-home .ah-title{margin:9px 0 0;text-align:center;font-size:35px;letter-spacing:-1.2px;line-height:1.06;
+ font-weight:1000;text-shadow:0 4px 0 #0a173d55}
+#ant-home .ah-title em{font-style:normal;color:#ffe087;text-shadow:0 2px 0 #ba7436}
+#ant-home .ah-desc{width:285px;max-width:100%;margin:8px 0 0;color:#d5ddff;text-align:center;font-size:11px;line-height:1.5}
+#ant-home .ah-hero{height:215px;width:100%;flex:none;position:relative;margin-top:8px;display:flex;justify-content:center;align-items:center}
+#ant-home .ah-tray{position:relative;width:215px;height:199px;border:3px solid #dcf9ffba;border-radius:24px;
+ transform:rotate(-5deg);background:linear-gradient(148deg,#d8fbff,#8ecffa);
+ box-shadow:0 10px 0 #3c73aa,0 21px 26px #090e405c,inset 0 4px 0 #fff9;display:flex;justify-content:center;align-items:center}
+#ant-home .ah-tray:before{content:"";position:absolute;left:7px;top:7px;right:7px;bottom:7px;border:1px solid #ffffff7a;border-radius:18px}
+#ant-home .ah-grid{display:grid;grid-template-columns:repeat(13,11px);grid-template-rows:repeat(13,11px);gap:2px;position:relative;z-index:2}
+#ant-home .ah-pixel{display:block;width:11px;height:11px;border-radius:2px;background:#f0feff60;box-shadow:inset 0 1px #fff9,0 2px 2px #38649d36}
+#ant-home .ah-pixel.p{background:#fb72a2;box-shadow:inset 0 2px #ffb2cb,0 2px 0 #ae3c75}
+#ant-home .ah-pixel.y{background:#ffdf66;box-shadow:inset 0 2px #fff3a8,0 2px 0 #ca9740}
+#ant-home .ah-pixel.g{background:#5fdda3;box-shadow:inset 0 2px #a4f8c9,0 2px 0 #26946b}
+#ant-home .ah-pixel.p,#ant-home .ah-pixel.y,#ant-home .ah-pixel.g{animation:ah-pop 3.8s ease-in-out infinite;animation-delay:calc(var(--seq)*-95ms)}
+#ant-home .ah-ant{position:absolute;z-index:4;font-size:26px;filter:drop-shadow(0 4px 3px #18225070);animation:ah-walk 2.8s ease-in-out infinite}
+#ant-home .ah-ant.one{left:23px;top:143px;transform:rotate(25deg);animation-delay:-.6s}
+#ant-home .ah-ant.two{right:18px;top:38px;animation-delay:-1.9s}
+#ant-home .ah-ant.three{right:50px;bottom:14px;animation-delay:-1.1s;font-size:19px}
+#ant-home .ah-shiny{position:absolute;z-index:3;color:#ffde73;filter:drop-shadow(0 2px 6px #ffeb9788);animation:ah-twinkle 2.2s ease-in-out infinite}
+#ant-home .ah-shiny.one{left:5px;top:17px;font-size:24px}
+#ant-home .ah-shiny.two{right:15px;bottom:34px;font-size:19px;animation-delay:-1.2s}
+#ant-home .ah-demo-label{position:absolute;z-index:4;right:9px;bottom:11px;border:1px solid #ffffff97;border-radius:14px;
+ background:#1c326dde;box-shadow:0 5px 12px #11244960;color:#ffffff;font-size:9px;font-weight:850;letter-spacing:.4px;padding:7px 10px}
+#ant-home .ah-progress{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;
+ padding:9px 13px;border-radius:15px;background:#ffffff16;border:1px solid #ffffff2e;box-shadow:inset 0 1px #ffffff1b}
+#ant-home .ah-progress small{display:block;color:#bccdfa;font-size:9px;font-weight:750;letter-spacing:.6px}
+#ant-home .ah-progress strong{display:block;font-size:17px;line-height:1.25;color:#fff}
+#ant-home .ah-progress .ah-endless{color:#fff1b1;font-size:11px;font-weight:850;text-align:right}
+#ant-home .ah-start{margin-top:11px;width:100%;height:53px;border:0;border-radius:17px;
+ background:linear-gradient(180deg,#fff3a2 0%,#ffd067 48%,#ffae4a 100%);color:#4b2f4c;cursor:pointer;
+ font-size:18px;font-weight:1000;box-shadow:0 5px 0 #b86e2c,0 11px 20px #0a133b78;letter-spacing:.1px;
+ display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s ease}
+#ant-home .ah-start:active{transform:translateY(4px);box-shadow:0 1px 0 #b86e2c}
+#ant-home .ah-start .ah-arrow{font-size:23px;line-height:0}
+#ant-home .ah-secondary-row{display:flex;gap:9px;width:100%;margin-top:12px}
+#ant-home .ah-secondary{flex:1;height:38px;border-radius:14px;border:1px solid #e8ecff55;background:#ffffff16;
+ color:#edf4ff;font-size:12px;font-weight:850;cursor:pointer}
+#ant-home .ah-secondary:active{background:#ffffff36}
+#ant-home .ah-footer{margin-top:auto;text-align:center;color:#c2cfee;font-size:9px;font-weight:700;letter-spacing:.8px}
+#ant-home .ah-how{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+ background:#0a154bdc;backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);padding:22px}
+#ant-home .ah-how-card{width:100%;background:linear-gradient(170deg,#fff,#e6f1ff);border:2px solid #fff;
+ border-radius:24px;color:#24365e;padding:20px 18px;box-shadow:0 18px 45px #08103a8a}
+#ant-home .ah-how-card h2{margin:0;text-align:center;font-size:25px}
+#ant-home .ah-how-card>p{text-align:center;font-size:12px;color:#667998;margin:6px 0 20px}
+#ant-home .ah-step{display:flex;gap:11px;align-items:center;margin:14px 0}
+#ant-home .ah-step-ico{width:45px;height:45px;border-radius:15px;display:grid;place-items:center;background:#cbe8ff;font-size:23px;flex:none}
+#ant-home .ah-step strong{display:block;font-size:13px}
+#ant-home .ah-step span{display:block;font-size:11px;color:#64799b;line-height:1.45;margin-top:3px}
+#ant-home .ah-how-card .ah-start{margin-top:20px}
+#ant-home .ah-how-back{background:none;border:0;color:#5471a9;display:block;margin:14px auto 0;font-size:12px;font-weight:800;cursor:pointer}
+#ant-home button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+#ah-return{border:0;background:#ffffffc9;border-radius:50%;width:30px;height:30px;color:#29456f;font-size:18px;
+ font-weight:1000;cursor:pointer;box-shadow:0 3px 9px #243a6f3d;padding:0}
+@keyframes ah-pop{0%,62%,100%{transform:translateY(0)}68%{transform:translateY(-3px)}}
+@keyframes ah-walk{0%,100%{translate:0 0}50%{translate:8px -6px}}
+@keyframes ah-twinkle{0%,100%{opacity:.5;scale:.82}50%{opacity:1;scale:1.2}}
+@media(prefers-reduced-motion:reduce){#ant-home *,#ant-home *:before,#ant-home *:after{animation:none!important;transition:none!important}}
