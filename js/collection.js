@@ -3,7 +3,7 @@
 'use strict';
 const $=id=>document.getElementById(id), P=window.AntCanvasProfile;
 if(!P)return;
-const PAGE=12, MAX=999999, grid=$('collection-grid');
+const PAGE=12, MAX=P.MAX_LEVEL, grid=$('collection-grid');
 let from=Math.max(1,P.highest()+1-PAGE),shownLv=0;
 function makeArt(lv,unit){
   const g=buildPicture(lv),pal=palette(lv),canvas=document.createElement('canvas');
@@ -18,13 +18,8 @@ function makeArt(lv,unit){
 function updateStats(){
   $('col-total').textContent=P.count().toLocaleString();
   $('col-series').textContent=P.displayCode();
-  // Exact count is feasible even for the game's current maximum (999,999).
-  let rare=0;
-  for(let i=1;i<=P.highest();i++)if(P.rarity(i).id!=='common')rare++;
-  const max=P.highest();
-  // Non-contiguous wins are included in the total but not in the streak.
-  for(let i=max+1;i<=Math.min(MAX,max+1000);i++)if(P.contains(i)&&P.rarity(i).id!=='common')rare++;
-  $('col-rare').textContent=rare.toLocaleString();
+  const rare=P.rarityTotal();
+  $('col-rare').textContent=rare===null?'—':rare.toLocaleString();
 }
 function appendItem(lv){
   const owned=P.contains(lv),b=document.createElement('button');
