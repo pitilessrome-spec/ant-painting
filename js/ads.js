@@ -3,12 +3,13 @@
  * Pick the ad platform in AD_CONFIG. The game only calls Ads.rewarded / Ads.midgame / Ads.gameplay,
  * so the UI and game logic do not need to change.
  *
- *   'mock'        placeholder for local testing (simulates a 1.5 second ad)
+ *   'free'        honest free boosters while ad approval is pending
+ *   'mock'        placeholder for local testing only (simulates a 1.5 second ad)
  *   'adsgram'     Telegram mini app + AdsGram
  *   'crazygames'  CrazyGames web game portal (SDK v3)
  */
 const AD_CONFIG = {
-  provider: 'mock',
+  provider: 'free', // free boosters until a verified AdsGram publisher account and block IDs are configured
   adsgram: {
     // Get these after adding your mini app at https://partner.adsgram.ai
     rewardedBlockId: '',      // rewarded ad, digits only, e.g. "12345"
@@ -72,6 +73,7 @@ const Ads = {
       });
       return;
     }
+    if (this.provider === 'free') { if (onReward) onReward(); return; }
     if (this.provider === 'mock') { startMockAd(onReward); return; }
     // anything else (ads not configured): no reward
     if (onFail) onFail();
