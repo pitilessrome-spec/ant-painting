@@ -1,0 +1,130 @@
+/* ANT CANVAS — Village world V1/V2 visual redesign.
+   Scenic vector village, daily life, upgraded buildings and collectible treasures. */
+:root{--ink:#203855;--cream:#fff8e6;--sky:#a7e2fc;--leaf:#6bc68e;--gold:#ffd47a;--navy:#173a58}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--ink);background:
+ radial-gradient(ellipse 82% 45% at 15% 0%,#d6eaff 0%,transparent 75%),
+ radial-gradient(ellipse 65% 52% at 95% 80%,#b8ddca 0%,transparent 80%),
+ linear-gradient(145deg,#c0eaf0,#f4f7e6 55%,#a3d2ef);
+ font:14px/1.45 "Trebuchet MS",system-ui,-apple-system,Segoe UI,sans-serif}
+button{font:inherit;cursor:pointer}
+a{color:inherit}
+.topbar{background:#244769;color:#fff;padding:13px max(18px,calc((100vw - 1240px)/2));display:flex;justify-content:space-between;align-items:center;gap:10px;
+ box-shadow:0 5px 16px #18335135}
+.brand{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:950;letter-spacing:.6px}
+.brand-icon{display:grid;place-items:center;background:linear-gradient(155deg,#ffe6a0,#ef9369);border-radius:14px;height:37px;width:37px;font-size:22px;box-shadow:inset 0 2px #fff8,0 3px #9f573c}
+.return{background:#ffffff1c;border:1px solid #ffffff65;border-radius:14px;padding:9px 14px;text-decoration:none;font-weight:900;font-size:12px}
+main{max-width:1240px;padding:21px 16px 60px;margin:auto}
+.eyebrow{color:#4b7993;font-weight:900;letter-spacing:2.5px;font-size:10px;margin-bottom:5px}
+h1{font-size:clamp(27px,4.8vw,42px);line-height:1.06;margin:0;font-weight:1000;letter-spacing:-1.2px;color:#235a60}
+.lead{font-size:13px;line-height:1.6;color:#4b7381;max-width:660px;margin:8px 0 15px}
+.resource-line{display:flex;gap:9px;flex-wrap:wrap;margin:17px 0}
+.stat{display:flex;gap:10px;align-items:center;background:#fffef9df;border:1px solid #fff;border-radius:15px;
+ padding:9px 13px;box-shadow:0 5px 18px #335b7915;min-width:122px;flex:1}
+.stat-icon{display:grid;place-items:center;background:#eff5eb;border-radius:11px;width:36px;height:36px;font-size:20px}
+.stat strong{display:block;font-size:21px;line-height:1.05;color:#295675;font-variant-numeric:tabular-nums}
+.stat small{display:block;font-size:10px;font-weight:900;color:#748e9c;letter-spacing:.4px;margin-top:4px}
+.main-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(276px,.76fr);align-items:start;gap:17px}
+.world-panel{overflow:hidden;position:relative;border:8px solid #fffdf5;border-radius:27px;background:#bbecfa;box-shadow:0 14px 33px #24496740,0 3px 0 #abcbbb,inset 0 0 0 1px #fff}
+#village-world{width:100%;height:auto;display:block;aspect-ratio:960/610;overflow:hidden;touch-action:manipulation}
+.world-plaque{position:absolute;top:14px;left:15px;border:2px solid #fffa;
+ border-radius:13px;background:linear-gradient(170deg,#fff8e7ed,#f7d0a5e9);color:#6e573b;
+ box-shadow:0 4px #b38d6588,0 6px 11px #395b6a38;font-size:12px;font-weight:1000;line-height:1.2;padding:8px 12px;pointer-events:none}
+.world-plaque small{display:block;color:#906b4d;font-size:9px;letter-spacing:1.2px}
+.world-tools{position:absolute;top:13px;right:13px;display:flex;gap:6px}
+.world-tools button{background:#fffffff0;border:1px solid white;border-radius:12px;box-shadow:0 3px 9px #275e6a45;font-weight:950;padding:8px 10px;color:#4e6675;font-size:11px}
+.world-story{position:absolute;bottom:10px;left:12px;right:12px;border-radius:13px;background:#183f53cc;color:#fff;
+ text-align:center;font-weight:850;font-size:11px;padding:8px 10px;backdrop-filter:blur(4px)}
+#village-world .plot-interactive{cursor:pointer;outline:none;transition:filter .2s}
+#village-world .plot-interactive:hover,#village-world .plot-interactive:focus-visible{filter:drop-shadow(0 0 8px #fffbd5)}
+#village-world .plot-interactive.selected .plot-glow{stroke:#fff7a8;stroke-width:8;opacity:.8}
+#village-world .plot-name{font:950 13px system-ui;fill:white;stroke:#3d684a;stroke-width:3;paint-order:stroke;pointer-events:none;text-anchor:middle}
+#village-world .plot-level{font:900 13px system-ui;fill:#ffe89a;stroke:#4a524b;stroke-width:2.5;paint-order:stroke;pointer-events:none;text-anchor:middle}
+#village-world .plot-help{font:950 23px system-ui;fill:#fff;pointer-events:none;text-anchor:middle;filter:drop-shadow(0 2px 2px #306f58)}
+#village-world .resident{pointer-events:none;filter:drop-shadow(1px 3px 2px #235b5055)}
+#village-world .sun{animation:sunshine 5s ease-in-out infinite;transform-origin:786px 102px}
+#village-world .firefly{animation:firefly 3s ease-in-out infinite}
+#village-world .firefly:nth-child(2n){animation-delay:-1s}
+#village-world .flower{animation:flower-sway 4s ease-in-out infinite;transform-box:fill-box;transform-origin:bottom center}
+#village-world .water-streak{animation:stream 7s linear infinite}
+#village-world .building-flag{animation:flag 2s ease-in-out infinite;transform-box:fill-box;transform-origin:left center}
+#village-world .bird{animation:bird 8s ease-in-out infinite}
+#village-world .bird:nth-child(2n){animation-delay:-3s}
+#village-world .hut-smoke{animation:smoke 2.2s ease-out infinite}
+#village-world .is-night-only{opacity:0;transition:opacity .8s}
+#village-world .is-day-only{opacity:1;transition:opacity .8s}
+.world-panel.night #village-world .sky-day{opacity:0}
+.world-panel.night #village-world .sky-night{opacity:1}
+.world-panel.night #village-world .is-night-only{opacity:1}
+.world-panel.night #village-world .is-day-only{opacity:0}
+#village-world .sky-day,#village-world .sky-night{transition:opacity .8s}
+.side{display:flex;flex-direction:column;gap:13px}
+.panel{background:#fffdf4ed;border:2px solid #fff;border-radius:21px;box-shadow:0 8px 23px #385c7720;padding:16px}
+.panel h2{font-size:19px;margin:0;letter-spacing:-.4px;color:#285b65}
+.panel small,.panel .sub{font-size:11px;color:#6d8792}
+.panel .sub{margin:5px 0 11px}
+.shop-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.item{background:#fcfff7;border:2px solid #d9ebe4;border-radius:14px;padding:7px 5px;min-width:0;text-align:center;box-shadow:0 3px #c1dbc8;transition:transform .14s}
+.item:hover{transform:translateY(-2px)}
+.item.selected{background:#fff1cc;border-color:#eead65;box-shadow:0 3px #d9954b}
+.item:focus-visible,.btn:focus-visible,.chest-open:focus-visible{outline:3px solid #4c99e9;outline-offset:2px}
+.item .item-emoji{font-size:25px;display:block;line-height:1.2}
+.item .item-name{display:block;font-size:10px;font-weight:1000;min-height:25px;line-height:1.25;margin-top:5px}
+.item .item-cost{font-size:9px;font-weight:900;color:#5d8d75}
+.build-detail{min-height:51px;padding:9px;background:#e9f3e9;border-radius:13px;margin-top:11px;font-size:11px;color:#52786f;line-height:1.45}
+.build-detail b{display:block;color:#315e66;font-size:12px}
+.btn{border:0;border-radius:14px;padding:11px 12px;font-size:12px;font-weight:1000;box-shadow:0 3px #b57d44;color:#5b4529;background:linear-gradient(#ffe2a1,#ffb96e)}
+.btn:disabled{opacity:.5;cursor:default;box-shadow:0 3px #c9b89f}
+.btn.primary{width:100%;margin-top:10px}
+.btn.secondary{background:linear-gradient(#e9f3ff,#c5dfeb);box-shadow:0 3px #a3c3d3;color:#39586b}
+.btn-row{display:flex;gap:8px;margin-top:10px}
+.btn-row .btn{flex:1}
+#village-message{min-height:28px;font-size:11px;font-weight:800;color:#477c75;margin-top:9px;line-height:1.5}
+.treasure-panel{background:linear-gradient(160deg,#3a527a,#27325d);border-color:#7087a8;color:#fff}
+.treasure-panel h2{color:#fff8e4}
+.treasure-panel .sub{color:#b8c8e8}
+.treasure-wrap{display:flex;align-items:center;gap:12px}
+.chest-figure{position:relative;font-size:57px;line-height:1;filter:drop-shadow(0 6px 0 #1b284b);animation:chest-hover 2.6s ease-in-out infinite;flex:none}
+.chest-figure:before{content:"✦";position:absolute;color:#fff9b4;top:-9px;right:-10px;font-size:22px;animation:firefly 1.5s infinite}
+.chest-figure[aria-disabled=true]{filter:grayscale(1);opacity:.55;animation:none}
+.chest-info{flex:1}
+.chest-info strong{display:block;font-size:16px;color:#fff5ca}
+.chest-info p{color:#c3d2ee;font-size:11px;margin:4px 0}
+.chest-open{width:100%;margin-top:9px;background:linear-gradient(#ffdf90,#ffac4f);border:0;box-shadow:0 4px #b16e37;border-radius:14px;padding:11px;color:#684530;font-size:12px;font-weight:950}
+.chest-open:disabled{filter:grayscale(.8);opacity:.6;box-shadow:none}
+.treasure-result{margin-top:8px;font-size:12px;color:#ffefb4;font-weight:850;min-height:22px}
+.lower-grid{display:grid;grid-template-columns:1fr 1fr;gap:17px;margin-top:17px}
+.collection-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:12px}
+.collectible{background:linear-gradient(150deg,#eaf5ff,#e2eadf);border:1px solid white;border-radius:12px;text-align:center;padding:10px 4px;min-width:0}
+.collectible .symbol{font-size:27px;display:block;filter:drop-shadow(0 2px 2px #344d6342)}
+.collectible.locked .symbol{filter:grayscale(1) blur(1.1px);opacity:.5}
+.collectible b{display:block;font-size:9px;margin-top:4px;line-height:1.2}
+.collectible.locked b{color:#8a98a7}
+.combo-list{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.combo{padding:11px 9px;border-radius:14px;background:#e7f0f2;border:1px solid #fff;text-align:center}
+.combo.unlocked{background:linear-gradient(140deg,#fff3ca,#dcf4d8);box-shadow:0 3px 0 #afcebd}
+.combo .combo-icon{font-size:28px;display:block;filter:grayscale(1);opacity:.6}
+.combo.unlocked .combo-icon{filter:none;opacity:1}
+.combo b{display:block;font-size:11px;line-height:1.2;margin-top:7px}
+.combo span{font-size:9px;line-height:1.3;color:#6a8490;display:block;margin-top:5px}
+.notice{font-size:11px;color:#6a8692;margin:14px 0 0;line-height:1.6}
+#reveal-modal[hidden]{display:none!important}
+#reveal-modal{position:fixed;inset:0;z-index:100;background:#132a4fbd;backdrop-filter:blur(7px);display:grid;place-items:center;padding:20px}
+.modal-card{width:min(100%,340px);background:linear-gradient(165deg,#fffaf0,#e4f8ff);border:3px solid white;border-radius:27px;box-shadow:0 20px 70px #13264290;text-align:center;padding:23px 20px}
+.modal-card .big{font-size:83px;line-height:1.25;display:block;animation:reveal .6s cubic-bezier(.17,1.4,.4,1)}
+.modal-card h2{font-size:26px;margin:7px 0 5px;color:#315e6b}
+.modal-card p{font-size:12px;color:#698390}
+.modal-card .btn{width:100%}
+@keyframes sunshine{0%,100%{opacity:1;scale:1}50%{opacity:.88;scale:1.05}}
+@keyframes firefly{0%,100%{opacity:.4;transform:translateY(3px)}50%{opacity:1;transform:translateY(-7px)}}
+@keyframes flower-sway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+@keyframes stream{to{stroke-dashoffset:-100}}
+@keyframes flag{0%,100%{transform:skewY(0)}50%{transform:skewY(6deg)}}
+@keyframes bird{0%,100%{opacity:.25;transform:translateX(0)}50%{opacity:.8;transform:translateX(21px)}}
+@keyframes smoke{0%{opacity:.55;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-27px) scale(1.7)}}
+@keyframes chest-hover{0%,100%{transform:translateY(1px) rotate(-3deg)}50%{transform:translateY(-6px) rotate(3deg)}}
+@keyframes reveal{0%{transform:scale(.2) rotate(-18deg);opacity:0}100%{transform:scale(1);opacity:1}}
+@media(min-width:1000px){.world-panel{position:sticky;top:15px}}
+@media(max-width:1000px){.main-grid{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.world-panel{max-width:850px}.shop-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){main{padding:15px 9px 45px}.main-grid,.lower-grid,.side{grid-template-columns:1fr}.world-panel{border-width:4px;border-radius:19px}.world-plaque{top:8px;left:8px;font-size:9px;padding:6px}.world-tools{right:8px;top:8px}.world-tools button{padding:6px;font-size:10px}.world-story{font-size:10px;padding:6px}.collection-grid{grid-template-columns:repeat(3,1fr)}.combo-list{grid-template-columns:1fr}.stat{min-width:calc(50% - 6px)}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
