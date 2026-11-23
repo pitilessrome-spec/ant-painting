@@ -4,13 +4,6 @@
  const stage=document.getElementById('stage');
  if(!stage)return;
  const FLAG='ant_tutorial_finished_v1';
- const mystery=document.createElement('div');
- mystery.id='ant-mystery';
- mystery.setAttribute('aria-live','polite');
- mystery.textContent='🎁 MYSTERY ART';
- mystery.style.cssText='position:absolute;left:13px;top:341px;z-index:41;border:1px solid #ffffffb8;border-radius:12px;height:32px;display:flex;align-items:center;background:#ffffffeb;color:#365181;padding:4px 9px;max-width:191px;white-space:nowrap;overflow:hidden;font:900 10px system-ui;box-shadow:0 3px 9px #1d3a6850';
- stage.appendChild(mystery);
- let mysteryStage=-1,mysteryLevel=0;
  let active=false,step=0,level=0,seen=false,autoTimer=null,lastQueued=0;
  try{seen=localStorage.getItem(FLAG)==='1'}catch(_){}
  const coach=document.createElement('section');
@@ -40,19 +33,17 @@
  }
  coach.querySelector('button').addEventListener('click',finish);
  function onLevelStart(lv){
-  level=lv;mysteryStage=-1;mysteryLevel=lv;
-  mystery.textContent='🎁 MYSTERY ART';mystery.hidden=false;
+  level=lv;
   clearTimeout(autoTimer);autoTimer=null;
   active=!seen&&lv===1;
   step=0;lastQueued=0;coach.hidden=true;
   if(active&&window.AntHome&&!window.AntHome.isOpen) setStep(0);
  }
  function onGameOpened(){
-  mystery.hidden=false;
   if(!active || level!==1)return;
   setStep(step);
  }
- function onMenuOpened(){ coach.hidden=true;mystery.hidden=true; clearTimeout(autoTimer);autoTimer=null; }
+ function onMenuOpened(){ coach.hidden=true; clearTimeout(autoTimer);autoTimer=null; }
  function onPlaced(game){
   if(!active||!game||game.lv!==1)return;
   if(step===0){
@@ -72,18 +63,8 @@
    autoTimer=setTimeout(finish,4700);
   }
  }
- function onProgress(game){
-   if(!game||game.lv!==mysteryLevel)return;
-   const pct=game.visualPct?game.visualPct():game.pct();
-   const phase=pct>=70?2:pct>=30?1:0;
-   if(phase===mysteryStage)return;
-   mysteryStage=phase;
-   if(phase===0)mystery.textContent='🎁 MYSTERY ART';
-   else if(phase===1)mystery.textContent='🔎 CLUE: '+(game.theme||'Surprise');
-   else mystery.textContent='✨ REVEAL CLOSE!';
- }
  function onWin(game,lv){
-  finish();mystery.hidden=true;
+  finish();
   if(!game||!game.role||!game.pal)return;
   const card=document.querySelector('#win .card');
   if(!card)return;
@@ -122,5 +103,5 @@
   }
   stars.querySelectorAll('span').forEach(s=>{s.style.animation='none';void s.offsetWidth;s.style.animation=''});
  }
- window.AntPolish=Object.freeze({onLevelStart,onGameOpened,onMenuOpened,onPlaced,onTick,onProgress,onWin,get teaching(){return active}});
+ window.AntPolish=Object.freeze({onLevelStart,onGameOpened,onMenuOpened,onPlaced,onTick,onWin,get teaching(){return active}});
 })();
