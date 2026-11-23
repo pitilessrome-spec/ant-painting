@@ -48,10 +48,11 @@
   if(active&&window.AntHome&&!window.AntHome.isOpen) setStep(0);
  }
  function onGameOpened(){
+  mystery.hidden=false;
   if(!active || level!==1)return;
   setStep(step);
  }
- function onMenuOpened(){ coach.hidden=true; clearTimeout(autoTimer);autoTimer=null; }
+ function onMenuOpened(){ coach.hidden=true;mystery.hidden=true; clearTimeout(autoTimer);autoTimer=null; }
  function onPlaced(game){
   if(!active||!game||game.lv!==1)return;
   if(step===0){
