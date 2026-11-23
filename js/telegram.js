@@ -4,7 +4,7 @@
   const CONFIG = Object.freeze({
     botUsername: '', // Set after BotFather creates the bot, without @
     miniAppShortName: '', // Optional, from BotFather /newapp
-    apiBaseUrl: '' // HTTPS origin of the separately deployed and authenticated API
+    apiBaseUrl: 'https://ant-canvas-telegram-api.vercel.app' // Public HTTPS API, bot and DB secrets live only on backend
   });
   const GAME_URL = 'https://pitilessrome-spec.github.io/ant-painting/';
   const tg = (window.Telegram && window.Telegram.WebApp) || null;
