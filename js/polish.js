@@ -73,9 +73,9 @@
    flag=document.createElement('div');flag.id='ant-win-flag';flag.textContent='✨ MASTERPIECE UNLOCKED ✨';
    card.insertBefore(flag,card.firstChild);
   }
-  if(window.AntCanvasProfile){const rarity=window.AntCanvasProfile.rarity(lv);flag.textContent=rarity.symbol+' '+rarity.title.toUpperCase()+' MASTERPIECE UNLOCKED';}
+  if(window.AntCanvasProfile){const rarity=window.AntCanvasProfile.rarity(lv);flag.textContent=lv%5===0?'🎁 SECRET BONUS ART UNLOCKED!':rarity.symbol+' '+rarity.title.toUpperCase()+' MASTERPIECE UNLOCKED';}
   const heading=card.querySelector('h2');
-  if(heading)heading.textContent='Art revealed!';
+  if(heading)heading.textContent=lv%5===0?'Surprise masterpiece!':'Art revealed!';
   let frame=document.getElementById('ant-win-art');
   if(!frame){
    frame=document.createElement('div');frame.id='ant-win-art';
@@ -84,11 +84,15 @@
    frame.appendChild(canvas);
    const p=document.getElementById('winSub'); if(p)card.insertBefore(frame,p);
   }
-  const canvas=frame.querySelector('canvas'),size=game.n,context=canvas.getContext('2d');
+  const canvas=frame.querySelector('canvas');
+  const isBonus=lv%5===0;
+  const secret=isBonus&&typeof buildPicture==='function'?buildPicture(lv+100001000):null;
+  const size=secret?secret.n:game.n,roles=secret?secret.role:game.role,pal=secret?palette(lv+100001000):game.pal,context=canvas.getContext('2d');
+  canvas.setAttribute('aria-label',isBonus?'Secret bonus painting revealed on milestone completion':'Completed level picture');
   canvas.width=size*3;canvas.height=size*3;context.imageSmoothingEnabled=false;
   context.fillStyle='#f0fcff';context.fillRect(0,0,canvas.width,canvas.height);
   for(let y=0;y<size;y++)for(let x=0;x<size;x++){
-   const idx=y*size+x;const col=game.pal[game.role[idx]];
+   const idx=y*size+x;const col=pal[roles[idx]];
    context.fillStyle=col||'#dceefa';context.fillRect(x*3,y*3,3,3);
   }
   frame.removeAttribute('hidden');
