@@ -1,0 +1,207 @@
+/* 蚂蚁搬画 · 页面与界面逻辑 */
+const $=s=>document.querySelector(s);
+const VW=360,VH=318,SPEEDS=[1,2,3];
+const stage=$('#stage'),glc=$('#gl'),fxc=$('#fx'),fx=fxc.getContext('2d');
+let S=1,DPR=1,G=null,LV=1,MAXLV=1,spIdx=0,unlocks=2,reshuf=false,hintT=0,adT=0,adCb=null,SND=1,shown='',lastUI=0,PAR=[],anims=new Map(),shakeCol=-1,shakeUntil=0,toastH=0;
+let R3=null,scene=null,cam=null,mesh=null,DM=null,VEC=null,CLR=null,CW=.1,ZC=0,ZTOP=0,AC=null;
+let st={};try{st=JSON.parse(localStorage.getItem('mbh3'))||{}}catch(e){}
+MAXLV=st.maxLv||1;SND=st.snd===undefined?1:st.snd;
+
+function save(){try{localStorage.setItem('mbh3',JSON.stringify({lv:LV,maxLv:MAXLV,snd:SND}))}catch(e){}}
+function beep(f,d,v){if(!SND)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(v||.05,AC.currentTime);g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toastH);toastH=setTimeout(()=>e.classList.remove('on'),1400)}
+function ad(cb){adCb=cb;adT=1500;$('#ad').classList.add('on')}
+function rrPath(p,x,y,w,h,r){p.moveTo(x+r,y);p.lineTo(x+w-r,y);p.quadraticCurveTo(x+w,y,x+w,y+r);p.lineTo(x+w,y+h-r);p.quadraticCurveTo(x+w,y+h,x+w-r,y+h);p.lineTo(x+r,y+h);p.quadraticCurveTo(x,y+h,x,y+h-r);p.lineTo(x,y+r);p.quadraticCurveTo(x,y,x+r,y)}
+function mix(a,b,t){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);return '#'+[16,8,0].map(s=>{const p=x>>s&255,q=y>>s&255;return Math.round(p+(q-p)*t).toString(16).padStart(2,'0')}).join('')}
+function tokStyle(role){const base=G.pal[role];const r=parseInt(base.slice(1,3),16),g=parseInt(base.slice(3,5),16),b=parseInt(base.slice(5,7),16);const lum=.299*r+.587*g+.114*b;return `--c:${base};--l:${mix(base,'#ffffff',.3)};--d:${mix(base,'#000000',.3)};--t:${lum>168?'#2b2d42':'#ffffff'}`}
+
+/* ---------- 3D 托盘与格子（three.js 正交相机，斜着看） ---------- */
+function init3D(){
+ if(typeof THREE==='undefined')return;
+ R3=new THREE.WebGLRenderer({canvas:glc,antialias:true,alpha:true});
+ R3.shadowMap.enabled=true;R3.shadowMap.type=THREE.PCFSoftShadowMap;R3.shadowMap.autoUpdate=false;
+ scene=new THREE.Scene();
+ cam=new THREE.OrthographicCamera(-2,2,VH/VW*2,-VH/VW*2,.1,60);
+ cam.position.set(0,4.2,8.6);cam.lookAt(0,-.2,0);cam.updateMatrixWorld();
+ scene.add(new THREE.HemisphereLight(0xffffff,0x9cc4ec,.95));
+ const dl=new THREE.DirectionalLight(0xffffff,.75);dl.position.set(-2.5,5,4);dl.castShadow=true;
+ dl.shadow.mapSize.set(1024,1024);
+ Object.assign(dl.shadow.camera,{left:-2.8,right:2.8,top:2.8,bottom:-2.8,near:.5,far:20});
+ dl.shadow.camera.updateProjectionMatrix();dl.shadow.bias=-.0008;scene.add(dl);
+ const sh=new THREE.Shape();rrPath(sh,-1.74,-1.74,3.48,3.48,.32);
+ const tg=new THREE.ExtrudeGeometry(sh,{depth:.16,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:3,curveSegments:10});
+ const tray=new THREE.Mesh(tg,new THREE.MeshStandardMaterial({color:0xa8d4f4,roughness:.55,metalness:0}));
+ tray.position.z=-.23;tray.receiveShadow=true;scene.add(tray);
+ DM=new THREE.Object3D();VEC=new THREE.Vector3();CLR=new THREE.Color();
+}
+function buildBoard(){
+ if(!R3||!G)return;
+ if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();mesh=null}
+ const n=G.n;CW=3.2/n;
+ const d=CW*.75,bev=CW*.1,hs=CW*.44-bev;
+ const sh=new THREE.Shape();rrPath(sh,-hs,-hs,hs*2,hs*2,Math.max(.002,CW*.16));
+ const geo=new THREE.ExtrudeGeometry(sh,{depth:d,bevelEnabled:true,bevelThickness:bev,bevelSize:bev*.9,bevelSegments:2,curveSegments:4});
+ geo.translate(0,0,-d/2);
+ ZC=-.02+d/2+bev;ZTOP=ZC+d/2+bev;
+ mesh=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({roughness:.36,metalness:.02}),n*n);
+ mesh.castShadow=true;mesh.receiveShadow=true;
+ const C=new THREE.Color();
+ for(let i=0;i<n*n;i++){setInst(i,1,0);mesh.setColorAt(i,C.set(G.pal[G.role[i]]))}
+ mesh.instanceMatrix.needsUpdate=true;mesh.instanceColor.needsUpdate=true;
+ scene.add(mesh);
+ if(R3)R3.shadowMap.needsUpdate=true;
+}
+function setInst(i,sc,lift){const n=G.n,x=i%n,y=(i-x)/n;DM.position.set((x+.5-n/2)*CW,-(y+.5-n/2)*CW,ZC+lift);DM.scale.set(sc,sc,sc);DM.updateMatrix();mesh.setMatrixAt(i,DM.matrix)}
+function proj(gx,gy,z){if(!cam||!G)return[VW/2,VH/2];const n=G.n;VEC.set((gx-n/2)*CW,-(gy-n/2)*CW,z).project(cam);return[(VEC.x+1)/2*VW,(1-VEC.y)/2*VH]}
+function placeHole(){const n=G.n,p=proj(n/2,n+.9,0),h=$('#hole');h.style.left=(p[0]-24)+'px';h.style.top=(p[1]-7)+'px';h.style.width='48px';h.style.height='14px'}
+function draw3D(dt){
+ if(!R3||!mesh)return;
+ if(anims.size){for(const [i,t0] of anims){const t=t0+dt,k=Math.min(1,t/300),e=1-Math.pow(1-k,3);setInst(i,Math.max(0,1-e),e*.22);if(k>=1)anims.delete(i);else anims.set(i,t)}
+  mesh.instanceMatrix.needsUpdate=true;R3.shadowMap.needsUpdate=true}
+ R3.render(scene,cam);
+}
+function fit(){
+ S=Math.min(innerWidth/VW,innerHeight/640);
+ stage.style.transform='translate(-50%,-50%) scale('+S+')';
+ DPR=Math.min(3,(devicePixelRatio||1)*S);
+ if(R3){R3.setPixelRatio(DPR);R3.setSize(VW,VH,false)}
+ fxc.width=Math.round(VW*DPR);fxc.height=Math.round(VH*DPR);
+}
+
+/* ---------- 蚂蚁、粒子（画在 2D 画布上） ---------- */
+function burst(i,c){const n=G.n,p=proj(i%n+.5,Math.floor(i/n)+.5,ZTOP);for(let k=0;k<6;k++)PAR.push({x:p[0],y:p[1],vx:(Math.random()-.5)*2.6,vy:-Math.random()*2.4-.6,l:480,c:G.pal[c]})}
+function drawAnt(a,now){
+ const z=a.y<G.n+.2?ZTOP+.05:.02;
+ const p=proj(a.x,a.y,z),q=proj(a.x+(a.ux||0)*.4,a.y+(a.uy||-1)*.4,z);
+ const ang=Math.atan2(q[1]-p[1],q[0]-p[0]),s=CW*90/5,wig=Math.sin(now*.025+a.x*4)*.7;
+ fx.save();fx.translate(p[0],p[1]);fx.rotate(ang);fx.scale(s,s);
+ fx.fillStyle='rgba(20,30,60,.22)';fx.beginPath();fx.ellipse(.8,2.4,5.2,2.2,0,0,6.283);fx.fill();
+ fx.strokeStyle='#26283a';fx.lineWidth=.45;fx.beginPath();
+ for(let i=-1;i<=1;i++){const sg=i%2?1:-1;fx.moveTo(i*1.3,0);fx.lineTo(i*2.4+wig*sg,-3.2);fx.moveTo(i*1.3,0);fx.lineTo(i*2.4-wig*sg,3.2)}
+ fx.stroke();
+ fx.lineWidth=.35;fx.strokeStyle='#1a1c28';
+ fx.fillStyle='#2a2d3f';fx.beginPath();fx.ellipse(0,0,2.1,1.6,0,0,6.283);fx.fill();fx.stroke();
+ fx.fillStyle=G.pal[a.c];fx.beginPath();fx.ellipse(-3.4,0,2.8,2.2,0,0,6.283);fx.fill();fx.stroke();
+ fx.fillStyle='#2a2d3f';fx.beginPath();fx.ellipse(3.1,0,1.9,1.6,0,0,6.283);fx.fill();fx.stroke();
+ fx.fillStyle='#fff';fx.beginPath();fx.arc(3.8,-.8,.5,0,6.283);fx.arc(3.8,.8,.5,0,6.283);fx.fill();
+ fx.strokeStyle='#1a1c28';fx.beginPath();fx.moveTo(4.6,-.6);fx.lineTo(6.2,-1.6);fx.moveTo(4.6,.6);fx.lineTo(6.2,1.6);fx.stroke();
+ if(a.ph===1){fx.fillStyle=G.pal[a.c];fx.strokeStyle='rgba(0,0,0,.45)';fx.lineWidth=.35;fx.fillRect(-1.6,-1.4,2.8,2.8);fx.strokeRect(-1.6,-1.4,2.8,2.8)}
+ fx.restore();
+}
+function drawFX(dt,now){
+ fx.setTransform(DPR,0,0,DPR,0,0);fx.clearRect(0,0,VW,VH);
+ if(!G)return;
+ for(const p of PAR){p.x+=p.vx*dt/16;p.y+=p.vy*dt/16;p.vy+=.12*dt/16;p.l-=dt}
+ PAR=PAR.filter(p=>p.l>0);
+ for(const p of PAR){fx.globalAlpha=Math.max(0,Math.min(1,p.l/400));fx.fillStyle=p.c;fx.fillRect(p.x-2.2,p.y-2.2,4.4,4.4)}
+ fx.globalAlpha=1;
+ for(const a of G.ants)drawAnt(a,now);
+}
+function handleEv(){
+ for(const e of G.ev){
+  if(e.t==='eat'){anims.set(e.i,0);burst(e.i,e.c);beep(560+Math.random()*420,.07,.035)}
+  else if(e.t==='claim'&&mesh){mesh.setColorAt(e.i,CLR.set(mix(G.pal[e.c],'#ffffff',.35)));mesh.instanceColor.needsUpdate=true}
+  else if(e.t==='reshuffle')toast('没有能搬的，盒子已重新排好');
+  else if(e.t==='stall')toast('现在没有能搬的盒子，想想下一步该放哪个');
+ }
+ G.ev.length=0;
+}
+
+/* ---------- 界面（HTML） ---------- */
+function renderUI(){
+ if(!G)return;
+ $('#lv').textContent='第'+LV+'关';
+ $('#pv').textContent=G.pct()+'%';
+ $('#spd').textContent='×'+SPEEDS[spIdx];
+ $('#rsh').classList.toggle('off',LV<10||reshuf);
+ let sh='';
+ for(let i=0;i<G.cap;i++){const b=G.slots[i];sh+=b?`<div class="tile tk" style="${tokStyle(b.c)}"><span>${b.n}</span></div>`:'<div class="tile empty"></div>'}
+ if(G.cap<7&&unlocks>0)sh+='<div class="tile unlock" data-act="unlock">＋</div>';
+ $('#slots').innerHTML=sh;
+ const hc=G.state==='play'?G.hint():-1;
+ let th='';
+ const now=performance.now();
+ for(let c=0;c<4;c++)for(let r=2;r>=0;r--){
+   const b=G.cols[c][r];if(!b)continue;
+   const play=false;
+   const cls=['tk','tok'];
+   if(play)cls.push('pl');
+   if(r===0&&c===hc&&hintT>0)cls.push('hl');
+   if(r===0&&c===shakeCol&&now<shakeUntil)cls.push('shk');
+   th+=`<div class="${cls.join(' ')}" data-col="${c}" style="left:${24+c*80}px;top:${[0,40,74][r]}px;width:72px;height:${[52,46,38][r]}px;opacity:${[1,.85,.5][r]};z-index:${10-r};${tokStyle(b.c)}"><span>${b.n}</span>${play?'<i class="dot"></i>':''}</div>`;
+ }
+ $('#tok').innerHTML=th;
+}
+
+/* ---------- 关卡与流程 ---------- */
+function newLevel(lv){
+ LV=Math.max(1,Math.min(999999,lv));
+ G=new Game(LV,{speed:SPEEDS[spIdx]});
+ MAXLV=Math.max(MAXLV,LV);reshuf=false;unlocks=2;shown='play';hintT=0;PAR=[];anims.clear();
+ $('#win').classList.remove('on');$('#lose').classList.remove('on');
+ buildBoard();placeHole();save();renderUI();
+}
+function onWin(){
+ MAXLV=Math.max(MAXLV,Math.min(999999,LV+1));save();
+ $('#winSub').textContent='第'+LV+'关完成 · 进度 100%';
+ $('#win').classList.add('on');
+ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.25,.05),i*120));
+ for(let i=0;i<70;i++)PAR.push({x:Math.random()*VW,y:-10-Math.random()*60,vx:(Math.random()-.5)*1.2,vy:1+Math.random()*2,l:2600,c:G.pal[(Math.random()*8)|0]});
+}
+
+stage.addEventListener('pointerdown',e=>{
+ if(!G||adT>0)return;
+ const el=e.target.closest('[data-col],[data-act]');if(!el)return;
+ if(el.dataset.col!==undefined){
+   const c=+el.dataset.col,r=G.place(c);
+   if(r===1){beep(520,.07,.05);renderUI()}
+   else if(r===2)toast('槽位满了，先等等');
+   else if(r===3){toast('这个颜色现在搬不了，找绿点的');shakeCol=c;shakeUntil=performance.now()+400;renderUI()}
+   return;
+ }
+ const a=el.dataset.act;
+ if(a==='unlock')ad(()=>{G.addSlot();unlocks--;renderUI();toast('多了一个槽位')});
+ else if(a==='speed'){spIdx=(spIdx+1)%SPEEDS.length;G.speed=SPEEDS[spIdx];renderUI()}
+ else if(a==='hint')ad(()=>{hintT=6000;toast('闪烁的盒子就是现在能搬的')});
+ else if(a==='reshuffle'){
+   if(LV<10)toast('第10关解锁');
+   else if(reshuf)toast('本关已用过一次');
+   else if(G.ants.length)toast('等蚂蚁搬完再换');
+   else if(G.reshuffle()){reshuf=true;toast('盒子重新排好了')}
+   renderUI();
+ }
+ else if(a==='prev'&&LV>1)newLevel(LV-1);
+ else if(a==='next'&&LV<MAXLV)newLevel(LV+1);
+ else if(a==='nextLv')newLevel(LV+1);
+ else if(a==='retry')newLevel(LV);
+ else if(a==='reviveAd')ad(()=>{G.revive();$('#lose').classList.remove('on');shown='play';renderUI()});
+ else if(a==='snd'){SND=SND?0:1;save();toast(SND?'声音已开':'声音已关')}
+});
+
+let last=performance.now();
+function frame(now){
+ const dt=Math.min(50,now-last);last=now;
+ if(adT>0){
+   adT-=dt;$('#adbar').style.width=(100*Math.min(1,1-adT/1500))+'%';
+   if(adT<=0){adT=0;$('#ad').classList.remove('on');const f=adCb;adCb=null;if(f)f()}
+ }
+ if(G){
+   if(adT<=0&&G.state==='play')G.tick(dt);
+   handleEv();
+   if(hintT>0)hintT-=dt;
+   if(G.state!==shown){
+     shown=G.state;
+     if(shown==='win')onWin();
+     else if(shown==='lose'){$('#lose').classList.add('on');beep(180,.4,.06);renderUI()}
+   }
+ }
+ if(now-lastUI>90){renderUI();lastUI=now}
+ draw3D(dt);drawFX(dt,now);
+ requestAnimationFrame(frame);
+}
+
+init3D();
+if(!R3)toast('3D 画面加载失败，请检查网络');
+fit();window.addEventListener('resize',fit);
+newLevel(st.lv||MAXLV);
+requestAnimationFrame(frame);

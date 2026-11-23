@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>蚂蚁搬画</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+body{background:radial-gradient(120% 70% at 50% 8%,#f6fcff 0%,#c6e6fb 42%,#7aaee3 100%)}
+#stage{position:absolute;left:50%;top:50%;width:360px;height:640px;overflow:hidden}
+.a{position:absolute}
+#top{left:14px;right:14px;top:12px;height:38px;display:flex;align-items:center;justify-content:space-between}
+.glass{background:rgba(255,255,255,.62);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 3px 10px rgba(40,80,140,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#snd{width:38px;height:38px;border-radius:50%;border:0;color:#fff;font-size:16px;font-weight:900;background:linear-gradient(#ffc75a,#f39a1c);box-shadow:0 3px 0 #c57a10;cursor:pointer;padding:0}
+#lvbox{height:38px;border-radius:19px;display:flex;align-items:center;gap:6px;padding:0 6px;font-weight:900;font-size:17px;color:#2b3f66}
+#lv{min-width:84px;text-align:center}
+.nav{width:28px;height:28px;border-radius:50%;border:0;background:rgba(43,63,102,.12);color:#2b3f66;font-size:11px;font-weight:900;cursor:pointer;padding:0}
+#pct{height:38px;border-radius:19px;padding:0 14px;display:flex;align-items:center;font-weight:900;font-size:15px;color:#2b3f66}
+#board{left:0;top:56px;width:360px;height:318px}
+#gl,#fx{position:absolute;left:0;top:0;width:360px;height:318px;pointer-events:none}
+#hole{position:absolute;border-radius:50%;background:radial-gradient(#1e2740,#3a4a6e);box-shadow:0 0 0 3px rgba(255,255,255,.35),0 4px 10px rgba(20,40,80,.35)}
+#slots{left:14px;right:14px;top:382px;height:52px;display:flex;justify-content:center;gap:6px}
+.tile{flex:0 1 46px;min-width:30px;height:48px;border-radius:12px;position:relative}
+.tile.tk{width:100%;height:100%;position:relative}
+.empty{background:rgba(255,255,255,.42);box-shadow:inset 0 2px 6px rgba(40,80,140,.22);border:2px dashed rgba(255,255,255,.7)}
+.unlock{background:rgba(255,255,255,.9);color:#2b3f66;font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 #9fb5d8;animation:pulse 1.6s infinite}
+#tip{left:0;right:0;top:440px;text-align:center;font-size:12px;font-weight:700;color:#2b3f66}
+#toast{left:50%;top:428px;transform:translateX(-50%);padding:6px 14px;border-radius:14px;background:rgba(20,36,70,.85);color:#fff;font-size:13px;font-weight:700;opacity:0;transition:opacity .2s;white-space:nowrap;pointer-events:none;z-index:40}
+#toast.on{opacity:1}
+#tok{left:0;top:470px;width:360px;height:120px}
+.tk{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:12px;font-weight:900;font-size:19px;color:var(--t);background:linear-gradient(180deg,var(--l) 0%,var(--c) 56%,var(--c) 100%);box-shadow:0 4px 0 var(--d),0 10px 16px rgba(20,40,90,.22),inset 0 2px 0 rgba(255,255,255,.5);text-shadow:0 1px 0 rgba(0,0,0,.15)}
+.tok{transition:left .25s,top .25s,opacity .25s}
+.dot{position:absolute;right:6px;top:6px;width:10px;height:10px;border-radius:50%;background:#3ddc84;box-shadow:0 0 0 2px #fff,0 0 8px #3ddc84}
+.hl{animation:hl 1s ease-in-out infinite}
+.shk{animation:shk .35s}
+@keyframes hl{0%,100%{box-shadow:0 4px 0 var(--d),0 0 0 0 rgba(255,230,90,0)}50%{box-shadow:0 4px 0 var(--d),0 0 0 4px rgba(255,230,90,.95)}}
+@keyframes shk{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+#tools{left:16px;right:16px;top:588px;height:46px;display:flex;gap:10px}
+.btn{flex:1;border:0;border-radius:23px;color:#fff;font-size:15px;font-weight:900;background:linear-gradient(#7fd0ff,#3a9be0);box-shadow:0 4px 0 #2a72b5,0 8px 14px rgba(30,80,150,.25);cursor:pointer;padding:0}
+.btn.gold{background:linear-gradient(#ffd46a,#f0a020);box-shadow:0 4px 0 #b97610,0 8px 14px rgba(150,90,10,.25)}
+.btn.grn{background:linear-gradient(#7ee8a6,#2fb36a);box-shadow:0 4px 0 #1d8a4d,0 8px 14px rgba(20,120,70,.25)}
+.btn.off{background:linear-gradient(#b6c2d6,#8a98b0);box-shadow:0 4px 0 #66738c}
+.btn:active{transform:translateY(2px)}
+.over{position:absolute;inset:0;background:rgba(18,32,64,.5);display:none;align-items:center;justify-content:center;z-index:50}
+.over.on{display:flex}
+.card{width:272px;padding:24px 18px 20px;border-radius:24px;background:linear-gradient(#ffffff,#eaf4ff);box-shadow:0 14px 40px rgba(0,0,0,.28);text-align:center}
+.card h2{margin:0;font-size:26px;font-weight:900;color:#2b3f66}
+.card p{margin:8px 0 0;font-size:13px;color:#5b6d8f;line-height:1.5}
+.cbtn{display:block;width:200px;height:48px;margin:14px auto 0;border:0;border-radius:24px;color:#fff;font-size:17px;font-weight:900;background:linear-gradient(#7ee8a6,#2fb36a);box-shadow:0 4px 0 #1d8a4d;cursor:pointer}
+.cbtn.ghost{background:linear-gradient(#b8c4d8,#8a98b0);box-shadow:0 4px 0 #66738c;margin-top:10px;height:40px;width:170px;font-size:14px}
+#ad{z-index:60;background:rgba(10,20,40,.8)}
+#adbox{height:8px;border-radius:4px;background:rgba(43,63,102,.2);margin-top:18px;overflow:hidden}
+#adbar{height:100%;width:0;background:linear-gradient(90deg,#7ee8a6,#2fb36a)}
+</style></head>
+<body>
+<div id="stage">
+ <div id="top" class="a">
+  <button id="snd" data-act="snd">♪</button>
+  <div id="lvbox" class="glass"><button class="nav" data-act="prev">◀</button><span id="lv">第1关</span><button class="nav" data-act="next">▶</button></div>
+  <div id="pct" class="glass"><span id="pv">0%</span></div>
+ </div>
+ <div id="board" class="a">
+  <canvas id="gl"></canvas><canvas id="fx"></canvas><div id="hole"></div>
+ </div>
+ <div id="slots" class="a"></div>
+ <div id="toast" class="a"></div>
+ <div id="tip" class="a">点盒子进槽位 · 从下往上一层层吃 · 提示键看下一个该放哪个</div>
+ <div id="tok" class="a"></div>
+ <div id="tools" class="a">
+  <button class="btn" data-act="speed">加速 <span id="spd">×1</span></button>
+  <button class="btn gold" data-act="hint">提示</button>
+  <button class="btn grn" id="rsh" data-act="reshuffle">换盒子</button>
+ </div>
+ <div id="win" class="over"><div class="card"><h2>过关！</h2><p id="winSub"></p><button class="cbtn" data-act="nextLv">下一关</button></div></div>
+ <div id="lose" class="over"><div class="card"><h2>没有能搬的了</h2><p>看一段广告复活：多 1 个槽位，并把剩下的盒子重新排好，可以继续。</p><button class="cbtn" data-act="reviveAd">看广告复活</button><button class="cbtn ghost" data-act="retry">重来本关</button></div></div>
+ <div id="ad" class="over"><div class="card"><h2>广告</h2><p>（广告位，待接入）</p><div id="adbox"><div id="adbar"></div></div></div></div>
+</div>
+<script src="vendor/three.min.js"></script>
+<script src="js/art.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+</body></html>

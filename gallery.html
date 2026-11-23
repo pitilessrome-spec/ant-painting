@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>关卡图案预览（程序生成）</title>
+<style>
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;margin:12px;background:#eef3fa;color:#2b3f66}
+#bar{margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input{width:90px;padding:4px 6px;border:1px solid #b9c7de;border-radius:6px}
+button{padding:6px 14px;border:0;border-radius:8px;background:#3a9be0;color:#fff;font-weight:700;cursor:pointer}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.cell{background:#fff;border-radius:10px;padding:6px;text-align:center;font-size:13px;box-shadow:0 2px 6px rgba(40,80,140,.12)}
+canvas{width:100%;height:auto;image-rendering:pixelated;border-radius:6px;display:block;margin-bottom:4px}
+</style></head><body>
+<div id="bar">
+  从第 <input id="from" type="number" value="1" min="1"> 关，
+  显示 <input id="cnt" type="number" value="24" min="1" max="200"> 关
+  <button id="go">生成预览</button>
+  <span>图案由 js/art.js 随机生成，每个关卡号的种子都不同</span>
+</div>
+<div id="grid"></div>
+<script src="js/art.js"></script>
+<script>
+function drawLevel(lv) {
+  const P = buildPicture(lv), pal = palette(lv), n = P.n, S = 4;
+  const c = document.createElement('canvas');
+  c.width = n * S; c.height = n * S;
+  const x = c.getContext('2d');
+  for (let y = 0; y < n; y++) for (let i = 0; i < n; i++) {
+    x.fillStyle = pal[P.role[y * n + i]];
+    x.fillRect(i * S, y * S, S, S);
+  }
+  return c;
+}
+function show() {
+  const from = Math.max(1, +document.getElementById('from').value || 1);
+  const cnt = Math.min(200, Math.max(1, +document.getElementById('cnt').value || 24));
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  for (let k = 0; k < cnt; k++) {
+    const lv = from + k, d = document.createElement('div');
+    d.className = 'cell';
+    d.appendChild(drawLevel(lv));
+    d.append('第 ' + lv + ' 关');
+    g.appendChild(d);
+  }
+}
+document.getElementById('go').onclick = show;
+show();
+</script>
+</body></html>
