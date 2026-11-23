@@ -94,6 +94,9 @@ class Game {
     this.rebuild();
   }
   pct() { return Math.floor((this.total - this.left) / this.total * 100); }
+  // UI count: logical remaining (n) + ants queued to walk (q).
+  // Decrement only when each queued ant actually leaves the slot in tick().
+  slotDisplayCount(s) { return s ? s.n + s.q.length : 0; }
   R() { if (!this._R) this._R = reachDist(this.eaten, this.n); return this._R; }
 
   // Rebuild the boxes from the uneaten cells (always clearable). Ants still queued in slots are released first so no cell is left hanging
