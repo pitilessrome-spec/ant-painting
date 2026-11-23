@@ -25,7 +25,7 @@ const hex = rgb => '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('');
 function canvasPlayerSeed(){return typeof window!=='undefined'&&window.AntCanvasProfile?window.AntCanvasProfile.seed:0;}
 function palette(lv) {
   const seed=canvasPlayerSeed();
-  const R = rng(seed===0?(lv*31+5):mix32((lv*31+5)^mix32(seed))), j = (R() * 2 - 1) * 14, dl = (R() * 2 - 1) * 4;
+  const R = rng(lv>999999&&typeof window!=='undefined'&&window.AntCanvasProfile?window.AntCanvasProfile.levelSeed(lv,31):seed===0?(lv*31+5):mix32((lv*31+5)^mix32(seed))), j = (R() * 2 - 1) * 14, dl = (R() * 2 - 1) * 4;
   return MATS.map(m => {
     const sat = m[2], lig = clamp(m[3] + (sat > 0 ? dl : 0), 0, 100);
     const h = (m[1] + (sat > 0 ? j : 0) + 360) % 360;
@@ -372,7 +372,7 @@ function coverage(C) { let c = 0; for (let i = 0; i < C.obj.length; i++) if (C.o
 function gridN(lv) { return Math.min(56, 40 + Math.floor(lv / 25)); }
 function buildPicture(lv) {
   const playerSeed=canvasPlayerSeed();
-  const seed=playerSeed===0?mix32(lv*7919+101):mix32((lv*7919+101)^mix32(playerSeed));
+  const seed=lv>999999&&typeof window!=='undefined'&&window.AntCanvasProfile?window.AntCanvasProfile.levelSeed(lv,7919):playerSeed===0?mix32(lv*7919+101):mix32((lv*7919+101)^mix32(playerSeed));
   const R = rng(seed), n = gridN(lv), C = new Cv(n);
   const bi = Math.floor(R() * BGS.length);
   BGS[bi](C, R);
