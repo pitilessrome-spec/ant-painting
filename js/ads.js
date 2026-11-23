@@ -56,8 +56,7 @@ const Ads = {
       this.rwdCtrl.show()
         .then(res => {
           this.busy = false;
-          if (res && res.done) { if (onReward) onReward(); }
-          else if (onFail) onFail();
+          if(onReward)onReward();
         })
         .catch(() => { this.busy = false; if (onFail) onFail(); });
       return;
@@ -77,6 +76,22 @@ const Ads = {
     if (this.provider === 'mock') { startMockAd(onReward); return; }
     // anything else (ads not configured): no reward
     if (onFail) onFail();
+  },
+
+  // The fifth slot is a *real* rewarded ad only, never the 'free' booster fallback.
+  canRewardSlot() {
+    const tg=window.Telegram&&window.Telegram.WebApp;
+    return this.provider==='adsgram'&&this.ready&&!!this.rwdCtrl&&!!(tg&&tg.initData);
+  },
+  rewardedSlot(onReward,onFail) {
+    if(!this.canRewardSlot()||this.busy){if(onFail)onFail();return;}
+    this.busy=true;
+    // AdsGram's show() promise resolves only on earned reward and rejects on skip/error.
+    // No fabricated timer, and no local 'free' provider reward.
+    let settled=false;
+    const success=()=>{if(settled)return;settled=true;this.busy=false;if(onReward)onReward();};
+    const failure=()=>{if(settled)return;settled=true;this.busy=false;if(onFail)onFail();};
+    try{Promise.resolve(this.rwdCtrl.show()).then(success,failure)}catch(_){failure()}
   },
 
   // Interstitial: shown between levels; the next level starts after it finishes or is closed. Never used for rewards
