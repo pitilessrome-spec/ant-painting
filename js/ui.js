@@ -163,7 +163,7 @@ function renderUI(){
 
 /* ---------- Levels and flow ---------- */
 function newLevel(lv){
- LV=Math.max(1,Math.min(999999,lv));
+ LV=Math.max(1,Math.min((window.AntCanvasProfile&&window.AntCanvasProfile.MAX_LEVEL)||999999,Math.floor(Number(lv)||1)));
  window.ANT_CANVAS_CURRENT_LEVEL=LV;
  spIdx=Math.min(spIdx,LV>=10?1:0);x3ok=false;
  G=makeGame(LV,{speed:SPEEDS[spIdx]});
@@ -181,7 +181,7 @@ function onWin(){
  if(window.AntTelegram) window.AntTelegram.onLevelComplete(LV);
  if(window.AntPolish) window.AntPolish.onWin(G,LV);
  if(window.AntMystery)window.AntMystery.complete();
- MAXLV=Math.max(MAXLV,Math.min(999999,LV+1));save();
+ MAXLV=Math.max(MAXLV,Math.min((window.AntCanvasProfile&&window.AntCanvasProfile.MAX_LEVEL)||999999,LV+1));save();
  $('#winSub').textContent='Level '+LV+' complete · 100%'+(window.AntCanvasProfile?' · '+window.AntCanvasProfile.rarity(LV).symbol+' '+window.AntCanvasProfile.rarity(LV).title:'');
  $('#win').classList.add('on');
  [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.25,.05),i*120));
