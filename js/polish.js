@@ -43,6 +43,7 @@
   if(!active || level!==1)return;
   setStep(step);
  }
+ function onMenuOpened(){ coach.hidden=true; clearTimeout(autoTimer);autoTimer=null; }
  function onPlaced(game){
   if(!active||!game||game.lv!==1)return;
   if(step===0){
@@ -101,5 +102,5 @@
   }
   stars.querySelectorAll('span').forEach(s=>{s.style.animation='none';void s.offsetWidth;s.style.animation=''});
  }
- window.AntPolish=Object.freeze({onLevelStart,onGameOpened,onPlaced,onTick,onWin,get teaching(){return active}});
+ window.AntPolish=Object.freeze({onLevelStart,onGameOpened,onMenuOpened,onPlaced,onTick,onWin,get teaching(){return active}});
 })();
