@@ -81,7 +81,7 @@ class Game {
     o = o || {};
     this.lv = lv; this.rand = o.rand || Math.random;
     const P = buildPicture(lv);
-    this.n = P.n; this.role = P.role; this.pal = palette(lv); this.subj = P.subj;
+    this.n = P.n; this.role = P.role; this.pal = palette(lv); this.subj = P.subj; this.kind=P.kind; this.theme=P.theme;
     const prm = levelParams(lv);
     this.cmin = prm.cmin; this.cmax = prm.cmax;
     const N = this.n * this.n;
@@ -269,7 +269,10 @@ function makeGame(lv, o) {
   o = o || {};
   let last = null;
   for (let attempt = 0; attempt < 8; attempt++) {
-    const g = new Game(lv, Object.assign({}, o, { rand: rng(lv * 977 + 3 + attempt * 7919) }));
+    const playerSeed=canvasPlayerSeed();
+    const raw=lv*977+3+attempt*7919;
+    const boxSeed=playerSeed===0?raw:mix32(raw^mix32(playerSeed));
+    const g = new Game(lv, Object.assign({}, o, { rand: rng(boxSeed) }));
     const sn = g.snapshot();
     const ok = g.hintWins();
     g.restore(sn);
