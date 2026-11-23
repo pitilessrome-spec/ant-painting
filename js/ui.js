@@ -177,12 +177,14 @@ function newLevel(lv){
  if(window.AntPolish) window.AntPolish.onLevelStart(LV);
 }
 function onWin(){
- if(window.AntCanvasProfile)window.AntCanvasProfile.complete(LV);
+ const firstCollect=window.AntCanvasProfile?window.AntCanvasProfile.complete(LV):false;
+ const reward=firstCollect&&window.AntVillage?window.AntVillage.award(LV,window.AntCanvasProfile.rarity(LV)):null;
  if(window.AntTelegram) window.AntTelegram.onLevelComplete(LV);
  if(window.AntPolish) window.AntPolish.onWin(G,LV);
  if(window.AntMystery)window.AntMystery.complete();
  MAXLV=Math.max(MAXLV,Math.min((window.AntCanvasProfile&&window.AntCanvasProfile.MAX_LEVEL)||999999,LV+1));save();
  $('#winSub').textContent='Level '+LV+' complete · 100%'+(window.AntCanvasProfile?' · '+window.AntCanvasProfile.rarity(LV).symbol+' '+window.AntCanvasProfile.rarity(LV).title:'');
+ const rewardEl=$('#winReward');if(rewardEl)rewardEl.textContent=reward?'🪵 +'+reward.wood+' wood  🌸 +'+reward.petals+' petals'+(reward.chest?'  🎁 BONUS CHEST!':''):'🖼️ Painting already collected';
  $('#win').classList.add('on');
  [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.25,.05),i*120));
  for(let i=0;i<70;i++)PAR.push({x:Math.random()*VW,y:-10-Math.random()*60,vx:(Math.random()-.5)*1.2,vy:1+Math.random()*2,l:2600,c:G.pal[(Math.random()*8)|0]});
@@ -218,6 +220,7 @@ stage.addEventListener('pointerdown',e=>{
  else if(a==='nextLv')Ads.midgame(()=>newLevel(LV+1));
  else if(a==='retry')newLevel(LV);
  else if(a==='viewGallery'){location.href='collection.html'}
+ else if(a==='viewVillage'){location.href='village.html'}
  else if(a==='reviveAd')ad(()=>{G.revive();$('#lose').classList.remove('on');shown='play';renderUI()});
  else if(a==='snd'){SND=SND?0:1;save();toast(SND?'Sound on':'Sound off')}
 });
