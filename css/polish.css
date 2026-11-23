@@ -1,0 +1,38 @@
+/* ANT CANVAS — gentle first-level coaching + real picture reveal. */
+#ant-coach[hidden]{display:none!important}
+#ant-coach{position:absolute;top:277px;left:22px;right:22px;z-index:67;
+  border:1px solid #ffffffbd;border-radius:19px;padding:11px 42px 10px 12px;
+  box-shadow:0 9px 22px #13285a54,0 3px 0 #b5c9ed;
+  background:linear-gradient(140deg,#fffffffa,#e6f4fffa);
+  color:#29446f;pointer-events:none;animation:ant-coach-enter .23s both}
+#ant-coach:after{content:"";position:absolute;bottom:-13px;left:42px;
+  width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;
+  border-top:14px solid #e6f4ff}
+#ant-coach .ant-coach-line{display:flex;align-items:flex-start;gap:9px}
+#ant-coach .ant-coach-icon{font-size:23px;flex:none;margin-top:1px;animation:ant-coach-bounce 1.6s infinite}
+#ant-coach strong{font-size:13px;line-height:1.25;display:block;font-weight:950}
+#ant-coach p{font-size:11px;line-height:1.4;margin:4px 0 0;color:#52678c}
+#ant-coach button{pointer-events:auto;position:absolute;right:9px;top:9px;
+ border:0;border-radius:12px;background:#dbe8f9;color:#4c6287;
+ font-size:10px;font-weight:850;padding:6px 8px;cursor:pointer}
+#ant-coach .ant-coach-step{font-size:9px;letter-spacing:1.1px;font-weight:900;color:#677eaa;margin-bottom:5px}
+#win .card{width:289px;max-height:570px;overflow:auto;border:2px solid #ffffff;
+  background:linear-gradient(170deg,#fffefa,#e3f5ff);box-shadow:0 20px 48px #12265370}
+#win .card h2{font-size:26px;color:#2c4678}
+#win .card p{font-weight:800}
+#ant-win-art{display:flex;align-items:center;justify-content:center;margin:14px auto 6px;
+  width:172px;height:172px;padding:9px;border-radius:20px;
+  background:linear-gradient(145deg,#e8fbff,#96d5ee);box-shadow:0 7px 0 #679dc3,0 14px 18px #355b8a43,inset 0 2px 0 #fff}
+#ant-win-art canvas{width:150px;height:150px;image-rendering:pixelated;border-radius:9px;
+  box-shadow:0 2px 9px #17335d40;background:#fff;animation:ant-win-reveal .85s cubic-bezier(.17,1.42,.35,1) both}
+#ant-win-flag{text-align:center;color:#eb9640;font-size:10px;font-weight:950;letter-spacing:1.5px;margin-top:6px}
+#ant-win-stars{display:flex;justify-content:center;gap:14px;font-size:23px;margin-bottom:4px}
+#ant-win-stars span{animation:ant-win-star .65s both}
+#ant-win-stars span:nth-child(2){animation-delay:.16s;font-size:28px}
+#ant-win-stars span:nth-child(3){animation-delay:.32s}
+#win .cbtn{background:linear-gradient(#ffd96d,#efa32a);box-shadow:0 4px 0 #ae7020;color:#fff}
+@keyframes ant-coach-enter{from{opacity:0;transform:translateY(9px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes ant-coach-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes ant-win-reveal{from{opacity:0;transform:scale(.2) rotate(-12deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes ant-win-star{from{opacity:0;transform:scale(.3) translateY(15px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){#ant-coach,#ant-coach .ant-coach-icon,#ant-win-art canvas,#ant-win-stars span{animation:none!important}}
