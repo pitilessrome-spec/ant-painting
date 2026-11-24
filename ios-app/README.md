@@ -1,4 +1,4 @@
-# ANT CANVAS iOS V0.1 — independent development branch
+# ANT CANVAS iOS V0.2 — independent development branch
 
 Uses the existing puzzle, art, four maps, colony and industry assets locally with Capacitor 8. Native iOS AdMob uses the existing eight reward flows and rejects skipped/error playback; test ads by default. Telegram web production is untouched.
 

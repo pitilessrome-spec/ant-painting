@@ -10,5 +10,5 @@ export function createRewardAd({sdk,events,consentStatus,adId,test=true}){
  }catch(_){finish(false)}})
  }catch(_){return false}finally{clearTimeout(timer);if(settle)settle(false);for(const l of listeners)try{await l.remove()}catch(_){}busy=false}}
  async function privacy(){if(busy)return false;busy=true;try{await sdk.showPrivacyOptionsForm();return true}catch(_){return false}finally{busy=false}}
- return Object.freeze({show,privacy,get busy(){return busy},get consent(){return consent}})
+ return Object.freeze({show,privacy,get available(){return !blocked},get busy(){return busy},get consent(){return consent}})
 }
