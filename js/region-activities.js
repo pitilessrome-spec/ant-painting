@@ -11,7 +11,7 @@ function render(force=false){
  function row(title,desc,buttons){const d=document.createElement('div'),h=document.createElement('b'),t=document.createElement('p'),x=document.createElement('div');d.className='regional-task';h.textContent=title;t.textContent=desc;x.className='regional-actions';x.append(...buttons);d.append(h,t,x);content.append(d)}
  function tag(v){const t=document.createElement('span');t.textContent=v;col.append(t)}
  if(p.id==='garden'){
- const q=a.plant;if(!q)row('Choose a seed','Spend 1 petal. Water twice, then harvest.',p.seeds.map(n=>btn(n,'plant',n,st.petals<1)));
+ const q=a.plant;if(!q)row('Choose a seed','Spend 1 petal. Water twice, then harvest petals and cargo flowers.',p.seeds.map(n=>btn(n,'plant',n,st.petals<1)));
  else row(q.name,'Water '+q.water+'/2 · '+time(q.ready),[btn(q.water<2?'Water':'Harvest',q.water<2?'water':'harvest',null,left(q.ready)>0)]);
  for(const [k,n]of Object.entries(a.flowers))tag('🌷 '+k+' ×'+n);
  }else if(p.id==='forest'){
@@ -20,7 +20,7 @@ function render(force=false){
  a.treasures.forEach(n=>tag('🏺 '+n));tag('✨ Glowplants ×'+a.grown);
  }else if(p.id==='island'){
  const v=a.voyage;if(v)row(v.route,'Voyage · '+time(v.ready),[btn('Return and collect','dock',null,left(v.ready)>0)]);
- else row('Set sail','Choose a destination. Each route gives a different shell.',p.routes.map((n,i)=>btn(n+' · '+[2,5,10][i]+'m','sail',n)));
+ else row('Set sail','Choose a destination. Each route gives a collectible shell and cargo.',p.routes.map((n,i)=>btn(n+' · '+[2,5,10][i]+'m','sail',n)));
  for(const [k,n]of Object.entries(a.shells))tag('🐚 '+k+' ×'+n);tag('⛵ Voyages ×'+a.trips);
  }else{
  row('Snow expedition',a.trip?'Exploring · '+time(a.trip):'Find two ice crystals in a 5-minute expedition.',[btn(a.trip?'Collect ice':'Explore',a.trip?'snow-claim':'snow-start',null,!!a.trip&&left(a.trip)>0)]);

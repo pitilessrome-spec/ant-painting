@@ -84,7 +84,7 @@ function render(){
  $('placed').textContent=V.count()+' / 8';
  S.render(st,selectedPlot);
  const plotSelect=$('plot-select');plotSelect.replaceChildren();const none=document.createElement('option');none.value='';none.textContent='Select a plot';plotSelect.append(none);for(const i of [0,1,2,3,5,6,7,8]){const o=document.createElement('option');o.value=String(i);o.textContent='Plot '+([0,1,2,3,5,6,7,8].indexOf(i)+1)+' · '+(st.placements[i]?catalog[st.placements[i]].name:'Empty');plotSelect.append(o)}plotSelect.value=selectedPlot===null?'':String(selectedPlot);
- renderLife();renderWorld();window.AntRegionActivities?.render(true);
+ renderLife();renderWorld();window.AntRegionActivities?.render(true);window.AntIndustry?.render(true);
  const existing=selectedPlot===null?null:st.placements[selectedPlot];
  const refund=existing?V.refundCost(selectedPlot):null;
  const availableAfterRefund=refund?{wood:st.wood+refund.wood,petals:st.petals+refund.petals}:st;
@@ -230,6 +230,6 @@ $('world-sound').addEventListener('click',()=>{
  const w=V.workPreview();const message='🐜 '+w.roles.length+' ants · '+w.deliveries+' completed deliveries · '+w.workers.filter(a=>a.status==='Returning').length+' returning with materials';
  announce(message);
 });
-window.AntRegionActivities?.setOnChange(render);
+window.AntRegionActivities?.setOnChange(render);window.AntIndustry?.setOnChange(render);
 render();
 })();
