@@ -191,7 +191,7 @@ function onWin(){
 }
 
 stage.addEventListener('pointerdown',e=>{
- if(!G||adT>0)return;
+ if(!G||adT>0||Ads.busy)return;
  const el=e.target.closest('[data-col],[data-act]');if(!el)return;
  if(el.dataset.col!==undefined){
    const c=+el.dataset.col,r=G.place(c);
@@ -202,9 +202,14 @@ stage.addEventListener('pointerdown',e=>{
  }
  const a=el.dataset.act;
  if(a==='unlock'){
-   if(G.cap!==4)return;
-   if(!Ads.canRewardSlot()){toast('Rewarded ads coming soon · fifth slot not yet available');return}
-   Ads.rewardedSlot(()=>{if(G&&G.cap===4){G.addSlot();renderUI();toast('🎉 Fifth slot unlocked by rewarded ad!')}},()=>toast('Ad skipped or unavailable · no slot unlocked'));
+   if(G.cap!==4||G.state!=='play')return;
+   if(!Ads.canRewardSlot()){
+     const tg=window.Telegram&&window.Telegram.WebApp;
+     toast(tg&&tg.initData?'Rewarded ad unavailable right now':'Open ANT CANVAS in Telegram to unlock this slot');
+     return;
+   }
+   const game=G;
+   Ads.rewardedSlot(()=>{if(G===game&&game.state==='play'&&game.cap===4){game.addSlot();renderUI();toast('🎉 Fifth slot unlocked for this level!')}},()=>toast('Ad skipped or unavailable · no slot unlocked'));
   }
  else if(a==='speed'){
    if(spIdx===0){ if(LV<10)toast('×2 unlocks at level 10'); else{spIdx=1;G.speed=SPEEDS[spIdx]} }

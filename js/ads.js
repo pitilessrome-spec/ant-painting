@@ -9,12 +9,13 @@
  *   'crazygames'  CrazyGames web game portal (SDK v3)
  */
 const AD_CONFIG = {
-  provider: 'free', // free boosters until a verified AdsGram publisher account and block IDs are configured
+  provider: 'adsgram', // production rewarded fifth slot; ordinary boosters remain free
+  freeStandardBoosters: true,
   adsgram: {
     // Get these after adding your mini app at https://partner.adsgram.ai
-    rewardedBlockId: '',      // rewarded ad, digits only, e.g. "12345"
+    rewardedBlockId: '61573',      // rewarded ad, digits only, e.g. "12345"
     interstitialBlockId: '',  // interstitial ad, format "int-12345"
-    debug: true               // true while testing (shows test ads); set to false before launch
+    debug: false              // production: no synthetic ad impressions
   }
 };
 
@@ -29,9 +30,13 @@ const Ads = {
     if (this.provider === 'adsgram') {
       const c = AD_CONFIG.adsgram;
       if (!window.Adsgram) { console.warn('AdsGram SDK not loaded, ads unavailable'); return; }
-      if (c.rewardedBlockId) this.rwdCtrl = window.Adsgram.init({ blockId: c.rewardedBlockId, debug: c.debug });
-      if (c.interstitialBlockId) this.intCtrl = window.Adsgram.init({ blockId: c.interstitialBlockId, debug: c.debug });
-      this.ready = !!(this.rwdCtrl || this.intCtrl);
+      const tg=window.Telegram&&window.Telegram.WebApp;
+      if(!tg||!tg.initData)return; // no live requests from the ordinary browser
+      try {
+        if(c.rewardedBlockId)this.rwdCtrl=window.Adsgram.init({blockId:c.rewardedBlockId,debug:c.debug});
+        if(c.interstitialBlockId)this.intCtrl=window.Adsgram.init({blockId:c.interstitialBlockId,debug:c.debug});
+        this.ready=!!(this.rwdCtrl||this.intCtrl);
+      }catch(e){this.ready=false;console.warn('AdsGram initialization failed',e);}
       return;
     }
     if (this.provider === 'crazygames') {
@@ -50,6 +55,9 @@ const Ads = {
 
   // Rewarded ad: reward only after the ad is fully watched; skipped, failed, or no ad = no reward
   rewarded(onReward, onFail) {
+    // Preserve the existing free hint, speed, reshuffle and revival rules.
+    if(this.busy){if(onFail)onFail();return;}
+    if(AD_CONFIG.freeStandardBoosters){if(onReward)onReward();return;}
     if (this.provider === 'adsgram') {
       if (!this.rwdCtrl) { if (onFail) onFail(); return; }
       this.busy = true;
@@ -91,7 +99,7 @@ const Ads = {
     let settled=false;
     const success=()=>{if(settled)return;settled=true;this.busy=false;if(onReward)onReward();};
     const failure=()=>{if(settled)return;settled=true;this.busy=false;if(onFail)onFail();};
-    try{Promise.resolve(this.rwdCtrl.show()).then(success,failure)}catch(_){failure()}
+    try{Promise.resolve(this.rwdCtrl.show()).then(result=>{if(result&&result.done===true&&result.error===false)success();else failure();},failure)}catch(_){failure()}
   },
 
   // Interstitial: shown between levels; the next level starts after it finishes or is closed. Never used for rewards
