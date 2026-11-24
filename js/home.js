@@ -35,7 +35,7 @@
         "<button type='button' class='ah-secondary' data-home-action='village'>🌿 World</button>",
         "<button type='button' class='ah-secondary' data-home-action='how'>❔ Help</button>",
       "</div>",
-      "<nav class='ah-main-nav' aria-label='Main navigation'><button data-home-action='play'>🎮<span>Play</span></button><button data-home-action='village'>🌿<span>World</span></button><button data-home-action='raid'>⚔️<span>Raid</span></button><button data-home-action='gallery'>🏆<span>Collection</span></button></nav>",
+      "<nav class='ah-main-nav' aria-label='Main navigation'><button data-home-action='play' data-nav='play'><i></i><span>Play</span></button><button data-home-action='village' data-nav='world'><i></i><span>World</span></button><button data-home-action='raid' data-nav='raid'><i></i><span>Raid</span></button><button data-home-action='tasks' data-nav='tasks'><i></i><span>Tasks</span></button><button data-home-action='gallery' data-nav='collection'><i></i><span>Collection</span></button></nav>",
       "<p class='ah-footer' id='ah-status' aria-live='polite'>PUZZLE · COLONY · WORLD &nbsp; | &nbsp; V5.1.5 RC</p>",
     "</div>",
     "<div class='ah-how' id='ah-how' hidden role='dialog' aria-label='How to play ANT CANVAS'>",
@@ -140,7 +140,7 @@
     if (!control) return;
     e.stopPropagation();const action = control.getAttribute('data-home-action');
     if (action === 'play') {window.exitDailyChallenge?.();start();}
-    else if(action==='daily'){window.startDailyChallenge?.();start();}
+    else if(action==='tasks'){location.href='village.html?tab=tasks';} else if(action==='daily'){window.startDailyChallenge?.();start();}
     else if (action === 'how') { document.getElementById('ah-how').hidden = false; }
     else if (action === 'guide') { navigate('guide.html','guide'); }
     else if (action === 'back') { document.getElementById('ah-how').hidden = true; }
