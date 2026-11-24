@@ -51,3 +51,6 @@ Migration sql/003_player_names.sql adds only two nullable fields. It is also app
 
 ## V3.4 community activities
 Apply sql/004_community.sql (also idempotently initialized on first community request). One like per linked pair, one postcard per linked pair per Singapore day, deduplicated daily visit, and one vote per account per Singapore week. Weekly theme rotates garden/forest/island/snow; public festival entry is an explicit frozen region snapshot, requires at least two buildings, and can be withdrawn. No resource balances or private saves are returned. Postcards are cosmetic inbox collectibles only. Rankings are popularity/votes, not an objective assessment of beauty. Real two-account acceptance and production database access still need to be checked.
+
+## Admin advertising report candidate
+`GET/POST /api/admin/ad-report` requires the existing administrator key. Import one official AdsGram Platforms CSV total for ANT CANVAS and explicitly match its exported date range. The server validates the CSV and upserts the same date range; never adds overlapping summary periods. No automated vendor API or verified settlement claimed. Data is not exposed before authentication. SQL 005 is idempotent and can be run by the schema owner. Validate a real exported CSV before production acceptance.
