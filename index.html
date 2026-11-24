@@ -80,6 +80,7 @@ html,body,#stage{touch-action:manipulation;-webkit-tap-highlight-color:transpare
 #ant-combo.pop{animation:combo-pop .31s cubic-bezier(.18,.78,.28,1.4) both}
 @keyframes combo-pop{0%{transform:scale(.75);opacity:.45}60%{transform:scale(1.14);opacity:1}100%{transform:scale(1);opacity:1}}
 @media(prefers-reduced-motion:reduce){#ant-combo.pop{animation:none}}
+#tip[data-challenge=rainbow],#tip[data-challenge=precision],#tip[data-challenge=sprint]{font-size:12px;font-weight:900;line-height:22px;top:439px;margin:0 14px;border-radius:12px;background:#fff8d9;color:#694b27;box-shadow:0 2px 7px #33486c25}#tip[data-challenge=rainbow]{background:linear-gradient(100deg,#ffdbfa,#e4e7ff,#caffdf)}#tip[data-challenge=precision]{background:#e4e4ff;color:#39337a}#tip[data-challenge=sprint]{background:#ffe8ad;color:#80400f}#winMastery{font:800 12px system-ui;color:#68549a;margin:5px 0}#ant-win-stars{color:#eda51e;font-size:24px;letter-spacing:6px;text-shadow:0 2px #a36225}
 </style>
 <link rel="stylesheet" href="css/home.css?v=world-v501">
 <link rel="stylesheet" href="css/polish.css?v=ant-v3">
@@ -114,7 +115,7 @@ html,body,#stage{touch-action:manipulation;-webkit-tap-highlight-color:transpare
   <button class="btn gold" data-act="hint">Hint</button>
   <button class="btn grn" id="rsh" data-act="reshuffle">Reshuffle</button>
  </div>
- <div id="win" class="over"><div class="card"><h2>Level cleared!</h2><p id="winSub"></p><div id="winReward" style="font:850 12px system-ui;color:#4e956d;margin:9px 0 0"></div><button class="cbtn" data-act="nextLv">Next level →</button><button class="cbtn ghost" data-act="viewGallery">🖼️ My Art Gallery</button><button class="cbtn ghost" data-act="viewVillage">🌿 My Ant Village</button></div></div>
+ <div id="win" class="over"><div class="card"><h2>Level cleared!</h2><p id="winSub"></p><div id="winMastery" aria-live="polite"></div><div id="winReward" style="font:850 12px system-ui;color:#4e956d;margin:9px 0 0"></div><button class="cbtn" data-act="nextLv">Next level →</button><button class="cbtn ghost" data-act="viewGallery">🖼️ My Art Gallery</button><button class="cbtn ghost" data-act="viewVillage">🌿 My Ant Village</button></div></div>
  <div id="lose" class="over"><div class="card"><h2>No moves left</h2><p>Watch a complete ad to revive and reshuffle the remaining boxes. Retry is always free.</p><button class="cbtn" data-act="reviveAd">▶ Watch ad to revive</button><button class="cbtn ghost" data-act="retry">Retry level</button></div></div>
  <div id="ad" class="over"><div class="card"><h2>Ad</h2><p>(Ad placeholder)</p><div id="adbox"><div id="adbar"></div></div></div></div>
 </div>
@@ -126,16 +127,16 @@ html,body,#stage{touch-action:manipulation;-webkit-tap-highlight-color:transpare
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 <script src="js/ads.js?v=world-v37"></script>
 <script src="js/telegram.js?v=world-v36"></script>
-<script src="js/profile.js?v=ant-v3"></script>
+<script src="js/profile.js?v=arcade-v505"></script>
 <script src="js/village.js?v=world-v504"></script>
 <script src="js/art.js?v=ant-v3"></script>
-<script src="js/workshop.js?v=ant-v3"></script>
+<script src="js/workshop.js?v=arcade-v505"></script>
 <script src="js/mystery.js?v=ant-v4"></script>
 <script src="js/sfx.js?v=world-v504"></script>
 <script src="js/blast-fx.js?v=world-v504"></script>
-<script src="js/game.js?v=strategy-v34"></script>
-<script src="js/home.js?v=world-v504"></script>
+<script src="js/game.js?v=arcade-v505"></script>
+<script src="js/home.js?v=arcade-v505"></script>
 <script src="js/polish.js?v=ant-v4"></script>
 <script src="js/touch-input.js?v=world-v501"></script>
-<script src="js/ui.js?v=world-v504"></script>
+<script src="js/ui.js?v=arcade-v505"></script>
 </body></html>

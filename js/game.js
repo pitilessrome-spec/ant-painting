@@ -1,13 +1,21 @@
 /* ANT CANVAS · game logic (box order, eating rules, revive and reshuffle) */
 'use strict';
 /* ---------- Difficulty: changes with the level ---------- */
+function levelChallenge(lv){
+  if(lv<3||lv%3!==0)return {id:'classic',name:'Classic',charge:42,shots:7,pace:200};
+  const kind=Math.floor(lv/3)%3;
+  return kind===1?{id:'rainbow',name:'Rainbow Rush',charge:18,shots:10,pace:165}:kind===2?{id:'precision',name:'Precision Puzzle',charge:42,shots:7,pace:200}:{id:'sprint',name:'Ant Sprint',charge:32,shots:7,pace:130};
+}
 function levelParams(lv) {
+  const challenge=levelChallenge(lv);
+  const sprint=challenge.id==='sprint',precision=challenge.id==='precision';
   return {
+    challenge,
     cap: 4,   // 4 slots at the start; watching ads adds more (up to 7)
-    cmin: lv <= 10 ? 8 : lv <= 300 ? 12 : 30,
-    cmax: lv <= 10 ? 20 : lv <= 300 ? 30 : 50,
+    cmin: sprint ? (lv<=10?4:lv<=300?6:14) : lv <= 10 ? 8 : lv <= 300 ? 12 : 30,
+    cmax: sprint ? (lv<=10?10:lv<=300?15:25) : lv <= 10 ? 20 : lv <= 300 ? 30 : 50,
     // Chunked queues expose later boxes earlier, requiring planning.
-    chunk: lv < 10 ? 1 : lv < 20 ? 2 : lv < 40 ? 3 : lv < 80 ? 4 : 5,
+    chunk: Math.min(6,(lv < 10 ? 1 : lv < 20 ? 2 : lv < 40 ? 3 : lv < 80 ? 4 : 5)+(precision?1:0)),
     hints: lv < 10 ? Infinity : lv < 40 ? 3 : 2,
     reshuffles: lv < 10 ? 0 : 1,
     revives: lv < 10 ? Infinity : 1
@@ -98,7 +106,8 @@ class Game {
     this.state = 'play'; this.speed = o.speed || 1; this._R = null; this.stalled = false;
     this.blastEnabled=typeof window!=='undefined'&&!!(window.AntWorkshop&&window.AntWorkshop.enabled);
     this.blastCharge=0;this.blastRemaining=0;this.blastShots=0;this.visualDone=0;
-    this.visualMs = 200;   // time between ants leaving a slot (animation only)
+    this.challenge=prm.challenge;this.dispatches=0;this.directDispatches=0;this.smartChain=0;this.bestSmartChain=0;
+    this.visualMs = this.challenge.pace;   // time between ants leaving a slot (animation only)
     this.rebuild();
   }
   pct() { return Math.floor((this.total - this.left) / this.total * 100); }
@@ -176,7 +185,10 @@ class Game {
     col.shift();
     this.slots[si] = { c: b.c, n: b.n, id: b.id, q: [], t: 0 };
     this.stalled = false;
+    const before=this.left;
     this.cascade();
+    this.dispatches++;
+    if(this.left<before){this.directDispatches++;this.smartChain++;this.bestSmartChain=Math.max(this.bestSmartChain,this.smartChain)}else this.smartChain=0;
     return 1;
   }
   // Hint: the next box in order (following this order wins; verified in makeGame)
@@ -223,8 +235,8 @@ class Game {
             this.ev.push({t:'eat',i:job.idx,c:job.c});
             if(this.blastEnabled){
               this.blastCharge++;
-              if(this.blastCharge>=42){
-                this.blastCharge=0;this.blastRemaining=7;
+              if(this.blastCharge>=this.challenge.charge){
+                this.blastCharge=0;this.blastRemaining=this.challenge.shots;
                 this.ev.push({t:'blastReady'});
               }
             }
@@ -288,15 +300,17 @@ class Game {
     }
     return this.left <= 0;
   }
+  mastery(){const rate=this.dispatches?this.directDispatches/this.dispatches:0;const clean=this.hintsUsed===0&&this.reshufflesUsed===0&&this.revivesUsed===0&&this.cap===4;return {rate,chain:this.bestSmartChain,dispatches:this.dispatches,stars:this.state==='win'?(clean&&rate>=.85?3:rate>=.65?2:1):0,clean};}
   snapshot() {
     return {
-      eaten: this.eaten.slice(), left: this.left,
+      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,
       cols: this.cols.map(col => col.map(b => ({ ...b }))),
       slots: this.slots.map(s => s ? { ...s, q: [] } : null)
     };
   }
   restore(sn) {
     this.eaten = sn.eaten; this.left = sn.left; this.cols = sn.cols; this.slots = sn.slots;
+    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;
     this._R = null; this.ants = []; this.ev = []; this.stalled = false; this.state = 'play';
   }
 }

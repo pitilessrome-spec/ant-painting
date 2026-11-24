@@ -83,10 +83,12 @@
     write(COLLECTION_KEY,collection);
     return true;
   }
+  function mastery(lv){return Number(collection.mastery?.[lv])||0}
+  function saveMastery(lv,stars){if(!contains(lv)||!Number.isInteger(stars)||stars<1||stars>3||mastery(lv)>=stars)return false;const old=collection.mastery;const next={...(old||{}),[lv]:stars};const keys=Object.keys(next);if(keys.length>2000){for(const k of keys.slice(0,keys.length-2000))if(Number(k)!==lv)delete next[k]};collection.mastery=next;if(!write(COLLECTION_KEY,collection)){collection.mastery=old;return false}return true}
   function count(){return highest()+collection.extras.length}
   function rarityTotal(){return collection.rareCount}
   function displayCode(){return profile.seed===0?'CLASSIC':('ANT-'+profile.seed.toString(16).toUpperCase().padStart(8,'0'))}
   global.AntCanvasProfile=Object.freeze({
-    seed:profile.seed,legacy:!!profile.legacy,rarity,contains,complete,highest,count,rarityTotal,displayCode,levelSeed,MAX_LEVEL
+    seed:profile.seed,legacy:!!profile.legacy,rarity,contains,complete,highest,count,rarityTotal,displayCode,levelSeed,MAX_LEVEL,mastery,saveMastery
   });
 })(typeof window!=='undefined'?window:globalThis);

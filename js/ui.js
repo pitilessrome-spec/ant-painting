@@ -150,6 +150,7 @@ function renderUI(){
  if(!G)return;
  $('#lv').textContent='Level '+LV;
  $('#pv').textContent=G.visualPct()+'%';
+ const tip=$('#tip'),m=G.mastery(),ch=G.challenge;const msg=LV<3?'Tap a box to load a slot · Eat the grid from the bottom up':(ch.id==='rainbow'?'🌈 Rainbow Rush':ch.id==='precision'?'🧠 Precision Puzzle':ch.id==='sprint'?'⚡ Ant Sprint':'🐜 Classic')+' · Smart '+Math.round(m.rate*100)+'% · Streak '+G.smartChain;if(tip.textContent!==msg)tip.textContent=msg;tip.dataset.challenge=ch.id;
  if(window.AntWorkshop)window.AntWorkshop.render(G);
  $('#spd').textContent=(spIdx===1&&!x3ok)?'×2 ▸ ×3':'×'+SPEEDS[spIdx];
  $('#rsh').classList.toggle('off',LV<10);
@@ -197,6 +198,7 @@ function onWin(){
  const reward=firstCollect&&window.AntVillage?window.AntVillage.award(LV,window.AntCanvasProfile.rarity(LV)):null;
  if(window.AntTelegram) window.AntTelegram.onLevelComplete(LV);
  if(window.AntPolish) window.AntPolish.onWin(G,LV);
+ const mastery=G.mastery(),saved=window.AntCanvasProfile?.saveMastery(LV,mastery.stars);const stars=$('#ant-win-stars');if(stars){stars.textContent='★'.repeat(mastery.stars)+'☆'.repeat(3-mastery.stars);stars.setAttribute('aria-label',mastery.stars+' out of 3 stars')};const medal=$('#winMastery');if(medal)medal.textContent=G.challenge.name+' · '+Math.round(mastery.rate*100)+'% smart dispatch · '+(saved?'New personal best!':mastery.stars===3?'Gold mastery!':'Replay for a better medal');
  if(window.AntMystery)window.AntMystery.complete();
  MAXLV=Math.max(MAXLV,Math.min((window.AntCanvasProfile&&window.AntCanvasProfile.MAX_LEVEL)||999999,LV+1));save();
  $('#winSub').textContent='Level '+LV+' complete · 100%'+(window.AntCanvasProfile?' · '+window.AntCanvasProfile.rarity(LV).symbol+' '+window.AntCanvasProfile.rarity(LV).title:'');
@@ -212,7 +214,7 @@ stage.addEventListener('click',e=>{
  if(e.cancelable)e.preventDefault();
  if(el.dataset.col!==undefined){
    const c=+el.dataset.col,r=G.place(c);
-   if(r===1){window.AntSFX?.play('tap');renderUI();if(window.AntPolish)window.AntPolish.onPlaced(G)}
+   if(r===1){window.AntSFX?.play(G.smartChain>0&&G.smartChain%3===0?'combo':'tap',G.smartChain);renderUI();if(window.AntPolish)window.AntPolish.onPlaced(G)}
    else if(r===2)toast('All slots are full, wait a moment');
    else if(r===0&&G.state==='play')toast('No box in this column');
    else if(r===3){toast("This color can't be eaten yet");shakeCol=c;shakeUntil=performance.now()+400;renderUI()}
