@@ -96,3 +96,17 @@ h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(29px,4.7vw,43px);
 #industry-panel summary{font-weight:900;cursor:pointer;color:#597244}#industry-panel details[open] summary{margin-bottom:8px}.lower-grid a.btn{display:block;text-align:center;text-decoration:none;margin:7px 0}
 
 html{touch-action:manipulation;-webkit-text-size-adjust:100%}button,a,select,[data-worker],[data-site],[data-plot]{touch-action:manipulation}select,input,textarea{font-size:16px!important}
+
+/* Map loading never reveals the retired vector map. Keep the final layout stable. */
+#world-panel{background:#e4efd0}
+#world-panel .map-loading{display:none;position:absolute;inset:0 0 auto;aspect-ratio:4/3;z-index:5;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:radial-gradient(ellipse at 50% 38%,#fff9db,#dceac7 75%);color:#567044;text-align:center;padding:18px}
+#world-panel:not([data-map-state=ready]) .map-loading{display:flex}
+#world-panel:not([data-map-state=ready]) #village-world{visibility:hidden;pointer-events:none}
+#world-panel .map-load-icon{font-size:34px}
+#world-panel .map-load-status{font-size:14px}
+#world-panel .map-retry{border:1px solid #a9b980;border-radius:12px;padding:10px 18px;min-height:44px;color:#516c3c;background:#fff7dc;font-weight:800;cursor:pointer}
+#world-panel .map-retry[hidden]{display:none!important}
+#world-panel .world-plaque,#world-panel .weather-label{display:none}
+#world-panel .world-story{position:relative;transform:none;left:auto;right:auto;bottom:auto;width:auto;max-width:none;margin:3px;padding:6px}
+#world-panel .world-tools{position:relative;top:auto;right:auto;padding:6px;justify-content:flex-end}
+#world-panel:not([data-map-state=ready]) .world-tools,#world-panel:not([data-map-state=ready]) .world-story{visibility:hidden;pointer-events:none}

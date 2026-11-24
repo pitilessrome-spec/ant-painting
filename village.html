@@ -7,7 +7,9 @@
 <meta name="description" content="Build a cozy village for your tiny ants. Unlock magical buildings, open milestone chests, and discover hidden treasures.">
 <title>My Ant Village · ANT CANVAS</title>
 <link rel="stylesheet" href="css/village-world.css?v=village-world-v2">
-<link rel="stylesheet" href="css/village-storybook.css?v=world-v501">
+<link rel="stylesheet" href="css/village-storybook.css?v=world-v502">
+<style>#world-panel:not([data-map-state=ready]) #village-world{visibility:hidden}#world-panel:not([data-map-state=ready]) .world-plaque{display:none}</style>
+<script>try{var saved=JSON.parse(localStorage.getItem("ant_canvas_village_v1")||"{}");var id=saved.world&&saved.world.active;if(!["garden","forest","island","snow"].includes(id))id="garden";var preload=document.createElement("link");preload.rel="preload";preload.as="image";preload.href="assets/maps/v36/"+id+".webp";document.head.appendChild(preload)}catch(e){}</script>
 </head>
 <body>
 <header class="topbar">
@@ -27,11 +29,12 @@
  <p id="global-status" role="status" aria-live="polite" class="global-status">Your colony is ready.</p>
  <section class="panel region-panel"><h2>🗺️ Ant World · Explore &amp; Build</h2><p class="sub" id="region-progress"></p><div id="region-list" class="region-list"></div></section>
  <div class="main-grid">
-  <div class="world-panel" id="world-panel">
+  <div class="world-panel" id="world-panel" data-map-state="loading">
    <svg id="village-world" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" role="img" aria-label="An animated illustrated ant village with interactive building locations">
     <rect width="960" height="720" fill="#d7ebaf"></rect>
-    <text x="480" y="305" text-anchor="middle" font-size="19" font-weight="bold" fill="#336579">Growing your ant village...</text>
+    
    </svg>
+   <div class="map-loading"><span class="map-load-icon" aria-hidden="true">🐜</span><strong class="map-load-status" role="status">Preparing your world…</strong><button type="button" class="map-retry" hidden>Retry map</button></div>
    <div class="world-plaque"><small>ANT CANVAS WORLD</small><span id="region-title">🌿 Storybook Garden</span></div>
    <div class="world-tools"><button id="day-night" type="button" title="Automatic local time">☀️ Day · Auto</button><button id="world-sound" type="button">✨ Ants at work</button></div>
    <div class="weather-layer" aria-hidden="true"></div><div id="world-weather" class="weather-label" title="Simulated in-game weather"></div>
@@ -103,7 +106,7 @@
 <script src="js/ads.js?v=world-v38"></script>
 <script>Ads.init();</script>
 <script src="js/village.js?v=world-v50"></script>
-<script src="js/village-storybook.js?v=world-v50"></script>
+<script src="js/village-storybook.js?v=world-v502"></script>
 <script src="js/region-activities.js?v=world-v50"></script>
 <script src="js/industry.js?v=world-v50"></script>
 <script src="js/village-page.js?v=world-v50"></script>

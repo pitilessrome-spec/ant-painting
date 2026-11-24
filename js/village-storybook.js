@@ -44,7 +44,20 @@ const WALKABLE={"garden":[[[306,205],[320,224],[330,239],[317,251],[303,263]],[[
 function walkingRoutes(id){return WALKABLE[id].map(points=>points.map((p,i)=>(i?'L':'M')+p[0]+' '+p[1]).join(' '))}
 let lastRender=null;
 function artPath(id){return 'assets/maps/v36/'+id+'.webp'}
-function requestArt(id){if(artReady[id]||artPending[id]||typeof Image==='undefined')return;artPending[id]=true;const im=new Image();im.onload=()=>{artReady[id]=true;if(region===id&&lastRender){generation++;configureRegion(id);scene();residents();render(...lastRender)}};im.onerror=()=>{};im.src=artPath(id)}
+const artError={},artImages={};
+function artState(state){svg.dataset.mapState=state;svg.setAttribute('aria-busy',String(state==='loading'));const panel=svg.closest('#world-panel');if(panel)panel.dataset.mapState=state;const status=panel?.querySelector('.map-load-status'),retry=panel?.querySelector('.map-retry');if(status)status.textContent=state==='error'?'Map could not load. Your progress is safe.':'Preparing your world…';if(retry)retry.hidden=state!=='error'}
+function requestArt(id){if(artReady[id]||artPending[id]||artError[id])return;if(typeof Image==='undefined'){artError[id]=true;artState('error');return}
+ const im=new Image();artPending[id]=im;let settled=false;
+ const finish=ok=>{if(settled)return;settled=true;clearTimeout(timer);delete artPending[id];if(ok){artImages[id]=im;artReady[id]=true;delete artError[id]}else artError[id]=true;
+  if(region===id){if(ok&&lastRender){generation++;configureRegion(id);scene();render(...lastRender);const layer=svg.querySelector('#village-residents');if(layer){layer.replaceChildren();generation++;residents()}}else if(!ok)artState('error')}
+ };
+ const timer=setTimeout(()=>finish(false),12000);
+ im.onload=()=>{if(typeof im.decode==='function')im.decode().then(()=>finish(true),()=>finish(false));else finish(true)};
+ im.onerror=()=>finish(false);im.src=artPath(id);
+}
+function retryArt(){if(artReady[region]){delete artReady[region];delete artImages[region]}delete artError[region];generation++;scene()}
+function loadingScene(){svg.dataset.painted='false';svg.innerHTML='<rect width="960" height="720" fill="#e4efd0"/>';artState(artError[region]?'error':'loading');requestArt(region)}
+
 function paintedScene(){
  const a=PAINTED[region],ids=[0,1,2,3,5,6,7,8];
  plots=a.points.map((p,i)=>({id:ids[i],x:p[0]*9.6,y:p[1]*7.2,ordinal:i+1}));
@@ -169,7 +182,11 @@ function lily(x,y,s){
  return group(x,y,s,'<ellipse rx="25" ry="10" fill="#7cbd57" stroke="#bde27a" stroke-width="1.4"/><path d="M0 0L23 -5L25 1Z" fill="#79c9dc"/><path d="M-4 -1Q-8 -17 0 -19Q10 -15 4 -4Q19 -15 19 -4Q12 6 2 4Q-8 7 -17 -2Q-16 -13 -4 -1Z" fill="#fff0d4" stroke="#edb7a6" stroke-width="1.3"/><circle cy="-4" r="3.6" fill="#ffd27f"/>');
 }
 function scene(){
- seed=73191;svg.dataset.painted='false';requestArt(region);if(artReady[region]){paintedScene();return;}
+ seed=73191;if(!artReady[region]){loadingScene();return;}paintedScene();artState('ready');
+}
+// Legacy vector artwork retained only for source reference; never used by live scene().
+function legacyScene(){
+ svg.dataset.painted='false';
  if(region!=='garden'){regionalScene();return;}
  let a=defs+'<rect width="960" height="720" fill="url(#sb-sky)" class="sky-day"/><rect width="960" height="720" fill="url(#sb-night)" class="sky-night" opacity="0"/>'+
  '<g class="is-day-only"><circle cx="811" cy="93" r="77" fill="url(#sb-sun)"/><circle cx="811" cy="93" r="27" fill="#fff9ce"/></g>'+
@@ -321,7 +338,7 @@ function plotNode(p,st,selected,readOnly=false){
 function render(st,selected,options={}){
  lastRender=[st,selected,options];
  const jobs=currentJobs().join(',')+'|'+(st.work?.workers||[]).map((a,i)=>a.route??i%5).join(',');if(jobs!==jobSignature){jobSignature=jobs;generation++;const layer=svg.querySelector('#village-residents');if(layer){layer.replaceChildren();residents()}}
- const next=st.world?.active||'garden';if(next!==region){generation++;configureRegion(next);scene();residents()}
+ const next=st.world?.active||'garden';if(next!==region||!svg.dataset.mapRegion){generation++;configureRegion(next);svg.dataset.mapRegion=region;scene();residents()}
  const b=svg.querySelector('#village-buildings');
  if(b)b.innerHTML=plots.map(p=>{seed=73191+Math.imul(p.id+1,913);return plotNode(p,st,selected,!!options.readOnly)}).join('');
  const fx=svg.querySelector('#village-combo-effects');
@@ -356,7 +373,7 @@ function setGuests(count){const next=Math.max(0,Math.min(3,Math.trunc(Number(cou
 function residents(){
  const NS='http://www.w3.org/2000/svg',layer=svg.querySelector('#village-residents');
  const motion=[];
- if(!artReady[region])return; // no workers on an unverified fallback
+ if(!layer||!artReady[region])return; // no workers on an unverified fallback
  const population=currentJobs().length,live=svg.dataset.readonly!=='true'&&!!window.AntVillage;let work=null,lastSample=-1000;
  if(live){for(let i=0;i<loops.length;i++){const points=WALKABLE[region][i],a=points[0],b=points[points.length-1];const node=document.createElementNS(NS,'g');node.setAttribute('class','sb-work-site');node.setAttribute('data-site',String(i));node.setAttribute('role','button');node.setAttribute('tabindex','0');node.setAttribute('aria-label','Work site '+(i+1));node.innerHTML='<g transform="translate('+a.join(' ')+')"><circle r="11" fill="#fff8df" stroke="#9e845c" stroke-width="1.5"/><text text-anchor="middle" y="4" font-size="12">📦</text></g><g transform="translate('+b.join(' ')+')"><circle r="12" fill="#e9f6d3" stroke="#739447" stroke-width="1.6"/><text text-anchor="middle" y="4" font-size="12" fill="#426031">'+(i+1)+'</text></g>';layer.appendChild(node)}}
  for(let i=0;i<population+guestCount;i++){
@@ -390,6 +407,8 @@ function residents(){
  }
  requestAnimationFrame(step);
 }
-scene();residents();
-window.AntVillageScene=Object.freeze({render,setNight,onSelect,setGuests,version:'world-v39-colony'});
+// Wait for actual saved region or friend's selected region before requesting any map.
+const panel=svg.closest('#world-panel');if(panel&&!panel.querySelector('.map-loading')){const cover=document.createElement('div');cover.className='map-loading';cover.innerHTML='<span class="map-load-icon" aria-hidden="true">🐜</span><strong class="map-load-status" role="status">Preparing your world…</strong><button type="button" class="map-retry" hidden>Retry map</button>';panel.appendChild(cover);}if(panel)panel.querySelector('.map-retry')?.addEventListener('click',retryArt);
+artState('loading');
+window.AntVillageScene=Object.freeze({render,setNight,onSelect,setGuests,retryArt,version:'world-v502-no-flash'});
 })();

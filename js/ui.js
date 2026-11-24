@@ -240,7 +240,7 @@ stage.addEventListener('click',e=>{
  else if(a==='nextLv')Ads.midgame(()=>newLevel(LV+1));
  else if(a==='retry')newLevel(LV);
  else if(a==='viewGallery'){location.href='collection.html'}
- else if(a==='viewVillage'){location.href='village.html?v=world-v501'}
+ else if(a==='viewVillage'){location.href='village.html?v=world-v502'}
  else if(a==='reviveAd'){const game=G;Ads.rewardedReviveFor(game,()=>G===game,()=>{$('#lose').classList.remove('on');shown='play';renderUI();toast('Revived! Keep going.')},reason=>{if(reason!=='ineligible')toast('Ad skipped or unavailable · retry is free');});}
  else if(a==='snd'){SND=SND?0:1;save();toast(SND?'Sound on':'Sound off')}
 });
