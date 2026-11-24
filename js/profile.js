@@ -85,10 +85,12 @@
   }
   function mastery(lv){return Number(collection.mastery?.[lv])||0}
   function saveMastery(lv,stars){if(!contains(lv)||!Number.isInteger(stars)||stars<1||stars>3||mastery(lv)>=stars)return false;const old=collection.mastery;const next={...(old||{}),[lv]:stars};const keys=Object.keys(next);if(keys.length>2000){for(const k of keys.slice(0,keys.length-2000))if(Number(k)!==lv)delete next[k]};collection.mastery=next;if(!write(COLLECTION_KEY,collection)){collection.mastery=old;return false}return true}
+  function saveGem(lv){if(!Number.isSafeInteger(lv)||lv<5||collection.gems?.[lv])return false;const old=collection.gems;collection.gems={...(old||{}),[lv]:true};const k=Object.keys(collection.gems);if(k.length>2000)delete collection.gems[k[0]];if(!write(COLLECTION_KEY,collection)){collection.gems=old;return false}return true}
+  function saveDaily(day,stars){if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Number.isInteger(stars)||stars<1||stars>3||(collection.daily?.[day]||0)>=stars)return false;const old=collection.daily;collection.daily={...(old||{}),[day]:stars};for(const key of Object.keys(collection.daily).sort().slice(0,-31))delete collection.daily[key];if(!write(COLLECTION_KEY,collection)){collection.daily=old;return false}return true}
   function count(){return highest()+collection.extras.length}
   function rarityTotal(){return collection.rareCount}
   function displayCode(){return profile.seed===0?'CLASSIC':('ANT-'+profile.seed.toString(16).toUpperCase().padStart(8,'0'))}
   global.AntCanvasProfile=Object.freeze({
-    seed:profile.seed,legacy:!!profile.legacy,rarity,contains,complete,highest,count,rarityTotal,displayCode,levelSeed,MAX_LEVEL,mastery,saveMastery
+    seed:profile.seed,legacy:!!profile.legacy,rarity,contains,complete,highest,count,rarityTotal,displayCode,levelSeed,MAX_LEVEL,mastery,saveMastery,saveGem,saveDaily
   });
 })(typeof window!=='undefined'?window:globalThis);

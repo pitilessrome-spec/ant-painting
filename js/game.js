@@ -22,6 +22,14 @@ function levelParams(lv) {
   };
 }
 
+function specialCells(lv,n){
+ const ice=new Uint8Array(n*n),boss=new Uint8Array(n*n);
+ if(lv>=4&&lv%6===4)for(let y=1;y<n-1;y++)for(let x=0;x<n;x++)if((x*7+y*11+lv%19)%19===0)ice[y*n+x]=1;
+ if(lv>=10&&lv%10===0){const mid=Math.floor(n/2);for(let y=mid-1;y<mid+2;y++)for(let x=mid-2;x<mid+2;x++)if(x>=0&&x<n&&y>=0&&y<n)boss[y*n+x]=1}
+ return {ice,boss,gem:lv>=5?Math.floor(n/3)*n+Math.floor(n/2):-1,power:lv>=7&&lv%6===1?'bomb':lv>=8&&lv%6===2?'wild':null};
+}
+function iceLocked(eaten,ice,n,i){return !!ice?.[i]&&i+n<eaten.length&&!eaten[i+n]}
+function dailyLevel(day){const d=Date.parse(day+'T00:00:00Z');return Number.isFinite(d)?3+(Math.floor(d/86400000)%30+30)%30:3;}
 /* ---------- Eating rules ---------- */
 // Starting from the hole, ants can only walk through eaten cells that connect to the hole
 function reachDist(eaten, n) {
@@ -52,18 +60,18 @@ function expoAt(dist, n, x, y) {
   return false;
 }
 // The exposed cell of this color closest to the hole (ants always eat this one)
-function nearestCell(eaten, n, role, c, dist) {
+function nearestCell(eaten, n, role, c, dist, ice) {
   let best = -1, bd = Infinity; const hx = n / 2, hy = n + 0.9;
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
     const i = y * n + x;
-    if (eaten[i] || role[i] !== c || !expoAt(dist, n, x, y)) continue;
+    if (eaten[i] || (c!==-1&&role[i] !== c) || iceLocked(eaten,ice,n,i) || !expoAt(dist, n, x, y)) continue;
     const d = (x + 0.5 - hx) * (x + 0.5 - hx) + (y + 0.5 - hy) * (y + 0.5 - hy);
     if (d < bd) { bd = d; best = i; }
   }
   return best;
 }
 // Simulate a correct play to build the box order: following this order always clears the level
-function makeSeqFrom(role, n, init, R, cmin, cmax) {
+function makeSeqFrom(role, n, init, R, cmin, cmax, ice) {
   const N = n * n, eaten = Uint8Array.from(init);
   let left = 0; for (let i = 0; i < N; i++) if (!eaten[i]) left++;
   const seq = [];
@@ -72,7 +80,7 @@ function makeSeqFrom(role, n, init, R, cmin, cmax) {
     const cnt = new Int32Array(32);
     for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
       const i = y * n + x;
-      if (!eaten[i] && expoAt(dist, n, x, y)) cnt[role[i]]++;
+      if (!eaten[i] && !iceLocked(eaten,ice,n,i) && expoAt(dist, n, x, y)) cnt[role[i]]++;
     }
     const cols = []; for (let c = 0; c < 32; c++) if (cnt[c] > 0) cols.push(c);
     if (!cols.length) throw new Error('no exposed cell');
@@ -80,7 +88,7 @@ function makeSeqFrom(role, n, init, R, cmin, cmax) {
     const k = Math.min(cnt[c], cmin + Math.floor(R() * (cmax - cmin + 1)));
     for (let t = 0; t < k; t++) {
       const { dist: d2 } = reachDist(eaten, n);
-      const i = nearestCell(eaten, n, role, c, d2);
+      const i = nearestCell(eaten, n, role, c, d2, ice);if(i<0)throw Error('invalid generated target');
       eaten[i] = 1;
     }
     seq.push({ c, n: k });
@@ -100,7 +108,7 @@ class Game {
     this.difficulty=prm;this.hintsUsed=0;this.reshufflesUsed=0;this.revivesUsed=0;
     const N = this.n * this.n;
     this.total = N; this.left = N;
-    this.eaten = new Uint8Array(N);
+    this.eaten = new Uint8Array(N);this.special=specialCells(lv,this.n);this.powerUsed=false;this.powerCharge=0;this.daily=o.daily||null;
     this.cap = o.cap || prm.cap; this.slots = new Array(this.cap).fill(null);
     this.cols = [[], [], [], []]; this.ants = []; this.ev = [];
     this.state = 'play'; this.speed = o.speed || 1; this._R = null; this.stalled = false;
@@ -123,7 +131,7 @@ class Game {
       if (!s) continue;
       for (const job of s.q) { this.spawnVisual(job); this.ev.push({ t: 'eat', i: job.idx, c: job.c }); }
     }
-    const seq = makeSeqFrom(this.role, this.n, this.eaten, this.rand, this.cmin, this.cmax);
+    const seq = makeSeqFrom(this.role, this.n, this.eaten, this.rand, this.cmin, this.cmax,this.special.ice);
     this.cols = [[], [], [], []];
     seq.forEach((b, i) => this.cols[Math.floor(i / this.difficulty.chunk) % 4].push({ c: b.c, n: b.n, id: i }));
     this.slots.fill(null);
@@ -135,7 +143,7 @@ class Game {
   addSlot() { if (this.cap < 7) { this.cap++; this.slots.push(null); } }
 
   // Can this color be eaten right now? Returns the cell to eat, or -1
-  target(c) { return nearestCell(this.eaten, this.n, this.role, c, this.R().dist); }
+  target(c) { return nearestCell(this.eaten, this.n, this.role, c, this.R().dist,this.special.ice); }
   // Ant path: from the hole, only through eaten cells (computed before eating)
   route(i) {
     const n = this.n, N = n * n, { dist, par } = this.R();
@@ -152,7 +160,21 @@ class Game {
     if (!virt && bj >= 0) { for (let j = bj; j >= 0 && j < N; j = par[j]) list.push(j); list.reverse(); }
     return list;
   }
-  eatCell(i) { this.eaten[i] = 1; this.left--; this._R = null; }
+  eatCell(i) { if(this.eaten[i])return false;this.eaten[i]=1;this.left--;this._R=null;return true; }
+  bossHealth(){let total=0,remaining=0;for(let i=0;i<this.total;i++)if(this.special.boss[i]){total++;if(!this.eaten[i])remaining++}return {total,remaining}}
+  powerReady(){return !!this.special.power&&!this.powerUsed&&this.powerCharge>=3&&this.state==='play'&&this.left>0&&!this.ants.length&&!this.slots.some(s=>s&&s.q.length)}
+  usePower(){
+    if(!this.powerReady())return false;
+    const mode=this.special.power,n=this.n,first=this.target(-1);if(first<0)return false;
+    const hits=[],limit=mode==='bomb'?5:6;
+    for(let k=0;k<limit;k++){let i=-1;if(mode==='wild'||k===0)i=this.target(-1);else{
+      const dist=this.R().dist,fx=first%n,fy=Math.floor(first/n);
+      for(let j=0;j<this.total;j++){const x=j%n,y=Math.floor(j/n);if(Math.abs(x-fx)+Math.abs(y-fy)<=1&&!this.eaten[j]&&!iceLocked(this.eaten,this.special.ice,n,j)&&expoAt(dist,n,x,y)){i=j;break}}
+    }if(i<0)break;this.eatCell(i);hits.push({i,c:this.role[i]})}
+    if(!hits.length)return false;this.powerUsed=true;this.rebuild();
+    for(const hit of hits){this.spawnVisual({idx:hit.i,c:hit.c,path:[]},'blast');this.ev.push({t:'shot',i:hit.i,c:hit.c})}
+    this.ev.push({t:'power',mode,count:hits.length});return true;
+  }
 
   // Logic: boxes in slots eat whatever they can, in slot order, until nothing more can be eaten. Depends only on cells, never on time
   cascade() {
@@ -188,7 +210,7 @@ class Game {
     const before=this.left;
     this.cascade();
     this.dispatches++;
-    if(this.left<before){this.directDispatches++;this.smartChain++;this.bestSmartChain=Math.max(this.bestSmartChain,this.smartChain)}else this.smartChain=0;
+    if(this.left<before){this.directDispatches++;this.powerCharge=Math.min(3,this.powerCharge+1);this.smartChain++;this.bestSmartChain=Math.max(this.bestSmartChain,this.smartChain)}else this.smartChain=0;
     return 1;
   }
   // Hint: the next box in order (following this order wins; verified in makeGame)
@@ -300,17 +322,17 @@ class Game {
     }
     return this.left <= 0;
   }
-  mastery(){const rate=this.dispatches?this.directDispatches/this.dispatches:0;const clean=this.hintsUsed===0&&this.reshufflesUsed===0&&this.revivesUsed===0&&this.cap===4;return {rate,chain:this.bestSmartChain,dispatches:this.dispatches,stars:this.state==='win'?(clean&&rate>=.85?3:rate>=.65?2:1):0,clean};}
+  mastery(){const rate=this.dispatches?this.directDispatches/this.dispatches:0;const clean=this.hintsUsed===0&&this.reshufflesUsed===0&&this.revivesUsed===0&&this.cap===4&&!this.powerUsed;return {rate,chain:this.bestSmartChain,dispatches:this.dispatches,stars:this.state==='win'?(clean&&rate>=.85?3:rate>=.65?2:1):0,clean};}
   snapshot() {
     return {
-      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,
+      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,powerCharge:this.powerCharge,powerUsed:this.powerUsed,
       cols: this.cols.map(col => col.map(b => ({ ...b }))),
       slots: this.slots.map(s => s ? { ...s, q: [] } : null)
     };
   }
   restore(sn) {
     this.eaten = sn.eaten; this.left = sn.left; this.cols = sn.cols; this.slots = sn.slots;
-    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;
+    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;this.powerCharge=sn.powerCharge||0;this.powerUsed=!!sn.powerUsed;
     this._R = null; this.ants = []; this.ev = []; this.stalled = false; this.state = 'play';
   }
 }
