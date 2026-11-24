@@ -1,0 +1,124 @@
+/* ANT CANVAS Village — real articulated ant motion, scenic atmosphere and polish. */
+#village-world .village-ant{
+  pointer-events:none;
+  filter:drop-shadow(0px 3px 2px rgba(33,68,57,.23));
+}
+#village-world .village-ant .ant-leg{
+  transform-box:view-box;
+  transform-origin:0 0;
+  animation:ant-step-a .43s cubic-bezier(.35,0,.65,1) infinite;
+}
+#village-world .village-ant .ant-step-b{animation-name:ant-step-b}
+#village-world .village-ant .ant-bob{
+  animation:ant-bob .43s ease-in-out infinite;
+  transform-box:fill-box;
+  transform-origin:center center;
+}
+#village-world .village-ant .ant-feelers{
+  animation:ant-antenna .76s ease-in-out infinite alternate;
+  transform-origin:16px -8px;
+  transform-box:view-box;
+}
+#village-world .village-ant .ant-cargo{
+  animation:ant-cargo .43s ease-in-out infinite alternate;
+  transform-box:fill-box;
+  transform-origin:center center;
+}
+#village-world .v-garden-flowers{
+  animation:v-garden-sway 4.1s ease-in-out infinite alternate;
+  transform-box:fill-box;transform-origin:center bottom;
+}
+#village-world .v-butterfly-wings{
+  animation:v-butterfly-flap .29s ease-in-out infinite alternate;
+  transform-origin:center center;transform-box:fill-box;
+  filter:drop-shadow(0 2px 2px #37526a55);
+}
+#village-world .v-firefly{animation:v-firefly-light 2.4s ease-in-out infinite alternate}
+#village-world .v-floating-pollen{animation:v-pollen-drift 8s ease-in-out infinite alternate}
+#village-world .v-bird-group{animation:v-bird-drift 11s ease-in-out infinite alternate}
+#village-world .v-chimney-smoke{
+  animation:v-chimney-smoke 3s ease-out infinite;
+  transform-origin:center center;transform-box:fill-box;
+}
+#village-world .v-chimney-smoke.b{animation-delay:-1.4s}
+#world-panel{
+  background:#9fded5;
+  box-shadow:0 16px 35px #24496641,0 3px 0 #a5c7bc,inset 0 0 0 1px #fff;
+  border:7px solid #fff8e9;
+}
+#world-panel:before{
+  content:"";
+  pointer-events:none;
+  z-index:1;
+  position:absolute;inset:0;
+  border-radius:17px;
+  background:linear-gradient(175deg,#fff8d414,transparent 29%,transparent 77%,#265d3b0d);
+  box-shadow:inset 0 0 0 1px #ffffffe0,inset 0 0 25px #fff8d91b;
+}
+#world-panel .world-story{
+  z-index:3;
+  left:50%;right:auto;transform:translateX(-50%);
+  max-width:calc(100% - 20px);width:max-content;
+  bottom:9px;border:1px solid #ffffff4d;
+  background:linear-gradient(110deg,#22495ccf,#3f7562cf);
+  box-shadow:0 5px 13px #19485b55;
+  font-weight:850;
+  padding:8px 14px;
+}
+#world-panel .world-plaque,#world-panel .world-tools{z-index:3}
+#village-world .empty-plot-sign{transition:filter .2s}
+#village-world .plot-interactive:hover .empty-plot-sign,
+#village-world .plot-interactive:focus-visible .empty-plot-sign{
+  filter:drop-shadow(0 0 9px #fff7ad);
+}
+#village-world .plot-name{
+  font-family:system-ui,sans-serif;font-size:11.5px;
+  stroke:#3d6556;stroke-width:2.8px;letter-spacing:.1px;
+}
+#village-world .plot-help{font-size:27px;fill:#6d563e;filter:none}
+.world-panel.night #village-world .v-garden-flowers,
+.world-panel.night #village-world .v-bush{filter:saturate(.6) brightness(.7)}
+.world-panel.night #village-world .v-firefly{filter:drop-shadow(0 0 8px #fff4a9)}
+@keyframes ant-step-a{
+  0%,100%{transform:rotate(-28deg)}
+  50%{transform:rotate(28deg)}
+}
+@keyframes ant-step-b{
+  0%,100%{transform:rotate(29deg)}
+  50%{transform:rotate(-27deg)}
+}
+@keyframes ant-bob{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-1.55px)}
+}
+@keyframes ant-antenna{
+  from{transform:rotate(-6deg)}
+  to{transform:rotate(9deg)}
+}
+@keyframes ant-cargo{
+  from{transform:rotate(-4deg)}
+  to{transform:rotate(5deg)}
+}
+@keyframes v-garden-sway{from{rotate:-1deg}to{rotate:2deg}}
+@keyframes v-butterfly-flap{from{transform:scaleX(.36)}to{transform:scaleX(1.02)}}
+@keyframes v-firefly-light{from{opacity:.2}to{opacity:1}}
+@keyframes v-pollen-drift{from{transform:translateX(-6px)}to{transform:translateX(9px)}}
+@keyframes v-bird-drift{from{transform:translateX(-12px)}to{transform:translateX(28px)}}
+@keyframes v-chimney-smoke{
+  from{opacity:.53;transform:translateY(0) scale(.8)}
+  to{opacity:0;transform:translateY(-27px) scale(1.8)}
+}
+@media(max-width:600px){
+  #world-panel{border:4px solid #fff8e9;border-radius:20px}
+  #world-panel .world-story{font-size:10px;padding:6px 10px;bottom:7px}
+}
+@media(prefers-reduced-motion:reduce){
+  #village-world .village-ant *,
+  #village-world .village-ant,
+  #village-world .v-garden-flowers,
+  #village-world .v-butterfly-wings,
+  #village-world .v-firefly,
+  #village-world .v-floating-pollen,
+  #village-world .v-bird-group,
+  #village-world .v-chimney-smoke{animation:none!important;transition:none!important}
+}
