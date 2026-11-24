@@ -1,4 +1,4 @@
-# ANT CANVAS iOS V0.2 — independent development branch
+# ANT CANVAS iOS V0.3 — independent development branch
 
 Uses the existing puzzle, art, four maps, colony and industry assets locally with Capacitor 8. Native iOS AdMob uses the existing eight reward flows and rejects skipped/error playback; test ads by default. Telegram web production is untouched.
 
@@ -19,3 +19,5 @@ Local guest play, original economy, native share/haptics, native reward bridge, 
 ## Q-AdRouter V1 candidate
 StoreKit storefront country code (not physical location): CHN routes exclusively to Baidu, other known storefronts to AdMob, unknown disables ads. No GPS or automatic cross-region fallback. Trusted coarse network country may be added after privacy review. Baidu test IDs are configured. The native bridge source and pinned CocoaPods integration are included. Use a fresh generated iOS project and ANT_BAIDU_NATIVE=1 npm run ios:sync to build the dual-SDK device candidate; simulator builds intentionally omit Baidu. Native build and actual device playback remain gates. See native/BAIDU-INTEGRATION.md. Production requires approved non-test Baidu IDs.
 For Baidu-enabled device builds open ios/App/App.xcworkspace in Xcode, not the xcodeproj. Use a fresh generated ios directory when switching build flavors. The default simulator flavor remains AdMob-only. Test IDs cannot be used for a production Baidu build.
+
+V0.3 syncs web V5.0.4 sound/combos and includes CocoaPods xcconfig integration with Capacitor SPM. The SDK build must still pass before physical device acceptance.

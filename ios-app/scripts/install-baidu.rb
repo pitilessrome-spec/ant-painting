@@ -17,12 +17,3 @@ target.build_configurations.each do |c|
 end
 project.save
 
-# SPM-generated App configurations lack CocoaPods' xcconfig references unless
-# the integration sets them. Ensure inherited settings resolve the sandbox path.
-project=Xcodeproj::Project.open(File.join(root,'App.xcodeproj'))
-target=project.targets.find{|t|t.name=='App'}
-target.build_configurations.each do |config|
-  config.build_settings['PODS_ROOT']='$(SRCROOT)/Pods'
-  config.build_settings['PODS_PODFILE_DIR_PATH']='$(SRCROOT)'
-end
-project.save

@@ -7,8 +7,8 @@ const built=JSON.parse(readFileSync('www/native-build.json','utf8'));if(built.ad
 function set(key,type,value){try{execFileSync('/usr/libexec/PlistBuddy',['-c','Set :'+key+' '+value,p],{stdio:'pipe'})}catch(_){execFileSync('/usr/libexec/PlistBuddy',['-c','Add :'+key+' '+type+' '+value,p],{stdio:'inherit'})}}
 set('GADApplicationIdentifier','string',conf.appId);
 set('CFBundleDisplayName','string','ANT CANVAS');
-set('CFBundleShortVersionString','string','0.2.0');
-set('CFBundleVersion','string','2');
+set('CFBundleShortVersionString','string','0.3.0');
+set('CFBundleVersion','string','3');
 if(JSON.stringify(built.baidu)!==JSON.stringify(baiduConfig()))throw Error('Build and Baidu configuration mismatch');
 const appDelegate='ios/App/App/AppDelegate.swift',story='ios/App/App/Base.lproj/Main.storyboard';
 const marker='// BEGIN ANT REGION PLUGIN';
@@ -25,4 +25,4 @@ if(!storyboard.includes('customClass="AntViewController"')){const old=storyboard
 // Tracking permission is not requested in V0.1; consent is requested before ads.
 console.log('AdMob plist configured. Before production, audit privacy manifests, SKAdNetwork IDs, age rating and signing.');
 
-if(nativeBaidu){execFileSync('ruby',['scripts/install-baidu.rb'],{stdio:'inherit'});writeFileSync('ios/App/Podfile',readFileSync('native/Podfile.baidu','utf8'));execFileSync('pod',['install'],{cwd:'ios/App',stdio:'inherit'})}
+if(nativeBaidu){execFileSync('ruby',['scripts/install-baidu.rb'],{stdio:'inherit'});writeFileSync('ios/App/Podfile',readFileSync('native/Podfile.baidu','utf8'));execFileSync('pod',['install'],{cwd:'ios/App',stdio:'inherit'});execFileSync('ruby',['scripts/integrate-baidu.rb'],{stdio:'inherit'})}

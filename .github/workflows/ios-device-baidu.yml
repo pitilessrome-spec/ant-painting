@@ -31,13 +31,18 @@ jobs:
           test -f Podfile.lock
           test -f Pods/Manifest.lock
           diff -u Podfile.lock Pods/Manifest.lock
+          ruby ../../scripts/integrate-baidu.rb
+          find Pods -name BaiduMobAdRewardVideo.h -print
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -destination 'generic/platform=iOS' -showBuildSettings > "$RUNNER_TEMP/ant-settings.txt"
+          grep -E 'FRAMEWORK_SEARCH_PATHS =|HEADER_SEARCH_PATHS =|OTHER_LDFLAGS =' "$RUNNER_TEMP/ant-settings.txt" | head -15
+          grep -q 'BaiduMobAdSDK' "$RUNNER_TEMP/ant-settings.txt"
       - name: Compile unsigned iPhone device app
         run: |
-          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/ant-device" CODE_SIGNING_ALLOWED=NO 'PODS_ROOT=$(SRCROOT)/Pods' 'PODS_PODFILE_DIR_PATH=$(SRCROOT)' build
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/ant-device" CODE_SIGNING_ALLOWED=NO build
           test -d "$RUNNER_TEMP/ant-device/Build/Products/Debug-iphoneos/App.app"
-          ditto -c -k --keepParent "$RUNNER_TEMP/ant-device/Build/Products/Debug-iphoneos/App.app" "$RUNNER_TEMP/ANT-CANVAS-iOS-V0.2-unsigned.zip"
+          ditto -c -k --keepParent "$RUNNER_TEMP/ant-device/Build/Products/Debug-iphoneos/App.app" "$RUNNER_TEMP/ANT-CANVAS-iOS-V0.3-unsigned.zip"
       - uses: actions/upload-artifact@v4
         with:
-          name: ANT-CANVAS-iOS-V0.2-unsigned
-          path: ${{ runner.temp }}/ANT-CANVAS-iOS-V0.2-unsigned.zip
+          name: ANT-CANVAS-iOS-V0.3-unsigned
+          path: ${{ runner.temp }}/ANT-CANVAS-iOS-V0.3-unsigned.zip
           if-no-files-found: error
