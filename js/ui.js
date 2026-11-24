@@ -73,7 +73,11 @@ function fit(){
 }
 
 /* ---------- Ants and particles (drawn on the 2D canvas) ---------- */
-function burst(i,c){const n=G.n,p=proj(i%n+.5,Math.floor(i/n)+.5,ZTOP);for(let k=0;k<6;k++)PAR.push({x:p[0],y:p[1],vx:(Math.random()-.5)*2.6,vy:-Math.random()*2.4-.6,l:480,c:G.pal[c]})}
+const REDUCED_FX=!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;let HIT_RINGS=[];
+function burst(i,c,strong=false){const n=G.n,p=proj(i%n+.5,Math.floor(i/n)+.5,ZTOP),color=G.pal[c],count=REDUCED_FX?2:strong?12:6,limit=MOBILE_GPU?100:180;
+ for(let k=0;k<count;k++){if(PAR.length>=limit)break;const a=Math.random()*Math.PI*2,sp=(strong?2.8:1.5)+Math.random()*1.9;PAR.push({x:p[0],y:p[1],vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1.1,l:strong?460:330,c:k%4===0?'#fff5c9':color,sz:1.3+Math.random()*2.5,angle:a})}
+ if(!REDUCED_FX&&HIT_RINGS.length<24)HIT_RINGS.push({x:p[0],y:p[1],c:color,age:0,strong})
+}
 function drawAnt(a,now){
  const z=a.y<G.n+.2?ZTOP+.05:.02;
  const p=proj(a.x,a.y,z),q=proj(a.x+(a.ux||0)*.4,a.y+(a.uy||-1)*.4,z);
@@ -92,16 +96,14 @@ function drawAnt(a,now){
  if(a.ph===1){fx.fillStyle=G.pal[a.c];fx.strokeStyle='rgba(0,0,0,.45)';fx.lineWidth=.35;fx.fillRect(-1.6,-1.4,2.8,2.8);fx.strokeRect(-1.6,-1.4,2.8,2.8)}
  fx.restore();
 }
-function blastParticles(i,c){
- const p=proj(i%G.n+.5,Math.floor(i/G.n)+.5,ZTOP);
- for(let k=0;k<15;k++)PAR.push({x:p[0],y:p[1],vx:(Math.random()-.5)*7,vy:(Math.random()-.5)*7-2,l:440,c:G.pal[c]});
-}
+function blastParticles(i,c){burst(i,c,true)}
 function drawFX(dt,now){
  fx.setTransform(DPR,0,0,DPR,0,0);fx.clearRect(0,0,VW,VH);
  if(!G)return;
  for(const p of PAR){p.x+=p.vx*dt/16;p.y+=p.vy*dt/16;p.vy+=.12*dt/16;p.l-=dt}
  PAR=PAR.filter(p=>p.l>0);
- for(const p of PAR){fx.globalAlpha=Math.max(0,Math.min(1,p.l/400));fx.fillStyle=p.c;fx.fillRect(p.x-2.2,p.y-2.2,4.4,4.4)}
+ for(const p of PAR){fx.save();fx.globalAlpha=Math.max(0,Math.min(1,p.l/250));fx.fillStyle=p.c;fx.translate(p.x,p.y);fx.rotate(p.angle+p.l*.012);fx.fillRect(-p.sz/2,-p.sz/2,p.sz,p.sz);fx.restore()}
+ for(const r of HIT_RINGS){r.age+=dt;const t=Math.min(1,r.age/300);fx.globalAlpha=(1-t)*.72;fx.strokeStyle=r.c;fx.lineWidth=(1-t)*2+.5;fx.beginPath();fx.arc(r.x,r.y,2+t*(r.strong?19:11),0,Math.PI*2);fx.stroke()}HIT_RINGS=HIT_RINGS.filter(r=>r.age<300);
  fx.globalAlpha=1;
  // Colored bolts fly from the ant tunnel and hit only the already-authorized matching target.
  for(let i=PROJECTILES.length-1;i>=0;i--){
@@ -119,14 +121,14 @@ function drawFX(dt,now){
    anims.set(i,0);blastParticles(i,c);
    G.visualDone=Math.min(G.total,(G.visualDone||0)+1);
    if(window.AntMystery)window.AntMystery.reveal(i);
-   beep(840+Math.random()*220,.1,.05);
+   window.AntSFX?.play('impact');
  });
 }
 function handleEv(){
  for(const e of G.ev){
-  if(e.t==='eat'){anims.set(e.i,0);burst(e.i,e.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);if(window.AntMystery)window.AntMystery.reveal(e.i);beep(560+Math.random()*420,.07,.035)}
-  else if(e.t==='shot'){if(window.AntBlastFX)window.AntBlastFX.fire(e.i,e.c);else PROJECTILES.push({i:e.i,c:e.c,age:0})}
-  else if(e.t==='blastReady'){if(window.AntBlastFX)window.AntBlastFX.ready();else toast('🌈 Color Blast!');beep(990,.17,.07)}
+  if(e.t==='eat'){anims.set(e.i,0);burst(e.i,e.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);if(window.AntMystery)window.AntMystery.reveal(e.i);window.AntSFX?.play('hit')}
+  else if(e.t==='shot'){window.AntSFX?.play('launch');if(window.AntBlastFX)window.AntBlastFX.fire(e.i,e.c);else PROJECTILES.push({i:e.i,c:e.c,age:0})}
+  else if(e.t==='blastReady'){if(window.AntBlastFX)window.AntBlastFX.ready();else toast('🌈 Color Blast!');window.AntSFX?.play('blast')}
   else if(e.t==='claim'&&mesh){mesh.setColorAt(e.i,CLR.set(mix(G.pal[e.c],'#ffffff',.35)));mesh.instanceColor.needsUpdate=true;boardDirty=true}
   else if(e.t==='reshuffle')toast('No moves left, boxes reshuffled');
   else if(e.t==='stall')toast('No box can move right now. Think about what to load next');
@@ -177,7 +179,7 @@ function newLevel(lv){
  window.ANT_CANVAS_GAME=G;
  if(window.AntBlastFX)window.AntBlastFX.reset();
  if(window.AntMystery)window.AntMystery.begin(G);
- MAXLV=Math.max(MAXLV,LV);reshuf=false;unlocks=3;shown='play';hintT=0;PAR=[];PROJECTILES=[];anims.clear();
+ MAXLV=Math.max(MAXLV,LV);reshuf=false;unlocks=3;shown='play';hintT=0;PAR=[];PROJECTILES=[];HIT_RINGS=[];window.AntSFX?.reset();anims.clear();
  $('#win').classList.remove('on');$('#lose').classList.remove('on');
  buildBoard();placeHole();save();renderUI();Ads.gameplay(!window.AntHome||!window.AntHome.isOpen);
  if(window.AntTelegram) window.AntTelegram.onLevelStart(LV);
@@ -193,7 +195,7 @@ function onWin(){
  $('#winSub').textContent='Level '+LV+' complete · 100%'+(window.AntCanvasProfile?' · '+window.AntCanvasProfile.rarity(LV).symbol+' '+window.AntCanvasProfile.rarity(LV).title:'');
  const rewardEl=$('#winReward');if(rewardEl)rewardEl.textContent=reward?'🪵 +'+reward.wood+' wood  🌸 +'+reward.petals+' petals'+(reward.chest?'  🎁 BONUS CHEST!':''):'🖼️ Painting already collected';
  $('#win').classList.add('on');
- [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.25,.05),i*120));
+ window.AntSFX?.play('win');
  for(let i=0;i<70;i++)PAR.push({x:Math.random()*VW,y:-10-Math.random()*60,vx:(Math.random()-.5)*1.2,vy:1+Math.random()*2,l:2600,c:G.pal[(Math.random()*8)|0]});
 }
 
@@ -203,7 +205,7 @@ stage.addEventListener('click',e=>{
  if(e.cancelable)e.preventDefault();
  if(el.dataset.col!==undefined){
    const c=+el.dataset.col,r=G.place(c);
-   if(r===1){beep(520,.07,.05);renderUI();if(window.AntPolish)window.AntPolish.onPlaced(G)}
+   if(r===1){window.AntSFX?.play('tap');renderUI();if(window.AntPolish)window.AntPolish.onPlaced(G)}
    else if(r===2)toast('All slots are full, wait a moment');
    else if(r===0&&G.state==='play')toast('No box in this column');
    else if(r===3){toast("This color can't be eaten yet");shakeCol=c;shakeUntil=performance.now()+400;renderUI()}
@@ -240,7 +242,7 @@ stage.addEventListener('click',e=>{
  else if(a==='nextLv')Ads.midgame(()=>newLevel(LV+1));
  else if(a==='retry')newLevel(LV);
  else if(a==='viewGallery'){location.href='collection.html'}
- else if(a==='viewVillage'){location.href='village.html?v=world-v502'}
+ else if(a==='viewVillage'){location.href='village.html?v=world-v503'}
  else if(a==='reviveAd'){const game=G;Ads.rewardedReviveFor(game,()=>G===game,()=>{$('#lose').classList.remove('on');shown='play';renderUI();toast('Revived! Keep going.')},reason=>{if(reason!=='ineligible')toast('Ad skipped or unavailable · retry is free');});}
  else if(a==='snd'){SND=SND?0:1;save();toast(SND?'Sound on':'Sound off')}
 });
@@ -262,7 +264,7 @@ function frame(now){
    if(G.state!==shown){
      shown=G.state;
      if(shown==='win')onWin();
-     else if(shown==='lose'){$('#lose').classList.add('on');beep(180,.4,.06);renderUI()}
+     else if(shown==='lose'){$('#lose').classList.add('on');window.AntSFX?.play('lose');renderUI()}
    }
  }
  if(now-lastUI>100){renderUI();lastUI=now}

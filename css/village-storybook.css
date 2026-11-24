@@ -110,3 +110,8 @@ html{touch-action:manipulation;-webkit-text-size-adjust:100%}button,a,select,[da
 #world-panel .world-story{position:relative;transform:none;left:auto;right:auto;bottom:auto;width:auto;max-width:none;margin:3px;padding:6px}
 #world-panel .world-tools{position:relative;top:auto;right:auto;padding:6px;justify-content:flex-end}
 #world-panel:not([data-map-state=ready]) .world-tools,#world-panel:not([data-map-state=ready]) .world-story{visibility:hidden;pointer-events:none}
+
+/* V5.0.3: transparent natural constructions; UI only on selection. */
+#village-world .sb-ground-detail,#village-world .sb-native-level{pointer-events:none}#village-world .plot-interactive:focus-visible .sb-plot-hit{stroke:#fff0bb;stroke-width:2;stroke-dasharray:4 4}#village-world .plot-interactive{cursor:pointer;touch-action:manipulation}#village-world .sb-native-object{pointer-events:visiblePainted}
+
+@media(prefers-reduced-motion:no-preference){#reveal-modal:not([hidden]) .modal-card{animation:ant-reward-pop .3s cubic-bezier(.2,.8,.2,1) both}@keyframes ant-reward-pop{from{transform:scale(.94);opacity:.65}to{transform:scale(1);opacity:1}}}
