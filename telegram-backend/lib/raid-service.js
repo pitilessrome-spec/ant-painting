@@ -8,7 +8,7 @@ function error(message,status=409){const e=Error(message);e.status=status;throw 
 async function settle(c,id,s){const key=[s.season,s.boss,s.tier,String(s.assisted)].join(':');await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',[key]);const roster=R.roster(s),args=[s.season,s.boss,s.tier,s.assisted,roster];
  const old=await c.query('SELECT rank FROM raid_first_clears WHERE season=$1 AND boss=$2 AND tier=$3 AND assisted=$4 AND roster_key=$5',args);
  if(old.rows.length)return old.rows[0].rank;
- const row=await c.query('SELECT COALESCE(MAX(rank),0)+1 AS rank FROM raid_first_clears WHERE season=$1 AND boss=$2 AND tier=$3 AND assisted=$4',args.slice(0,4));const rank=Number(row.rows[0].rank),members=Object.keys(s.players).map(R.alias);
+ const row=await c.query('SELECT COALESCE(MAX(rank),0)+1 AS rank FROM raid_first_clears WHERE season=$1 AND boss=$2 AND tier=$3 AND assisted=$4',args.slice(0,4));s.finishedAt=Math.max(s.startedAt,Date.now());const rank=Number(row.rows[0].rank),members=Object.keys(s.players).map(R.alias);
  await c.query('INSERT INTO raid_first_clears(season,boss,tier,assisted,roster_key,room_id,rank,members,completed_at,duration_ms) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[...args,id,rank,JSON.stringify(members),new Date(s.finishedAt),s.finishedAt-s.startedAt]);
  for(const user of Object.keys(s.players))await c.query('INSERT INTO raid_rewards(season,boss,tier,player_id,room_id,rank) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING',[s.season,s.boss,s.tier,user,id,rank]);
  return rank
