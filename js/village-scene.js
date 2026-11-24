@@ -12,8 +12,34 @@ function flower(x,y,c,s){
 function tree(x,y,s){
  return '<g transform="translate('+x+' '+y+') scale('+(s||1)+')" filter="url(#v-shadow)"><path d="M-8 0L-6 -77H9L7 0Z" fill="#a67656"/><circle cx="-24" cy="-80" r="29" fill="#65bb7e" stroke="#429b70" stroke-width="4"/><circle cx="6" cy="-96" r="35" fill="#90db9f" stroke="#49a97b" stroke-width="4"/><circle cx="33" cy="-80" r="29" fill="#5eba80" stroke="#48a374" stroke-width="4"/><path d="M-27 -102Q-7 -123 11 -110" stroke="#c5f6bc" stroke-width="7" fill="none" stroke-linecap="round" opacity=".8"/></g>';
 }
-function ant(path,start,color){
- return '<g class="resident"><animateMotion dur="13s" begin="'+start+'s" path="'+path+'" repeatCount="indefinite"/><g transform="scale(1.15)"><ellipse cy="5" rx="13" ry="3.5" fill="#356b55" opacity=".4"/><path d="M-5 -3L-14 -12M-4 2L-14 9M5 1L15 9M8 -5L16 -13M5 -12L9 -19" stroke="'+color+'" stroke-width="2" stroke-linecap="round"/><ellipse cx="-5" cy="-5" rx="7" ry="6" fill="'+color+'"/><ellipse cx="6" cy="-9" rx="6" ry="5" fill="'+color+'"/><circle cx="8" cy="-10" r="1.7" fill="#fff"/></g></g>';
+function ant(path,start,color,job=0){
+ // Six independently alternating articulated legs, antennae and three body segments.
+ // SVG animateMotion follows the curved road, including heading when returning home.
+ const upper=(x,phase)=>'<g transform="translate('+x+' -3)"><g class="ant-leg '+(phase?'ant-step-b':'ant-step-a')+'"><path d="M0 0L-2 -8L'+(x<0?-8:7)+' -12" fill="none" stroke="#4b344d" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+(x<0?-8:7)+'" cy="-12" r="1.8" fill="#60475c"/></g></g>';
+ const lower=(x,phase)=>'<g transform="translate('+x+' 4)"><g class="ant-leg '+(phase?'ant-step-b':'ant-step-a')+'"><path d="M0 0L-3 9L'+(x<0?-10:8)+' 13" fill="none" stroke="#47334b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+(x<0?-10:8)+'" cy="13" r="1.7" fill="#60415b"/></g></g>';
+ const gear=job%3===0?
+   '<g class="ant-cargo" transform="translate(-16 -10)"><path d="M0 2Q-11 -13 -19 -9Q-14 6 0 2" fill="#87d993" stroke="#3a977a" stroke-width="1.6"/><path d="M-1 2L-14 -7" stroke="#e4ffd6" stroke-width="1.5"/></g>':
+   job%3===1?
+   '<g class="ant-cargo"><circle cx="-16" cy="-12" r="6" fill="#ffa4a6" stroke="#fbd3b1" stroke-width="2"/><path d="M-16 -18Q-19 -23 -22 -18" stroke="#70a973" stroke-width="2" fill="none"/></g>':
+   '<g class="ant-cargo" transform="translate(-15 -11)"><path d="M-10 -2L-7 -9H7L10 -2V5H-10Z" fill="#e2aa64" stroke="#96613e" stroke-width="2"/><path d="M-10 -2H10" stroke="#ffe1a3" stroke-width="2"/></g>';
+ return '<g class="resident village-ant" aria-label="Worker ant walking along the village road">'+
+  '<animateMotion dur="'+(17+job%3*2)+'s" begin="'+start+'s" path="'+path+'" keyPoints="0;1;0" keyTimes="0;0.5;1" calcMode="linear" rotate="auto" repeatCount="indefinite"/>'+
+  '<g transform="scale(1.35)">'+
+  '<ellipse cx="-1" cy="9" rx="25" ry="6" fill="#235d4c" opacity=".24"/>'+
+  '<g class="ant-bob">'+
+  upper(-8,0)+upper(1,1)+upper(7,0)+lower(-8,1)+lower(1,0)+lower(7,1)+
+  '<path d="M-13 0L-2 -1L8 -2" fill="none" stroke="#49354a" stroke-width="5.5" stroke-linecap="round"/>'+
+  '<ellipse cx="-15" cy="0" rx="11.5" ry="9.2" fill="'+color+'" stroke="#483646" stroke-width="2"/>'+
+  '<ellipse cx="-19" cy="-4" rx="5.2" ry="2.3" fill="#e9d2c6" opacity=".38" transform="rotate(-20 -19 -4)"/>'+
+  '<ellipse cx="-1" cy="-1" rx="6.8" ry="6.7" fill="#9d6675" stroke="#483646" stroke-width="2"/>'+
+  '<ellipse cx="11" cy="-4" rx="9" ry="8.4" fill="#b27785" stroke="#483646" stroke-width="2.3"/>'+
+  '<ellipse cx="10" cy="-7.9" rx="6" ry="2.3" fill="#f4c3b1" opacity=".44" transform="rotate(-15 10 -8)"/>'+
+  gear+
+  '<g class="ant-feelers"><path d="M14 -10Q18 -24 23 -25M17 -9Q27 -19 32 -17" stroke="#5c3b53" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="23" cy="-25" r="2.5" fill="#c18e94"/><circle cx="32" cy="-17" r="2.5" fill="#c18e94"/></g>'+
+  '<circle cx="16" cy="-7" r="3.4" fill="#fffdf8"/><circle cx="17" cy="-6.7" r="1.7" fill="#3b3549"/>'+
+  '<circle cx="18" cy="-8.6" r=".7" fill="#fff"/>'+
+  '<path d="M17 -1Q21 2 24 -2" stroke="#5c3c53" stroke-width="1.5" fill="none"/>'+
+  '</g></g></g>';
 }
 function base(){
  let s='<defs>'+
@@ -47,7 +73,7 @@ function base(){
  '<path d="M-24 18V-19Q-24 -46 0 -47Q24 -46 24 -19V18Z" fill="#86594e" stroke="#6b4d48" stroke-width="4"/>'+
  '<circle cx="-46" cy="-23" r="13" fill="#a5e7f7" stroke="#fff7d1" stroke-width="5"/><circle cx="47" cy="-23" r="13" fill="#a5e7f7" stroke="#fff7d1" stroke-width="5"/>'+
  '<rect x="-12" y="-100" width="24" height="14" rx="3" fill="#fff5c8"/><text y="42" text-anchor="middle" font-weight="950" font-size="16" fill="#fff" stroke="#406c60" stroke-width="3" paint-order="stroke">ANT HOME</text></g>'+
- '<g id="village-residents">'+routes.slice(0,6).map((r,i)=>ant(r,-i*2.4,['#4c4159','#82636e','#554f79'][i%3])).join('')+'</g>'+
+ '<g id="village-residents">'+routes.slice(0,7).map((r,i)=>ant(r,-i*2.4,['#69516a','#775b78','#695371'][i%3],i)).join('')+'</g>'+
  '<g id="village-buildings"></g><g id="village-combo-effects"></g>';
  svg.innerHTML=s;
 }
