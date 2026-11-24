@@ -58,6 +58,7 @@ func writePNG(_ url:URL) {
     CGImageDestinationAddImage(dest,image,nil);guard CGImageDestinationFinalize(dest) else {fatalError("PNG write failed")}
 }
 let icon=base.appendingPathComponent("AppIcon.appiconset",isDirectory:true)
+if fm.fileExists(atPath:icon.path){try fm.removeItem(at:icon)}
 try fm.createDirectory(at:icon,withIntermediateDirectories:true)
 writePNG(icon.appendingPathComponent("AntCanvas.png"))
 try Data(#"{"images":[{"filename":"AntCanvas.png","idiom":"universal","platform":"ios","size":"1024x1024"}],"info":{"author":"xcode","version":1}}"#.utf8).write(to:icon.appendingPathComponent("Contents.json"))
@@ -65,15 +66,11 @@ let mark=base.appendingPathComponent("AntLaunchMark.imageset",isDirectory:true)
 try fm.createDirectory(at:mark,withIntermediateDirectories:true)
 writePNG(mark.appendingPathComponent("AntLaunchMark.png"))
 try Data(#"{"images":[{"filename":"AntLaunchMark.png","idiom":"universal"}],"info":{"author":"xcode","version":1}}"#.utf8).write(to:mark.appendingPathComponent("Contents.json"))
-let launch=URL(fileURLWithPath:"ios/App/App/Base.lproj/LaunchScreen.storyboard")
-let storyboard = """
-<?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" targetRuntime="iOS.CocoaTouch" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" initialViewController="ant-vc">
- <device id="retina6_12" orientation="portrait" appearance="light"/>
- <dependencies><deployment identifier="iOS"/><plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23000"/><capability name="Safe area layout guides" minToolsVersion="9.0"/></dependencies>
- <scenes><scene sceneID="ant-scene"><objects><viewController id="ant-vc" sceneMemberID="viewController"><view key="view" contentMode="scaleToFill" id="ant-root"><rect key="frame" x="0.0" y="0.0" width="393" height="852"/><autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/><subviews><imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" image="AntLaunchMark" translatesAutoresizingMaskIntoConstraints="NO" id="ant-mark"><rect key="frame" x="80" y="310" width="233" height="233"/></imageView></subviews><viewLayoutGuide key="safeArea" id="ant-safe"/><color key="backgroundColor" red="0.918" green="0.961" blue="0.847" alpha="1" colorSpace="custom" customColorSpace="sRGB"/><constraints><constraint firstItem="ant-mark" firstAttribute="centerX" secondItem="ant-root" secondAttribute="centerX" id="ant-cx"/><constraint firstItem="ant-mark" firstAttribute="centerY" secondItem="ant-root" secondAttribute="centerY" id="ant-cy"/><constraint firstItem="ant-mark" firstAttribute="width" constant="230" id="ant-w"/><constraint firstItem="ant-mark" firstAttribute="height" constant="230" id="ant-h"/></constraints></view></viewController><placeholder placeholderIdentifier="IBFirstResponder" id="ant-first" sceneMemberID="firstResponder"/></objects></scene></scenes>
- <resources><image name="AntLaunchMark" width="1024" height="1024"/></resources>
-</document>
-"""
-try Data(storyboard.utf8).write(to:launch)
-print("Generated opaque ANT CANVAS icon and static launch artwork.")
+// Preserve Capacitor's known-good storyboard; change only the referenced Splash asset.
+// No new storyboard XML, preserving all Xcode-generated constraints.
+let splash=base.appendingPathComponent("Splash.imageset",isDirectory:true)
+if fm.fileExists(atPath:splash.path){try fm.removeItem(at:splash)}
+try fm.createDirectory(at:splash,withIntermediateDirectories:true)
+writePNG(splash.appendingPathComponent("AntCanvasSplash.png"))
+try Data(#"{"images":[{"filename":"AntCanvasSplash.png","idiom":"universal","scale":"1x"}],"info":{"author":"xcode","version":1}}"#.utf8).write(to:splash.appendingPathComponent("Contents.json"))
+print("Generated opaque ANT CANVAS icon and replacement Splash asset; preserved native storyboard.")
