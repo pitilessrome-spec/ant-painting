@@ -231,7 +231,7 @@ stage.addEventListener('pointerdown',e=>{
  else if(a==='nextLv')Ads.midgame(()=>newLevel(LV+1));
  else if(a==='retry')newLevel(LV);
  else if(a==='viewGallery'){location.href='collection.html'}
- else if(a==='viewVillage'){location.href='village.html?v=life-v2'}
+ else if(a==='viewVillage'){location.href='village.html?v=world-v3'}
  else if(a==='reviveAd')ad(()=>{G.revive();$('#lose').classList.remove('on');shown='play';renderUI()});
  else if(a==='snd'){SND=SND?0:1;save();toast(SND?'Sound on':'Sound off')}
 });

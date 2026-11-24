@@ -1,0 +1,12 @@
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const model=fs.readFileSync(require('node:path').join(__dirname,'../js/village.js'),'utf8');
+function make(start){let data=JSON.stringify({v:1,wood:40,petals:20,chests:0,placements:{3:'flower'},claimedHigh:0,claimedExtra:[]});const win={};class TestDate extends Date{constructor(...a){super(...(a.length?a:[start]))}static now(){return start}};new Function("window","localStorage","Date",model)(win,{getItem:()=>data,setItem:(k,v)=>data=v},TestDate);return win.AntVillage}
+function tests(make,assert){const now=new Date(2026,10,24,10).getTime(),min=60000,results=[];const check=(n,f)=>{f();results.push(n)};
+check('old village and locked regions',()=>{const v=make(now);assert(v.snapshot().placements[3]==='flower'&&!v.selectRegion('forest').ok)});
+check('independent maps and shared resources',()=>{const v=make(now);for(let i=1;i<=5;i++)v.award(i);assert(v.selectRegion('forest').ok&&v.count()===0);assert(v.place(3,'mushroom').ok);const n=v.snapshot().wood;assert(v.selectRegion('garden').ok&&v.snapshot().placements[3]==='flower'&&v.snapshot().wood===n);assert(v.selectRegion('forest').ok&&v.snapshot().placements[3]==='mushroom')});
+check('15 and 30 unlock',()=>{const v=make(now);for(let i=1;i<=14;i++)v.award(i);assert(!v.selectRegion('island').ok);v.award(15);assert(v.selectRegion('island').ok);for(let i=16;i<=29;i++)v.award(i);assert(!v.selectRegion('snow').ok);v.award(30);assert(v.selectRegion('snow').ok)});
+check('scout timer, duplicate claim, one relic',()=>{const v=make(now);assert(v.expeditionStart('trail','scout',now).ok&&!v.expeditionStart('trail','scout',now).ok&&!v.expeditionClaim(now+4*min).ok);assert(v.expeditionClaim(now+5*min).relic==='Trail Token'&&!v.expeditionClaim(now+5*min).ok);assert(v.worldPreview(now).relics.filter(x=>x.found).length===1)});
+check('role bonuses',()=>{const v=make(now);v.expeditionStart('river','worker',now);const a=v.expeditionClaim(now+10*min);assert(a.wood===5&&a.petals===2&&!a.relic);v.expeditionStart('ruins','gardener',now+10*min);const b=v.expeditionClaim(now+30*min);assert(b.wood===5&&b.petals===5)});
+check('expedition anchored to origin',()=>{const v=make(now);for(let i=1;i<=5;i++)v.award(i);v.expeditionStart('trail','scout',now);v.selectRegion('forest');v.expeditionClaim(now+5*min);assert(v.worldPreview(now).relics.find(x=>x.found).id==='garden:trail')});
+return results}
+for(const name of tests(make,assert.ok))console.log('PASS '+name);

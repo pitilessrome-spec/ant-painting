@@ -7,7 +7,7 @@
 <meta name="description" content="Build a cozy village for your tiny ants. Unlock magical buildings, open milestone chests, and discover hidden treasures.">
 <title>My Ant Village · ANT CANVAS</title>
 <link rel="stylesheet" href="css/village-world.css?v=village-world-v2">
-<link rel="stylesheet" href="css/village-storybook.css?v=storybook-life-v2">
+<link rel="stylesheet" href="css/village-storybook.css?v=storybook-world-v3">
 </head>
 <body>
 <header class="topbar">
@@ -24,14 +24,16 @@
   <div class="stat"><span class="stat-icon">🎁</span><div><strong id="chests">0</strong><small>UNOPENED CHESTS</small></div></div>
   <div class="stat"><span class="stat-icon">🏡</span><div><strong id="placed">0 / 8</strong><small>DECORATED PLOTS</small></div></div>
  </div>
+ <section class="panel region-panel"><h2>🗺️ Ant World · Explore &amp; Build</h2><p class="sub" id="region-progress"></p><div id="region-list" class="region-list"></div></section>
  <div class="main-grid">
   <div class="world-panel" id="world-panel">
    <svg id="village-world" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" role="img" aria-label="An animated illustrated ant village with interactive building locations">
     <rect width="960" height="720" fill="#d7ebaf"></rect>
     <text x="480" y="305" text-anchor="middle" font-size="19" font-weight="bold" fill="#336579">Growing your ant village...</text>
    </svg>
-   <div class="world-plaque"><small>ANT CANVAS WORLD</small>🌿 My Little Village</div>
+   <div class="world-plaque"><small>ANT CANVAS WORLD</small><span id="region-title">🌿 Storybook Garden</span></div>
    <div class="world-tools"><button id="day-night" type="button" title="Automatic local time">☀️ Day · Auto</button><button id="world-sound" type="button">✨ Ants at work</button></div>
+   <div class="weather-layer" aria-hidden="true"></div><div id="world-weather" class="weather-label" title="Simulated in-game weather"></div>
    <div class="world-story" id="world-story" aria-live="polite">Tap a glowing plot to start building your little world.</div>
   </div>
   <div class="side">
@@ -58,6 +60,7 @@
     <button class="btn primary" id="life-sign" type="button" disabled>Claim daily reward</button>
     <h3>📋 Daily tasks</h3><div id="life-tasks"></div><small id="life-clock-note"></small>
    </section>
+   <section class="panel expedition-panel"><h2>🧭 Ant Expeditions</h2><p class="sub">Choose a route and ant role. Scouts discover relics; builders and gardeners collect bonus materials.</p><label for="exp-route">Route</label><select id="exp-route"></select><label for="exp-role">Ant role</label><select id="exp-role"></select><div class="life-stock"><strong id="exp-status"></strong><small id="exp-count"></small></div><button class="btn primary" id="exp-start" type="button">Send ant on expedition</button><button class="btn primary" id="exp-claim" type="button" hidden disabled>Claim expedition reward</button></section>
    <section class="panel treasure-panel">
     <h2>🎁 Secret Treasure Chest</h2>
     <p class="sub">Every 5 levels adds a real chest you can open for a hidden souvenir and extra materials.</p>
@@ -70,6 +73,7 @@
    </section>
   </div>
  </div>
+ <section class="panel relic-panel"><h2>🏺 Explorer's Atlas</h2><p class="sub" id="world-relic-count"></p><div id="world-relics" class="world-relics"></div></section>
  <div class="lower-grid">
   <section class="panel">
    <h2>🔒 Secret Souvenir Collection</h2>
@@ -92,7 +96,7 @@
   <button type="button" class="btn" id="reveal-close">Back to the village</button>
  </div>
 </div>
-<script src="js/village.js?v=village-life-v2"></script>
+<script src="js/village.js?v=village-world-v3"></script>
 <script src="js/village-storybook.js?v=storybook-v1.1"></script>
-<script src="js/village-page.js?v=village-life-v2"></script>
+<script src="js/village-page.js?v=village-world-v3"></script>
 </body></html>

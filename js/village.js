@@ -64,8 +64,19 @@ function claimDaily(id,now=Date.now()){
  const before=snapshot();lifeDay(now);state.life.claimed[id]=true;state.wood+=t.wood;state.petals+=t.petals;
  return lifeCommit(before,{wood:t.wood,petals:t.petals});
 }
+// V3: independent region layouts, shared resources and persistent expeditions.
+const REGIONS=Object.freeze([{id:'garden',name:'Storybook Garden',symbol:'🌿',unlock:0},{id:'forest',name:'Mushroom Forest',symbol:'🍄',unlock:5},{id:'island',name:'Coral Island',symbol:'🏝️',unlock:15},{id:'snow',name:'Snowlight Valley',symbol:'❄️',unlock:30}]);
+const ROLES=Object.freeze([{id:'scout',name:'🧭 Scout',skill:'Discover relics'},{id:'worker',name:'🪵 Builder',skill:'Extra wood'},{id:'gardener',name:'🌸 Gardener',skill:'Extra petals'}]);
+const ROUTES=Object.freeze([{id:'trail',name:'Hidden trail',minutes:5,wood:2,petals:1,relic:'Trail Token',symbol:'🍃'},{id:'river',name:'River crossing',minutes:10,wood:3,petals:2,relic:'River Gem',symbol:'💎'},{id:'ruins',name:'Ancient ruins',minutes:20,wood:5,petals:3,relic:'Ancient Seal',symbol:'🏺'}]);
+function ensureWorld(){if(!state.world||!REGIONS.some(r=>r.id===state.world.active)){state.world={active:'garden',maps:{},relics:{},expedition:null,completed:0};return true}state.world.maps=state.world.maps||{};state.world.relics=state.world.relics||{};return false}
+if(ensureWorld())write();
+function paintings(){return state.claimedHigh+state.claimedExtra.length}
+function worldPreview(now=Date.now()){const w=state.world,n=paintings(),e=w.expedition;return {active:w.active,paintings:n,regions:REGIONS.map(r=>({...r,unlocked:n>=r.unlock,plots:r.id===w.active?Object.keys(state.placements).length:Object.keys(w.maps[r.id]?.placements||{}).length})),roles:ROLES,routes:ROUTES,expedition:e?{...e,remaining:Math.max(0,e.finish-now)}:null,relics:REGIONS.flatMap(r=>ROUTES.map(t=>({id:r.id+':'+t.id,name:t.relic,region:r.name,symbol:t.symbol,found:!!w.relics[r.id+':'+t.id]}))),completed:w.completed||0}}
+function selectRegion(id){const r=REGIONS.find(x=>x.id===id),w=state.world;if(!r||paintings()<r.unlock)return {ok:false,error:'Region is locked'};if(id===w.active)return {ok:true};const before=snapshot();w.maps[w.active]={placements:state.placements,upgrades:state.upgrades};const next=w.maps[id]||{placements:{},upgrades:{}};state.placements=next.placements;state.upgrades=next.upgrades;delete w.maps[id];w.active=id;return lifeCommit(before,{region:id})}
+function expeditionStart(route,role,now=Date.now()){const t=ROUTES.find(x=>x.id===route),a=ROLES.find(x=>x.id===role),w=state.world;if(!t||!a||!Number.isFinite(now)||!lifePreview(now).valid)return {ok:false,error:'Invalid expedition'};if(w.expedition)return {ok:false,error:'Claim your current expedition first'};const before=snapshot();w.expedition={region:w.active,route,role,start:now,finish:now+t.minutes*60000};return lifeCommit(before,{expedition:w.expedition})}
+function expeditionClaim(now=Date.now()){const w=state.world,e=w.expedition;if(!e||!Number.isFinite(now)||now<e.finish||!lifePreview(now).valid)return {ok:false,error:'Expedition not ready'};const t=ROUTES.find(x=>x.id===e.route);if(!t||!ROLES.some(x=>x.id===e.role))return {ok:false,error:'Invalid expedition'};const before=snapshot(),id=e.region+':'+e.route,found=!w.relics[id]&&e.role==='scout';const wood=t.wood+(e.role==='worker'?2:0),petals=t.petals+(e.role==='gardener'?2:0);if(found)w.relics[id]=true;state.wood+=wood;state.petals+=petals;w.completed=(w.completed||0)+1;w.expedition=null;return lifeCommit(before,{wood,petals,relic:found?t.relic:null,symbol:t.symbol})}
 // Synchronize ordinary same-origin tabs; no server authority or anti-tamper guarantee.
-if(global.addEventListener)global.addEventListener('storage',e=>{if(e.key===KEY){const next=safeGet();if(next&&next.life)state=next}});
+if(global.addEventListener)global.addEventListener('storage',e=>{if(e.key===KEY){const next=safeGet();if(next&&next.life){state=next;ensureWorld()}}});
 const SOUVENIRS=Object.freeze([
  {id:'star',name:'Starlight Pebble',symbol:'⭐',description:'A shimmering keepsake from a secret chest'},
  {id:'crystal',name:'Moon Crystal',symbol:'💎',description:'The crystal ants found under the hill'},
@@ -156,7 +167,7 @@ function award(lv,rarity){
 }
 function place(slot,item){
  const index=Number(slot);
- if(!Number.isInteger(index)||index<0||index>8)return {ok:false,error:'Invalid plot'};
+ if(!Number.isInteger(index)||![0,1,2,3,5,6,7,8].includes(index))return {ok:false,error:'Invalid plot'};
  const it=catalog[item];
  if(!it)return {ok:false,error:'Choose a decoration'};
  if(state.placements[index])return {ok:false,error:'This plot is already decorated'};
@@ -192,5 +203,5 @@ function redesign(slot,newItem,expectedItem){
 function remove(slot,expectedItem){return redesign(slot,null,expectedItem)}
 function replace(slot,item,expectedItem){if(typeof item!=='string')return {ok:false,error:'Choose a replacement'};return redesign(slot,item,expectedItem)}
 function count(){return Object.keys(state.placements).length}
-global.AntVillage=Object.freeze({award,place,upgrade,upgradeCost,getLevel,lifePreview,collectAnts,signIn,claimDaily,refundCost,remove,replace,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
+global.AntVillage=Object.freeze({award,place,upgrade,upgradeCost,getLevel,worldPreview,selectRegion,expeditionStart,expeditionClaim,lifePreview,collectAnts,signIn,claimDaily,refundCost,remove,replace,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
 })(typeof window==='undefined'?globalThis:window);

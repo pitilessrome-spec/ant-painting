@@ -4,7 +4,7 @@
 const V=window.AntVillage,S=window.AntVillageScene;
 if(!V||!S)return;
 const $=id=>document.getElementById(id);
-let selectedPlot=null,selectedItem=null,removePending=false;
+let selectedPlot=null,selectedItem=null,removePending=false,routeChoice='trail',roleChoice='scout';
 function isNight(date=new Date()){const h=date.getHours();return h<6||h>=18;}
 function syncDayNight(){const night=isNight();S.setNight(night);$('day-night').textContent=night?'🌙 Night · Auto':'☀️ Day · Auto';$('day-night').title='Local time · Day 06:00–18:00';}
 function revealBuild(){const el=$('build-detail');if(el.getBoundingClientRect().top<0||el.getBoundingClientRect().bottom>window.innerHeight)el.scrollIntoView({block:'center',behavior:'smooth'});}
@@ -43,6 +43,26 @@ function renderLife(){
  }
  $('life-clock-note').textContent=p.valid?'Local time · daily reset at midnight.':'Device date moved backward. Rewards resume when the date catches up.';
 }
+function renderWorld(){
+ const p=V.worldPreview(),r=p.regions.find(x=>x.id===p.active),d=new Date(),season=['winter','spring','summer','autumn'][Math.floor(((d.getMonth()+1)%12)/3)],day=Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000),weather=r.id==='snow'?'snow':['clear','clear','rain','breeze'][((day%4)+4)%4];
+ const panel=$('world-panel');panel.dataset.region=r.id;panel.dataset.season=season;panel.dataset.weather=weather;
+ $('region-title').textContent=r.symbol+' '+r.name;$('world-weather').textContent=({clear:'☀️ Clear',rain:'🌧️ Rain',breeze:'🍃 Breeze',snow:'❄️ Snow'})[weather]+' · '+season;
+ $('region-progress').textContent=p.paintings+' paintings · '+p.regions.filter(x=>x.unlocked).length+' / 4 regions unlocked';
+ const list=$('region-list');list.replaceChildren();
+ for(const x of p.regions){const b=document.createElement('button');b.type='button';b.className='region-card'+(x.id===p.active?' active':'');b.disabled=!x.unlocked;b.setAttribute('aria-pressed',String(x.id===p.active));const i=document.createElement('span'),t=document.createElement('b'),s=document.createElement('small');i.textContent=x.symbol;t.textContent=x.name;s.textContent=x.unlocked?x.plots+' / 8 built · '+(x.id===p.active?'Here':'Travel'):'🔒 Clear '+x.unlock+' paintings';b.append(i,t,s);b.onclick=()=>{const z=V.selectRegion(x.id);if(!z.ok){announce(z.error);return}selectedPlot=null;selectedItem=null;removePending=false;announce('Welcome to '+x.name+'!');render()};list.append(b)}
+ const relics=$('world-relics');relics.replaceChildren();$('world-relic-count').textContent=p.relics.filter(x=>x.found).length+' / 12 relics found';
+ for(const x of p.relics){const b=document.createElement('div');b.className='world-relic'+(x.found?' found':'');b.textContent=(x.found?x.symbol:'🔒')+' '+x.name;const s=document.createElement('small');s.textContent=x.region;b.append(s);relics.append(b)}
+ renderExpedition(p)
+}
+function renderExpedition(p=V.worldPreview()){
+ const e=p.expedition,route=$('exp-route'),role=$('exp-role');
+ if(!route.options.length)for(const t of p.routes){const o=document.createElement('option');o.value=t.id;o.textContent=t.name+' · '+t.minutes+' min';route.append(o)}
+ if(!role.options.length)for(const a of p.roles){const o=document.createElement('option');o.value=a.id;o.textContent=a.name+' · '+a.skill;role.append(o)}
+ route.value=routeChoice;role.value=roleChoice;route.disabled=role.disabled=!!e;$('exp-start').hidden=!!e;$('exp-claim').hidden=!e;$('exp-claim').disabled=!e||e.remaining>0;
+ const t=p.routes.find(x=>x.id===(e?e.route:routeChoice)),a=p.roles.find(x=>x.id===(e?e.role:roleChoice)),r=p.regions.find(x=>x.id===(e?e.region:p.active));
+ $('exp-status').textContent=e?(e.remaining>0?r.name+' · '+t.name+' · '+Math.ceil(e.remaining/60000)+' min left':'Expedition complete — claim your reward!'):'Explore '+r.name+' · '+rewardText({wood:t.wood+(a.id==='worker'?2:0),petals:t.petals+(a.id==='gardener'?2:0)})+(a.id==='scout'?' · Discover a new relic if not yet found':'');
+ $('exp-count').textContent=p.completed+' completed expeditions'
+}
 function render(){
  const st=V.snapshot(),catalog=V.catalog;
  $('wood').textContent=st.wood.toLocaleString();
@@ -50,7 +70,7 @@ function render(){
  $('chests').textContent=V.unopenedChests().toLocaleString();
  $('placed').textContent=V.count()+' / 8';
  S.render(st,selectedPlot);
- renderLife();
+ renderLife();renderWorld();
  const existing=selectedPlot===null?null:st.placements[selectedPlot];
  const refund=existing?V.refundCost(selectedPlot):null;
  const availableAfterRefund=refund?{wood:st.wood+refund.wood,petals:st.petals+refund.petals}:st;
@@ -161,6 +181,11 @@ $('upgrade').addEventListener('click',()=>{
   unlock?'A special building set is now glowing in your village.':'Your '+V.catalog[res.item].name+' looks even better at level '+res.level+'.');
  render();
 });
+$('exp-route').addEventListener('change',e=>{routeChoice=e.target.value;renderExpedition()});
+$('exp-role').addEventListener('change',e=>{roleChoice=e.target.value;renderExpedition()});
+$('exp-start').addEventListener('click',()=>{const r=V.expeditionStart(routeChoice,roleChoice);announce(r.ok?'Your ant has set out!':r.error);render()});
+$('exp-claim').addEventListener('click',()=>{const r=V.expeditionClaim();announce(r.ok?'Expedition rewards: '+rewardText(r):r.error);if(r.ok&&r.relic)showCollectible('New relic discovered!',r.symbol,r.relic+' · '+rewardText(r));render()});
+setInterval(renderExpedition,1000);
 $('life-collect').addEventListener('click',()=>{const r=V.collectAnts();announce(r.ok?'Ants delivered '+rewardText(r):r.error);render()});
 $('life-sign').addEventListener('click',()=>{const r=V.signIn();announce(r.ok?'Daily reward: '+rewardText(r.reward):r.error);render()});
 setInterval(renderLife,30000);
