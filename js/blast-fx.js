@@ -19,7 +19,7 @@
    if(!G)return;
    const hole=proj(G.n/2,G.n+.65,0);
    // The empowered ant is deliberately oversized so it reads on mobile screens.
-   if(announce>0||bolts.length>0){
+   if(announce>0||bolts.length>0||muzzle>0){
      const color=bolts.length?G.pal[bolts[0].c]:'#ff85e8';
      fx.save();fx.translate(hole[0],hole[1]);fx.shadowColor=color;fx.shadowBlur=23;
      fx.fillStyle='rgba(255,232,121,.36)';fx.beginPath();fx.arc(0,0,24,0,6.283);fx.fill();

@@ -4,7 +4,7 @@ let ctx=null,resuming=null,master=null,active=new Set(),last={},pending=null,mut
 const samples=new Map(),SR=22050,TAU=Math.PI*2;
 function enabled(){try{const v=JSON.parse(localStorage.getItem('mbh3')||'{}')?.snd;return !muted&&v!==0&&v!==false}catch{return !muted}}
 function init(){if(!ctx){const C=g.AudioContext||g.webkitAudioContext;if(!C)return false;ctx=new C();master=ctx.createGain();master.gain.value=.72;const limiter=ctx.createDynamicsCompressor?.();if(limiter){master.connect(limiter);limiter.connect(ctx.destination)}else master.connect(ctx.destination)}return true}
-function unlock(){if(!enabled())return Promise.resolve(false);try{if(!init())return Promise.resolve(false);if(ctx.state==='running')return Promise.resolve(true);if(!resuming){ // call resume inside the real gesture, not a delayed frame
+function unlock(){if(!enabled())return Promise.resolve(false);try{if(!init())return Promise.resolve(false);if(ctx.state==='running')return Promise.resolve(true);{ // Retry resume on every real gesture: a pending pointerdown must not block iOS touchend.
  const p=ctx.resume();resuming=Promise.resolve(p).then(()=>{resuming=null;const q=pending;pending=null;if(q&&performance.now()-q.at<900&&ctx.state==='running')emit(q.k,q.count);return ctx.state==='running'},()=>{resuming=null;return false})}return resuming}catch{return Promise.resolve(false)}}
 function make(k,count){const duration={launch:.25,impact:.48,blast:.55,hit:.12,combo:.42,tap:.1,reward:.48,build:.48,win:.63,lose:.3}[k]||.15;const n=Math.ceil(SR*duration),a=new Float32Array(n);let seed=2279,lp=0,phase=0,bp=0;
  const noise=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/2147483648-1};
