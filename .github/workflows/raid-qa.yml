@@ -1,7 +1,7 @@
 name: Raid authoritative PostgreSQL QA
 on:
   push:
-    branches: [feat/raid-authority-v01]
+    branches: [feat/raid-authority-v01, feat/ant-canvas-v6-four-worlds]
 permissions:
   contents: read
 jobs:
@@ -30,7 +30,7 @@ jobs:
           node-version: '22'
       - run: npm install --no-package-lock
       - run: node --test tests/*.test.js
-      - run: node --check ../js/raid.js && node --check ../js/raid-announcements.js && node --check ../js/home.js
+      - run: node --check ../js/raid.js && node --check ../js/raid-announcements.js && node --check ../js/home.js && node --check ../js/raid-scene.js && node --check ../js/village.js && node --check ../js/village-page.js
       - run: npm install --no-save --no-package-lock playwright
       - run: npx playwright install chromium --with-deps
       - run: node tests/raid-browser.cjs
