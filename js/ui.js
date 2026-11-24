@@ -94,7 +94,7 @@ function drawAnt(a,now){
  fx.fillStyle='#2a2d3f';fx.beginPath();fx.ellipse(3.1,0,1.9,1.6,0,0,6.283);fx.fill();fx.stroke();
  fx.fillStyle='#fff';fx.beginPath();fx.arc(3.8,-.8,.5,0,6.283);fx.arc(3.8,.8,.5,0,6.283);fx.fill();
  fx.strokeStyle='#1a1c28';fx.beginPath();fx.moveTo(4.6,-.6);fx.lineTo(6.2,-1.6);fx.moveTo(4.6,.6);fx.lineTo(6.2,1.6);fx.stroke();
- if(a.ph===1){if(G.special.skillAt[a.idx]){fx.fillStyle='#ffe6a1';fx.strokeStyle='#a75e20';fx.lineWidth=.55;fx.beginPath();fx.arc(-1,0,3.1,0,6.283);fx.fill();fx.stroke();}fx.fillStyle=G.pal[a.c];fx.strokeStyle='rgba(0,0,0,.45)';fx.lineWidth=.35;fx.fillRect(-1.6,-1.4,2.8,2.8);fx.strokeRect(-1.6,-1.4,2.8,2.8)}
+ if(a.ph===1){fx.fillStyle=G.pal[a.c];fx.strokeStyle='rgba(0,0,0,.45)';fx.lineWidth=.35;fx.fillRect(-1.6,-1.4,2.8,2.8);fx.strokeRect(-1.6,-1.4,2.8,2.8);if(G.special.skillAt[a.idx]){fx.save();fx.rotate(-ang);fx.font='bold 4px system-ui';fx.textAlign='center';fx.textBaseline='middle';fx.fillStyle='#fff';fx.fillText(SKILL_ICON[G.special.skillAt[a.idx]],0,0);fx.restore()}}
  fx.restore();
 }
 function blastParticles(i,c){burst(i,c,true)}
@@ -105,9 +105,15 @@ function recordHit(c,blast=false){const now=performance.now();if(now-comboAt>950
  window.AntSFX?.play(blast?'impact':'hit',comboCount);
 }
 let planning=false,bombAim=false,inspectCol=-1,inspectText='',inspectGame=null,lastBossPhase=-1,lastBossHP=-1;
+const SKILL_ICON={bomb:'💣',wild:'🌈',frost:'❄'};const skillGoneVisual=new Set();
 function drawSpecialMarkers(){
  const n=G.n,s=G.special;fx.save();fx.textAlign='center';fx.textBaseline='middle';fx.font='bold '+Math.max(9,Math.min(17,220/n))+'px system-ui';
- for(const i of s.markers){if(G.eaten[i])continue;const ice=iceLocked(G.eaten,s.ice,n,i),boss=!!s.boss[i],locked=bossLocked(G.eaten,s,i),gem=i===s.gem,loot=s.skillAt[i];if(!ice&&!boss&&!gem&&!loot)continue;const [x,y]=proj(i%n+.5,Math.floor(i/n)+.5,ZTOP),r=Math.max(4,Math.min(13,130/n));if(ice||boss||loot){fx.fillStyle=loot?'rgba(255,207,94,.93)':ice?'rgba(165,229,255,.64)':locked?'rgba(51,40,90,.78)':'rgba(182,63,111,.54)';fx.strokeStyle=ice?'#e7faff':'#ffcbec';fx.lineWidth=1.5;fx.beginPath();fx.arc(x,y,r,0,Math.PI*2);fx.fill();fx.stroke()}fx.fillStyle='#fff';fx.fillText(loot?'?':ice?'❄':locked?'◆':gem?'💎':'✦',x,y)}if(bombAim){for(const i of G.bombTargets()){const [x,y]=proj(i%n+.5,Math.floor(i/n)+.5,ZTOP);fx.strokeStyle='#ffd25c';fx.lineWidth=2;fx.beginPath();fx.arc(x,y,Math.max(5,Math.min(11,110/n)),0,6.283);fx.stroke()}}fx.restore();
+ for(const i of s.markers){const loot=s.skillAt[i],isLoot=!!loot&&!skillGoneVisual.has(i);if(G.eaten[i]&&!isLoot)continue;
+ const ice=iceLocked(G.eaten,s.ice,n,i),boss=!!s.boss[i],locked=bossLocked(G.eaten,s,i),gem=i===s.gem;if(!ice&&!boss&&!gem&&!isLoot)continue;
+ const x0=i%n+.5,y0=Math.floor(i/n)+.5,[x,y]=proj(x0,y0,ZTOP),r=Math.max(4,Math.min(13,130/n));
+ if(isLoot){const l=proj(x0-.4,y0,ZTOP),rr=proj(x0+.4,y0,ZTOP),u=proj(x0,y0-.4,ZTOP),d=proj(x0,y0+.4,ZTOP);const size=Math.max(5,Math.min(16,Math.min(Math.hypot(rr[0]-l[0],rr[1]-l[1]),Math.hypot(d[0]-u[0],d[1]-u[1]))*.94));fx.save();fx.font='bold '+size+'px system-ui';fx.fillStyle='#fff';fx.shadowColor='rgba(0,0,0,.9)';fx.shadowBlur=1.5;fx.fillText(SKILL_ICON[loot],x,y);fx.restore();continue}
+ if(ice||boss){fx.fillStyle=ice?'rgba(165,229,255,.64)':locked?'rgba(51,40,90,.78)':'rgba(182,63,111,.54)';fx.strokeStyle=ice?'#e7faff':'#ffcbec';fx.lineWidth=1.5;fx.beginPath();fx.arc(x,y,r,0,Math.PI*2);fx.fill();fx.stroke()}fx.fillStyle='#fff';fx.fillText(ice?'❄':locked?'◆':gem?'💎':'✦',x,y)
+ }if(bombAim){for(const i of G.bombTargets()){const [x,y]=proj(i%n+.5,Math.floor(i/n)+.5,ZTOP);fx.strokeStyle='#ffd25c';fx.lineWidth=2;fx.beginPath();fx.arc(x,y,Math.max(5,Math.min(11,110/n)),0,6.283);fx.stroke()}}fx.restore();
 }
 function drawFX(dt,now){
  fx.setTransform(DPR,0,0,DPR,0,0);fx.clearRect(0,0,VW,VH);
@@ -128,11 +134,11 @@ function drawFX(dt,now){
    fx.save();fx.globalAlpha=Math.min(1,t*7);fx.strokeStyle=G.pal[sh.c];fx.lineWidth=3.8;fx.shadowBlur=11;fx.shadowColor=G.pal[sh.c];
    fx.beginPath();fx.moveTo(a[0]+(x-a[0])*.67,a[1]+(y-a[1])*.67);fx.lineTo(x,y);fx.stroke();
    fx.fillStyle='#fff';fx.beginPath();fx.arc(x,y,3.3,0,Math.PI*2);fx.fill();fx.restore();
-   if(t>=1){anims.set(sh.i,0);blastParticles(sh.i,sh.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);recordHit(sh.c,true);PROJECTILES.splice(i,1)}
+   if(t>=1){if(G.special.skillAt[sh.i])skillGoneVisual.add(sh.i);anims.set(sh.i,0);blastParticles(sh.i,sh.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);recordHit(sh.c,true);PROJECTILES.splice(i,1)}
  }
  for(const a of G.ants)drawAnt(a,now);
  if(window.AntBlastFX)window.AntBlastFX.draw(dt,fx,G,proj,(i,c)=>{
-   anims.set(i,0);blastParticles(i,c);
+   if(G.special.skillAt[i])skillGoneVisual.add(i);anims.set(i,0);blastParticles(i,c);
    G.visualDone=Math.min(G.total,(G.visualDone||0)+1);
    if(window.AntMystery)window.AntMystery.reveal(i);
    recordHit(c,true);
@@ -140,11 +146,11 @@ function drawFX(dt,now){
 }
 function handleEv(){
  for(const e of G.ev){
-  if(e.t==='eat'){anims.set(e.i,0);burst(e.i,e.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);if(window.AntMystery)window.AntMystery.reveal(e.i);recordHit(e.c)}
+  if(e.t==='eat'){if(G.special.skillAt[e.i])skillGoneVisual.add(e.i);anims.set(e.i,0);burst(e.i,e.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);if(window.AntMystery)window.AntMystery.reveal(e.i);recordHit(e.c)}
   else if(e.t==='shot'){window.AntSFX?.play('launch');if(window.AntBlastFX)window.AntBlastFX.fire(e.i,e.c);else PROJECTILES.push({i:e.i,c:e.c,age:0})}
   else if(e.t==='skillLoot'){toast(({bomb:'💣 Bomb',wild:'🌈 Wild ant',frost:'❄ Icebreaker'}[e.mode])+' +1 · delivered to nest!');window.AntSFX?.play('reward');renderUI();const btn=$('#skill-'+e.mode);btn.classList.remove('skill-pop');void btn.offsetWidth;btn.classList.add('skill-pop')}
   else if(e.t==='skillRescue'){toast('Slots blocked! Use a collected skill to open a route.');}
-  else if(e.t==='power'){toast(({bomb:'💣 Bomb burst',wild:'🌈 Wild ants',frost:'❄ Icebreaker'}[e.mode])+' · '+e.count+' blocks!');}
+  else if(e.t==='power'){toast(({bomb:'💣 Bomb burst',wild:'🌈 Wild ants',frost:'❄ Icebreaker'}[e.mode])+' · '+e.count+' blocks!'+(e.lost?' · '+e.lost+' skill'+(e.lost===1?'':'s')+' destroyed!':''));}
   else if(e.t==='blastReady'){if(window.AntBlastFX)window.AntBlastFX.ready();else toast('🌈 Color Blast!');window.AntSFX?.play('blast')}
   else if(e.t==='claim'&&mesh){mesh.setColorAt(e.i,CLR.set(mix(G.pal[e.c],'#ffffff',.35)));mesh.instanceColor.needsUpdate=true;boardDirty=true}
   else if(e.t==='reshuffle')toast('No moves left, boxes reshuffled');
@@ -160,7 +166,7 @@ function renderUI(){
  if(!G)return;
  $('#lv').textContent=dailyMode?'Daily':'Level '+LV;document.querySelector('[data-act="prev"]').disabled=!!dailyMode;document.querySelector('[data-act="next"]').disabled=!!dailyMode;document.querySelector('[data-act="nextLv"]').textContent=dailyMode?'Return to main level →':'Next level →';
  $('#pv').textContent=G.visualPct()+'%';
- const tip=$('#tip'),m=G.mastery(),ch=G.challenge;const bag=$('#skill-bag'),boss=G.bossHealth(),special=$('#special-note');bag.hidden=G.skillOrder.length===0;for(const mode of ['bomb','wild','frost']){const btn=$('#skill-'+mode),seen=G.skillOrder.includes(mode);btn.hidden=!seen;btn.style.order=seen?G.skillOrder.indexOf(mode):99;btn.disabled=!G.powerReady(mode);const count=G.skills[mode],icon=({bomb:'💣',wild:'🌈',frost:'❄️'}[mode]),label=({bomb:'Bomb',wild:'Wild ant',frost:'Icebreaker'}[mode]);const display=icon+' ×'+count;if(btn.textContent!==display)btn.textContent=display;btn.setAttribute('aria-label',label+' ×'+count);btn.setAttribute('aria-pressed',String(mode==='bomb'&&bombAim))}special.textContent=boss.total?(({'Web Guardian':'🕷','Iron Beetle':'🪲','Frost Sentinel':'❄','Rainbow King':'🌈'}[boss.name]||'✦')+' '+boss.name+' · Phase '+(boss.phase||3)+' · HP '+boss.remaining+'/'+boss.total):G.special.ice.some((v,i)=>v&&iceLocked(G.eaten,G.special.ice,G.n,i))?'❄️ Clear below ice to thaw':G.special.gem>=0?'💎 Gem · '+(G.eaten[G.special.gem]?'found':'find and clear')+(dailyMode?' · Daily':''):'';special.hidden=!special.textContent;const bossHud=$('#boss-hp');bossHud.hidden=!boss.total;bossHud.firstElementChild.style.width=(boss.total?boss.remaining/boss.total*100:0)+'%';const board=$('#board');if(bombAim&&!G.powerReady('bomb'))bombAim=false;board.dataset.bombAim=bombAim?'1':'0';if(boss.total&&lastBossHP>=0&&boss.remaining<lastBossHP){if(boss.remaining===0||boss.phase!==lastBossPhase){bossHud.classList.remove('boss-pulse');void bossHud.offsetWidth;bossHud.classList.add('boss-pulse');window.AntSFX?.play(boss.remaining===0?'reward':'impact');toast(boss.remaining===0?'BOSS DEFEATED!':'SHIELD BROKEN · '+boss.name)}}lastBossHP=boss.total?boss.remaining:-1;lastBossPhase=boss.phase;const plan=$('#plan-toggle');plan.hidden=LV<6;plan.textContent=planning?'Cancel plan':'Plan move';plan.setAttribute('aria-pressed',String(planning));const planNote=$('#plan-note');planNote.hidden=!planning&&!bombAim;planNote.textContent=bombAim?'Choose a highlighted block for the bomb':inspectText||'Inspect a top box, then tap again to dispatch';const msg=LV<3?'Tap a box to load a slot · Eat the grid from the bottom up':(ch.id==='rainbow'?'🌈 Rainbow Rush':ch.id==='precision'?'🧠 Precision Puzzle':ch.id==='sprint'?'⚡ Ant Sprint':'🐜 Classic')+' · Smart '+Math.round(m.rate*100)+'% · Streak '+G.smartChain;tip.hidden=false;if(tip.textContent!==msg)tip.textContent=msg;tip.dataset.challenge=ch.id;
+ const tip=$('#tip'),m=G.mastery(),ch=G.challenge;const bag=$('#skill-bag'),boss=G.bossHealth(),special=$('#special-note');bag.hidden=G.skillOrder.length===0;for(const mode of ['bomb','wild','frost']){const btn=$('#skill-'+mode),seen=G.skillOrder.includes(mode);btn.hidden=!seen;btn.style.order=seen?G.skillOrder.indexOf(mode):99;btn.disabled=!G.powerReady(mode);const count=G.skills[mode],icon=({bomb:'💣',wild:'🌈',frost:'❄️'}[mode]),label=({bomb:'Bomb',wild:'Wild ant',frost:'Icebreaker'}[mode]);const display=icon+' ×'+count;if(btn.textContent!==display)btn.textContent=display;btn.setAttribute('aria-label',label+' ×'+count);btn.setAttribute('aria-pressed',String(mode==='bomb'&&bombAim))}special.textContent=boss.total?(({'Web Guardian':'🕷','Iron Beetle':'🪲','Frost Sentinel':'❄','Rainbow King':'🌈'}[boss.name]||'✦')+' '+boss.name+' · Phase '+(boss.phase||3)+' · HP '+boss.remaining+'/'+boss.total):G.special.ice.some((v,i)=>v&&iceLocked(G.eaten,G.special.ice,G.n,i))?'❄️ Clear below ice to thaw':G.special.gem>=0?'💎 Gem · '+(G.eaten[G.special.gem]?'found':'find and clear')+(dailyMode?' · Daily':''):'';special.hidden=!special.textContent;const bossHud=$('#boss-hp');bossHud.hidden=!boss.total;bossHud.firstElementChild.style.width=(boss.total?boss.remaining/boss.total*100:0)+'%';const board=$('#board');if(bombAim&&!G.powerReady('bomb'))bombAim=false;board.dataset.bombAim=bombAim?'1':'0';if(boss.total&&lastBossHP>=0&&boss.remaining<lastBossHP){if(boss.remaining===0||boss.phase!==lastBossPhase){bossHud.classList.remove('boss-pulse');void bossHud.offsetWidth;bossHud.classList.add('boss-pulse');window.AntSFX?.play(boss.remaining===0?'reward':'impact');toast(boss.remaining===0?'BOSS DEFEATED!':'SHIELD BROKEN · '+boss.name)}}lastBossHP=boss.total?boss.remaining:-1;lastBossPhase=boss.phase;const plan=$('#plan-toggle');plan.hidden=LV<6;plan.textContent=planning?'Cancel plan':'Plan move';plan.setAttribute('aria-pressed',String(planning));const planNote=$('#plan-note');planNote.hidden=!planning&&!bombAim;planNote.textContent=bombAim?'Choose a target · Bombs destroy skill blocks!':inspectText||'Inspect a top box, then tap again to dispatch';const msg=LV<3?'Tap a box to load a slot · Eat the grid from the bottom up':(ch.id==='rainbow'?'🌈 Rainbow Rush':ch.id==='precision'?'🧠 Precision Puzzle':ch.id==='sprint'?'⚡ Ant Sprint':'🐜 Classic')+' · Smart '+Math.round(m.rate*100)+'% · Streak '+G.smartChain;tip.hidden=false;if(tip.textContent!==msg)tip.textContent=msg;tip.dataset.challenge=ch.id;
  if(window.AntWorkshop)window.AntWorkshop.render(G);
  $('#spd').textContent=(spIdx===1&&!x3ok)?'×2 ▸ ×3':'×'+SPEEDS[spIdx];
  $('#rsh').classList.toggle('off',LV<10);
@@ -190,7 +196,7 @@ function renderUI(){
 
 /* ---------- Levels and flow ---------- */
 function newLevel(lv,daily=null){
- planning=false;bombAim=false;inspectCol=-1;inspectText='';inspectGame=null;lastBossHP=-1;lastBossPhase=-1;
+ planning=false;bombAim=false;inspectCol=-1;inspectText='';inspectGame=null;lastBossHP=-1;lastBossPhase=-1;skillGoneVisual.clear();
  if(daily&&!dailyMode)normalLevel=LV;dailyMode=daily;if(!daily)normalLevel=null;
  LV=Math.max(1,Math.min((window.AntCanvasProfile&&window.AntCanvasProfile.MAX_LEVEL)||999999,Math.floor(Number(lv)||1)));
  window.ANT_CANVAS_CURRENT_LEVEL=dailyMode?null:LV;

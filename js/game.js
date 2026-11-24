@@ -35,13 +35,13 @@ function specialCells(lv,n){
  }}
  const gem=lv>=5?Math.floor(n/3)*n+Math.floor(n/2):-1,markers=[];for(let i=0;i<n*n;i++)if(ice[i]||boss[i]||i===gem)markers.push(i);const skillAt=Object.create(null),secret=new Set();
  if(lv>=4){
-   const count=lv<10?4:lv<40?6:8,random=rng(mix32((lv*1777+canvasPlayerSeed()+501)>>>0)),types=ice.some(v=>v)?['bomb','wild','frost','bomb','wild','frost','bomb','wild']:['bomb','wild','bomb','wild','bomb','wild','bomb','wild'];
+   const count=Math.min(40,Math.max(12,Math.round(n*n*.015))),random=rng(mix32((lv*1777+canvasPlayerSeed()+501)>>>0)),types=ice.some(v=>v)?['bomb','wild','frost']:['bomb','wild'];
    for(let k=0;k<count;k++){
      const y=k===0?n-1:Math.max(0,n-1-Math.floor(n*(k-.35)/count)),pool=[];
      for(let j=0;j<n*n;j++)if(!ice[j]&&!boss[j]&&j!==gem&&!skillAt[j]&&Math.abs(Math.floor(j/n)-y)<=1)pool.push(j);
      if(!pool.length)continue;const bottom=k===0?pool.filter(j=>Math.floor(j/n)===n-1):pool;
      const a=bottom.length?bottom:pool,i=a[Math.floor(random()*a.length)];
-     skillAt[i]=types[k];if(k>=2&&k%2===0)secret.add(i);markers.push(i);
+     skillAt[i]=types[k%types.length];markers.push(i);
    }
  }
  return {ice,boss,guards,layers,kind,gem,markers,skillAt,secret};
@@ -128,7 +128,7 @@ class Game {
     this.difficulty=prm;this.hintsUsed=0;this.reshufflesUsed=0;this.revivesUsed=0;
     const N = this.n * this.n;
     this.total = N; this.left = N;
-    this.eaten = new Uint8Array(N);this.special=specialCells(lv,this.n);this.skills={bomb:0,wild:0,frost:0};this.skillOrder=[];this.skillDelivered=new Uint8Array(N);this.skillsUsed=0;this.daily=o.daily||null;
+    this.eaten = new Uint8Array(N);this.special=specialCells(lv,this.n);this.skills={bomb:0,wild:0,frost:0};this.skillOrder=[];this.skillDelivered=new Uint8Array(N);this.skillDestroyed=new Uint8Array(N);this.skillsUsed=0;this.daily=o.daily||null;
     this.cap = o.cap || prm.cap; this.slots = new Array(this.cap).fill(null);
     this.cols = [[], [], [], []]; this.ants = []; this.ev = [];
     this.state = 'play'; this.speed = o.speed || 1; this._R = null; this.stalled = false;
@@ -149,7 +149,7 @@ class Game {
   rebuild() {
     for (const s of this.slots) {
       if (!s) continue;
-      for (const job of s.q) { this.spawnVisual(job); this.ev.push({ t: 'eat', i: job.idx, c: job.c }); }
+      for (const job of s.q) { this.spawnVisual(job); if(!this.special.skillAt[job.idx])this.ev.push({ t: 'eat', i: job.idx, c: job.c }); }
     }
     const seq = makeSeqFrom(this.role, this.n, this.eaten, this.rand, this.cmin, this.cmax,this.special);
     this.cols = [[], [], [], []];
@@ -192,7 +192,7 @@ class Game {
     return {own,total,waiting:b.n-own,opened,free:slots.filter(s=>!s||s.n===0).length};
   }
   deliverSkill(i){
-    const mode=this.special.skillAt[i];if(!mode||!this.eaten[i]||this.skillDelivered[i])return false;
+    const mode=this.special.skillAt[i];if(!mode||!this.eaten[i]||this.skillDelivered[i]||this.skillDestroyed[i])return false;
     this.skillDelivered[i]=1;if(!this.skillOrder.includes(mode))this.skillOrder.push(mode);this.skills[mode]++;this.ev.push({t:'skillLoot',mode,count:this.skills[mode]});return true;
   }
   powerReady(mode){return ['bomb','wild','frost'].includes(mode)&&this.skills[mode]>0&&this.state==='play'&&this.left>0&&(mode!=='frost'||this.special.markers.some(i=>!this.eaten[i]&&iceLocked(this.eaten,this.special.ice,this.n,i)))}
@@ -212,8 +212,9 @@ class Game {
       for(let j=0;j<this.total;j++){const x=j%n,y=Math.floor(j/n);if(Math.abs(x-fx)+Math.abs(y-fy)<=1&&!this.eaten[j]&&!cellLocked(this.eaten,this.special,n,j)&&expoAt(dist,n,x,y)){i=j;break}}
     }if(i<0)break;const path=this.route(i);this.eatCell(i);hits.push({idx:i,c:this.role[i],path})}
     if(!hits.length)return false;this.skills[mode]--;this.skillsUsed++;this.rebuild();
-    for(const hit of hits){this.spawnVisual(hit,this.special.skillAt[hit.idx]?'normal':'blast');this.ev.push({t:'shot',i:hit.idx,c:hit.c})}
-    this.ev.push({t:'power',mode,count:hits.length});return true;
+    let lost=0;
+    for(const hit of hits){if(mode==='bomb'){if(this.special.skillAt[hit.idx]){this.skillDestroyed[hit.idx]=1;lost++;}this.spawnVisual(hit,'blast');this.ev.push({t:'shot',i:hit.idx,c:hit.c});}else{this.spawnVisual(hit);if(!this.special.skillAt[hit.idx])this.ev.push({t:'eat',i:hit.idx,c:hit.c});}}
+    this.ev.push({t:'power',mode,count:hits.length,lost});return true;
   }
   // Logic: boxes in slots eat whatever they can, in slot order, until nothing more can be eaten. Depends only on cells, never on time
   cascade() {
@@ -295,7 +296,7 @@ class Game {
             this.ev.push({t:'shot',i:job.idx,c:job.c});
           }else{
             this.spawnVisual(job);
-            this.ev.push({t:'eat',i:job.idx,c:job.c});
+            if(!this.special.skillAt[job.idx])this.ev.push({t:'eat',i:job.idx,c:job.c});
             if(this.blastEnabled){
               this.blastCharge++;
               if(this.blastCharge>=this.challenge.charge){
@@ -326,7 +327,7 @@ class Game {
         if (L <= d) {
           a.x = T[0]; a.y = T[1]; d -= L; a.k++;
           if (a.k >= a.pts.length) {
-            if (a.ph === 0) { a.ph = 1; a.pts.reverse(); a.k = 1; }
+            if (a.ph === 0) { if(this.special.skillAt[a.idx])this.ev.push({t:'eat',i:a.idx,c:a.c});a.ph = 1; a.pts.reverse(); a.k = 1; }
             else a.done = true;
           }
         } else {
@@ -367,14 +368,14 @@ class Game {
   mastery(){const rate=this.dispatches?this.directDispatches/this.dispatches:0;const tactical=!!this.special.kind||this.challenge.id==='precision',efficiency=this.dispatches?this.cleanDispatches/this.dispatches:0;const clean=this.hintsUsed===0&&this.reshufflesUsed===0&&this.revivesUsed===0&&this.cap===4;return {rate,efficiency:this.dispatches?this.cleanDispatches/this.dispatches:0,peakWaiting:this.peakWaiting,chain:this.bestSmartChain,dispatches:this.dispatches,stars:this.state==='win'?(clean&&rate>=.85&&(!tactical||efficiency>=.85)?3:rate>=.65?2:1):0,clean};}
   snapshot() {
     return {
-      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,cleanDispatches:this.cleanDispatches,peakWaiting:this.peakWaiting,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,skills:{...this.skills},skillOrder:this.skillOrder.slice(),skillDelivered:this.skillDelivered.slice(),skillsUsed:this.skillsUsed,ice:this.special.ice.slice(),
+      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,cleanDispatches:this.cleanDispatches,peakWaiting:this.peakWaiting,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,skills:{...this.skills},skillOrder:this.skillOrder.slice(),skillDelivered:this.skillDelivered.slice(),skillDestroyed:this.skillDestroyed.slice(),skillsUsed:this.skillsUsed,ice:this.special.ice.slice(),
       cols: this.cols.map(col => col.map(b => ({ ...b }))),
       slots: this.slots.map(s => s ? { ...s, q: [] } : null)
     };
   }
   restore(sn) {
     this.eaten = sn.eaten; this.left = sn.left; this.cols = sn.cols; this.slots = sn.slots;
-    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.cleanDispatches=sn.cleanDispatches||0;this.peakWaiting=sn.peakWaiting||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;this.skills={...sn.skills};this.skillOrder=(sn.skillOrder||[]).slice();this.skillDelivered=sn.skillDelivered.slice();this.skillsUsed=sn.skillsUsed||0;this.special.ice=sn.ice.slice();
+    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.cleanDispatches=sn.cleanDispatches||0;this.peakWaiting=sn.peakWaiting||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;this.skills={...sn.skills};this.skillOrder=(sn.skillOrder||[]).slice();this.skillDelivered=sn.skillDelivered.slice();this.skillDestroyed=sn.skillDestroyed.slice();this.skillsUsed=sn.skillsUsed||0;this.special.ice=sn.ice.slice();
     this._R = null; this.ants = []; this.ev = []; this.stalled = false; this.state = 'play';
   }
 }
