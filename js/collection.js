@@ -17,6 +17,7 @@ function makeArt(lv,unit){
 }
 function updateStats(){
   $('col-total').textContent=P.count().toLocaleString();
+  $('col-gems').textContent=(P.gemCount?.()||0).toLocaleString();$('col-daily').textContent=(P.dailyBest?.(new Date().toISOString().slice(0,10))||0)+'/3';
   $('col-series').textContent=P.displayCode();
   const rare=P.rarityTotal();
   $('col-rare').textContent=rare===null?'—':rare.toLocaleString();
@@ -36,7 +37,7 @@ function appendItem(lv){
   }
   const meta=document.createElement('div');meta.className='meta';
   const name=document.createElement('b');name.textContent='Level '+lv+(owned&&lv%5===0?' · 🎁 Secret':'');
-  const sub=document.createElement('span');sub.textContent=owned?'Collected masterpiece':'🔒 Mystery painting';
+  const sub=document.createElement('span');sub.textContent=owned?('★'.repeat(P.mastery?.(lv)||0)+(P.hasGem?.(lv)?' 💎 ':' ')+'Collected masterpiece').trim():'🔒 Mystery painting';
   meta.append(name,sub);b.append(preview,meta);
   if(owned)b.addEventListener('click',()=>openDetail(lv));
   else b.disabled=true;

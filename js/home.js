@@ -30,12 +30,12 @@
       "</div>",
       "<button type='button' class='ah-start' data-home-action='play'><span>▶</span><span id='ah-play-copy'>PLAY NOW</span><span class='ah-arrow'>→</span></button>",
       "<div class='ah-secondary-row'>",
-        "<button type='button' class='ah-secondary' data-home-action='play'>🎮 Play</button>",
+        "<button type='button' class='ah-secondary' data-home-action='daily'>📅 Daily</button>",
         "<button type='button' class='ah-secondary' data-home-action='gallery'>🖼 Gallery</button>",
         "<button type='button' class='ah-secondary' data-home-action='village'>🌿 World</button>",
         "<button type='button' class='ah-secondary' data-home-action='how'>❔ Help</button>",
       "</div>",
-      "<p class='ah-footer' id='ah-status' aria-live='polite'>PUZZLE · COLONY · WORLD &nbsp; | &nbsp; V5.0.5 RC</p>",
+      "<p class='ah-footer' id='ah-status' aria-live='polite'>PUZZLE · COLONY · WORLD &nbsp; | &nbsp; V5.1.0 RC</p>",
     "</div>",
     "<div class='ah-how' id='ah-how' hidden role='dialog' aria-label='How to play ANT CANVAS'>",
       "<div class='ah-how-card'>",
@@ -98,7 +98,7 @@
     if(window.AntWorkshop)window.AntWorkshop.render(window.ANT_CANVAS_GAME||null);
   }
   function show() {
-    navigating=false;clearTimeout(navTimer);document.getElementById('ah-status').textContent='PUZZLE · COLONY · WORLD | V5.0.5 RC';
+    navigating=false;clearTimeout(navTimer);document.getElementById('ah-status').textContent='PUZZLE · COLONY · WORLD | V5.1.0 RC';
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     updateHome();
     root.hidden = false;
@@ -138,7 +138,8 @@
     const control = e.target.closest('[data-home-action]');
     if (!control) return;
     e.stopPropagation();const action = control.getAttribute('data-home-action');
-    if (action === 'play') start();
+    if (action === 'play') {window.exitDailyChallenge?.();start();}
+    else if(action==='daily'){window.startDailyChallenge?.();start();}
     else if (action === 'how') { document.getElementById('ah-how').hidden = false; }
     else if (action === 'guide') { navigate('guide.html','guide'); }
     else if (action === 'back') { document.getElementById('ah-how').hidden = true; }
