@@ -36,3 +36,9 @@
 
 ## Tests
 `npm install && npm run check`. Uses Node >= 20. Verify PostgreSQL migration and webhook with an isolated test bot before production.
+
+## V3 operator dashboard
+- UI: https://pitilessrome-spec.github.io/ant-painting/admin.html
+- Set ANT_ADMIN_KEY to a cryptographically random 32+ character secret in Vercel production settings. Do not commit it or paste it into chat. Set DATABASE_URL and TELEGRAM_BOT_TOKEN in Vercel; apply sql/001_init.sql once to the database. Restrict admin key distribution.
+- GET /api/admin/stats requires Bearer key. No credentials in URL or local storage. Aggregate SQL counts verified players, new/active players, completed levels, recent level starts, and yesterday-active return rate in Singapore time. Last five minutes is NOT concurrent online. No raw player identity is returned. AdsGram reporting has not been integrated; revenue is null, not zero.
+- Missing keys or database: report unavailable, not fake zero. Rotate admin key if exposed. For a public production rollout add IP-based throttling, owner identity auth, audit trails and monitoring.

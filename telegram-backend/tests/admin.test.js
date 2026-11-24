@@ -1,0 +1,2 @@
+const test=require('node:test'),assert=require('node:assert/strict');const {adminAuthorized}=require('../api/index.js');
+test('admin authorization fails closed',()=>{const k='a'.repeat(40);assert.equal(adminAuthorized('Bearer '+k,k),true);for(const h of [null,'',k,'Bearer '+k+'x','Bearer '+'b'.repeat(40)])assert.equal(adminAuthorized(h,k),false);assert.equal(adminAuthorized('Bearer short','short'),false);assert.equal(adminAuthorized('Bearer '+k,undefined),false)});

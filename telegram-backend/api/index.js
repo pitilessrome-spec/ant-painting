@@ -72,6 +72,31 @@ async function handleWebhook(req,res) {
   }
   return json(res,200,{ok:true});
 }
+// Operator-only aggregate metrics, no private player identities.
+function adminAuthorized(header,secret){
+ if(typeof secret!=='string'||secret.length<32||typeof header!=='string'||!header.startsWith('Bearer '))return false;
+ const supplied=Buffer.from(header.slice(7),'utf8'),expected=Buffer.from(secret,'utf8');
+ return supplied.length===expected.length&&timingSafeEqual(supplied,expected);
+}
+async function adminStats(req,res){
+ const key=process.env.ANT_ADMIN_KEY;
+ if(!key||key.length<32)return json(res,503,{error:'Administrator access is not configured'});
+ if(!adminAuthorized(req.headers.authorization,key))return json(res,401,{error:'Invalid administrator credentials'});
+ if(!process.env.DATABASE_URL)return json(res,503,{error:'Database is not configured'});
+ const {rows}=await connection().query(`WITH bounds AS (
+ SELECT date_trunc('day',now() AT TIME ZONE 'Asia/Singapore') AT TIME ZONE 'Asia/Singapore' AS d
+ ), y AS (SELECT DISTINCT telegram_id FROM level_sessions,bounds WHERE started_at>=d-interval '1 day' AND started_at<d),
+ t AS (SELECT DISTINCT telegram_id FROM level_sessions,bounds WHERE started_at>=d)
+ SELECT (SELECT count(*)::int FROM players) AS players,
+ (SELECT count(*)::int FROM players,bounds WHERE created_at>=d) AS new_today,
+ (SELECT count(*)::int FROM t) AS active_today,
+ (SELECT count(DISTINCT telegram_id)::int FROM level_sessions WHERE started_at>=now()-interval '5 minutes') AS started_last_5m,
+ (SELECT count(*)::int FROM level_sessions,bounds WHERE completed_at>=d) AS completed_today,
+ (SELECT COALESCE(round(avg(best_level),2),0)::float FROM players) AS average_best_level,
+ (SELECT count(*)::int FROM y) AS yesterday_active,
+ (SELECT count(*)::int FROM y JOIN t USING(telegram_id)) AS returned_today`);
+ const m=rows[0];return json(res,200,{metrics:m,timezone:'Asia/Singapore',asOf:new Date().toISOString(),retention:m.yesterday_active?m.returned_today/m.yesterday_active:null,adImpressions:null,adRevenue:null});
+}
 async function handler(req,res) {
   res.setHeader('Access-Control-Allow-Origin',CORS_ORIGIN);
   res.setHeader('Vary','Origin');
@@ -82,8 +107,9 @@ async function handler(req,res) {
   const origin=req.headers.origin;
   if (origin && origin!==CORS_ORIGIN) return json(res,403,{error:'Origin not allowed'});
   const path=(req.url||'').split('?')[0].replace(/^\/api\/?/,'').replace(/\/$/,'');
-  if (path==='health' && req.method==='GET') return json(res,200,{status:'online',botConfigured:!!process.env.TELEGRAM_BOT_TOKEN,storageConfigured:!!process.env.DATABASE_URL});
+  if (path==='health' && req.method==='GET') return json(res,200,{status:'online',botConfigured:!!process.env.TELEGRAM_BOT_TOKEN,storageConfigured:!!process.env.DATABASE_URL,adminConfigured:typeof process.env.ANT_ADMIN_KEY==='string'&&process.env.ANT_ADMIN_KEY.length>=32});
   try {
+    if (path==='admin/stats' && req.method==='GET') return await adminStats(req,res);
     if (path==='webhook' && req.method==='POST') return await handleWebhook(req,res);
     if (!['profile','leaderboard','start-level','progress'].includes(path)) return json(res,404,{error:'Not found'});
     const header=req.headers.authorization||'';
@@ -140,3 +166,5 @@ async function handler(req,res) {
 }
 module.exports=handler;
 module.exports.verifyInitData=verifyInitData;
+
+module.exports.adminAuthorized=adminAuthorized;
