@@ -4,7 +4,7 @@
 const V=window.AntVillage,S=window.AntVillageScene;
 if(!V||!S)return;
 const $=id=>document.getElementById(id);
-let selectedPlot=null,selectedItem=null;
+let selectedPlot=null,selectedItem=null,removePending=false;
 function isNight(date=new Date()){const h=date.getHours();return h<6||h>=18;}
 function syncDayNight(){const night=isNight();S.setNight(night);$('day-night').textContent=night?'🌙 Night · Auto':'☀️ Day · Auto';$('day-night').title='Local time · Day 06:00–18:00';}
 function revealBuild(){const el=$('build-detail');if(el.getBoundingClientRect().top<0||el.getBoundingClientRect().bottom>window.innerHeight)el.scrollIntoView({block:'center',behavior:'smooth'});}
@@ -30,6 +30,9 @@ function render(){
  $('chests').textContent=V.unopenedChests().toLocaleString();
  $('placed').textContent=V.count()+' / 8';
  S.render(st,selectedPlot);
+ const existing=selectedPlot===null?null:st.placements[selectedPlot];
+ const refund=existing?V.refundCost(selectedPlot):null;
+ const availableAfterRefund=refund?{wood:st.wood+refund.wood,petals:st.petals+refund.petals}:st;
  const shop=$('shop');shop.replaceChildren();
  for(const [id,item]of Object.entries(catalog)){
   const btn=document.createElement('button');btn.type='button';
@@ -38,38 +41,47 @@ function render(){
   const emoji=document.createElement('span');emoji.className='item-emoji';emoji.textContent=item.symbol;
   const title=document.createElement('span');title.className='item-name';title.textContent=item.name;
   const cost=document.createElement('span');cost.className='item-cost';cost.textContent='🪵 '+item.wood+' · 🌸 '+item.petals;
-  const short=missing(st,item),status=document.createElement('span');status.className='item-status'+(short?' shortage':'');
-  status.textContent=short?'Need '+short:'✓ Affordable';
+  const short=missing(availableAfterRefund,item),status=document.createElement('span');status.className='item-status'+(short?' shortage':'');
+  status.textContent=existing===id?'Current building':short?'Need '+short:refund?'✓ Affordable after refund':'✓ Affordable';
   btn.append(emoji,title,cost,status);
   btn.addEventListener('click',()=>{
-   selectedItem=id;render();
+   selectedItem=id;removePending=false;render();
    if(selectedPlot===null)announce('Choose an empty plot on the map first.');
-   else if(V.snapshot().placements[selectedPlot])announce('This plot already has a building. Choose an empty plot or upgrade.');
+   else if(existing===id)announce('Current building selected. You can upgrade or remove it.');
    else if(short)announce('Not enough materials: '+short+'.');
-   else announce(item.name+' selected. Tap Build to confirm.');
+   else announce(item.name+' selected. Tap '+(existing?'Replace':'Build')+' to confirm.');
    revealBuild();
   });shop.appendChild(btn);
  }
  const item=selectedItem?catalog[selectedItem]:null;
- const existing=selectedPlot===null?null:st.placements[selectedPlot];
  const cost=existing?V.upgradeCost(selectedPlot):null;
- const build=$('build'),upgrade=$('upgrade');
- const buildShort=item?missing(st,item):'',upgradeShort=cost?missing(st,cost):'';
- build.disabled=selectedPlot===null||!item||!!existing||!!buildShort;
+ const build=$('build'),upgrade=$('upgrade'),remove=$('remove'),cancel=$('remove-cancel');
+ const replacing=!!(existing&&item&&selectedItem!==existing);
+ const buildShort=item?missing(availableAfterRefund,item):'',upgradeShort=cost?missing(st,cost):'';
+ build.disabled=selectedPlot===null||!item||!!buildShort||!!(existing&&!replacing)||removePending;
  upgrade.disabled=!existing||!cost||!!upgradeShort;
  if(!existing&&selectedPlot!==null&&item){
   $('build-detail').innerHTML='<b>Plot '+(selectedPlot+1)+' · '+item.name+'</b>🪵 '+item.wood+' · 🌸 '+item.petals+' · '+(buildShort?'Need '+buildShort:'✓ Materials ready — tap Build to confirm.');
   build.textContent=buildShort?'Not enough materials':'Build '+item.name;
+ }else if(existing&&removePending){
+  $('build-detail').innerHTML='<b>Remove '+catalog[existing].name+'?</b>Return 🪵 '+refund.wood+' · 🌸 '+refund.petals+'. The plot becomes empty. Confirm or cancel.';
+ }else if(replacing){
+  $('build-detail').innerHTML='<b>Replace '+catalog[existing].name+' → '+item.name+'</b>Refund 🪵 '+refund.wood+' · 🌸 '+refund.petals+'; new Lv.1 costs 🪵 '+item.wood+' · 🌸 '+item.petals+'. '+(buildShort?'Need '+buildShort:'✓ Ready — tap Replace to confirm.');
+  build.textContent=buildShort?'Not enough materials':'Replace with '+item.name;
  }else if(existing){
   const lv=V.getLevel(selectedPlot);
   $('build-detail').innerHTML='<b>'+catalog[existing].name+' · Level '+lv+' / 3</b>'+catalog[existing].description+(cost?' · Upgrade: '+cost.wood+' wood + '+cost.petals+' petals. '+(upgradeShort?'Need '+upgradeShort:'✓ Ready to upgrade'):' · Fully upgraded!');
-  build.textContent='Plot already built';
+  build.textContent='Choose replacement below';
+  $('build-detail').innerHTML+='<br>Choose another building below to replace it, or remove to refund all materials.';
  }else{
   $('build-detail').innerHTML='<b>Choose an empty plot</b>Select a glowing space in the village and choose a building from the workshop.';
   build.textContent='Build decoration';
  }
- upgrade.hidden=!existing;
- build.hidden=!!existing;
+ upgrade.hidden=!existing||replacing||removePending;
+ build.hidden=!!existing&&!replacing||removePending;
+ remove.hidden=!existing;
+ remove.textContent=removePending?'Confirm removal':'Remove';
+ cancel.hidden=!removePending;
  upgrade.textContent=cost?(upgradeShort?'Need materials':'Upgrade to Lv.'+(V.getLevel(selectedPlot)+1)+' ✨'):'Upgrade maxed';
  const available=V.unopenedChests(),open=$('chest-open');
  $('chest-head').textContent=available?available+' unopened chest'+(available!==1?'s':''):'No unopened chests';
@@ -93,20 +105,31 @@ function render(){
  }
 }
 S.onSelect(i=>{
- selectedPlot=i;
+ selectedPlot=i;selectedItem=null;removePending=false;
  const st=V.snapshot();
- announce(st.placements[i]?'Selected '+V.catalog[st.placements[i]].name+'. Upgrade it to add details.':'Plot '+(i+1)+' selected. '+(selectedItem?'Confirm your selected building in the workshop.':'Choose a building in the workshop.'));
+ announce(st.placements[i]?'Selected '+V.catalog[st.placements[i]].name+'. Upgrade, remove, or choose a replacement.':'Plot '+(i+1)+' selected. '+(selectedItem?'Confirm your selected building in the workshop.':'Choose a building in the workshop.'));
  render();
  revealBuild();
 });
 $('build').addEventListener('click',()=>{
  if(selectedPlot===null||!selectedItem)return;
- const result=V.place(selectedPlot,selectedItem);
+ const existing=V.snapshot().placements[selectedPlot];
+ const result=existing?V.replace(selectedPlot,selectedItem,existing):V.place(selectedPlot,selectedItem);
  if(!result.ok){announce('⚠️ '+result.error);return}
  announce('✨ '+V.catalog[selectedItem].name+' has joined your village!');
- showCollectible('New building!',V.catalog[selectedItem].symbol,'Your ants built '+V.catalog[selectedItem].name+'. Keep completing puzzles to expand your village.');
+ showCollectible(existing?'Building replaced!':'New building!',V.catalog[selectedItem].symbol,'Your ants built '+V.catalog[selectedItem].name+'. '+(existing?'Old materials refunded, new building starts at level 1.':'Keep completing puzzles to expand your village.'));
  selectedItem=null;render();
 });
+$('remove').addEventListener('click',()=>{
+ if(selectedPlot===null)return;
+ const existing=V.snapshot().placements[selectedPlot];if(!existing)return;
+ if(!removePending){removePending=true;selectedItem=null;render();return;}
+ const result=V.remove(selectedPlot,existing);
+ removePending=false;selectedItem=null;
+ announce(result.ok?'Building removed · returned '+result.refund.wood+' wood and '+result.refund.petals+' petals.':'⚠️ '+result.error);
+ render();
+});
+$('remove-cancel').addEventListener('click',()=>{removePending=false;render();});
 $('upgrade').addEventListener('click',()=>{
  if(selectedPlot===null)return;
  const res=V.upgrade(selectedPlot);

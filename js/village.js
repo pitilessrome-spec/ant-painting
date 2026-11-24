@@ -123,6 +123,32 @@ function place(slot,item){
  state.placements[index]=item;state.upgrades[index]=1;refreshCombos();write();
  return {ok:true,item};
 }
+// Refund the original build and each paid upgrade; these are cosmetic, non-transferable resources.
+function refundCost(slot){
+ const item=state.placements[slot],it=catalog[item];if(!it)return null;
+ let wood=it.wood,petals=it.petals;
+ for(let lv=1;lv<getLevel(slot);lv++){wood+=it.wood*lv+2;petals+=it.petals*lv+1}
+ return {wood,petals};
+}
+function validBuiltPlot(index){return Number.isInteger(index)&&[0,1,2,3,5,6,7,8].includes(index)&&!!catalog[state.placements[index]]}
+function redesign(slot,newItem,expectedItem){
+ const index=Number(slot);
+ if(!validBuiltPlot(index))return {ok:false,error:'Choose an existing building'};
+ const previous=state.placements[index];
+ if(previous!==expectedItem)return {ok:false,error:'Building changed; select it again'};
+ if(newItem!==null&&(!Object.hasOwn(catalog,newItem)||previous===newItem))return {ok:false,error:'Choose a different building'};
+ const refund=refundCost(index),cost=newItem===null?{wood:0,petals:0}:catalog[newItem];
+ if(state.wood+refund.wood<cost.wood||state.petals+refund.petals<cost.petals)return {ok:false,error:'Not enough materials after refund; original building kept'};
+ const before=snapshot();
+ state.wood+=refund.wood-cost.wood;state.petals+=refund.petals-cost.petals;
+ delete state.placements[index];delete state.upgrades[index];
+ if(newItem!==null){state.placements[index]=newItem;state.upgrades[index]=1}
+ refreshCombos();
+ if(!write()){state=before;return {ok:false,error:'Could not save your village. No materials changed.'}}
+ return {ok:true,previous,item:newItem,refund,cost};
+}
+function remove(slot,expectedItem){return redesign(slot,null,expectedItem)}
+function replace(slot,item,expectedItem){if(typeof item!=='string')return {ok:false,error:'Choose a replacement'};return redesign(slot,item,expectedItem)}
 function count(){return Object.keys(state.placements).length}
-global.AntVillage=Object.freeze({award,place,upgrade,upgradeCost,getLevel,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
+global.AntVillage=Object.freeze({award,place,upgrade,upgradeCost,getLevel,refundCost,remove,replace,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
 })(typeof window==='undefined'?globalThis:window);

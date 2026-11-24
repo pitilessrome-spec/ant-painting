@@ -67,3 +67,5 @@ h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(29px,4.7vw,43px);
 
 /* Clear build confirmation and affordability feedback. */
 .shop-grid{margin-top:12px}.item .item-status{display:block;margin-top:5px;font-size:10px;font-weight:800;color:#42703a;line-height:1.35}.item .item-status.shortage{color:#9b5939}.build-detail{font-size:13px;scroll-margin-top:12px}.build-detail b{font-size:14px}.btn-row .btn{min-height:44px;font-size:13px}.btn-row .btn[hidden]{display:none}#village-message{font-size:12px;min-height:0}.item{min-height:100px;cursor:pointer}
+
+.btn-row{flex-wrap:wrap}.btn-row .btn{flex:1 1 115px}.btn-row .btn.remove{background:#f4ded0;color:#8b4e37;box-shadow:0 3px #c79b83}
