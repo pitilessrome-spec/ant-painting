@@ -31,3 +31,11 @@ jobs:
       - run: npm install --no-package-lock
       - run: node --test tests/*.test.js
       - run: node --check ../js/raid.js && node --check ../js/raid-announcements.js && node --check ../js/home.js
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install chromium --with-deps
+      - run: node tests/raid-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: raid-mobile-browser-screenshots
+          path: screenshots/*.png

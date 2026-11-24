@@ -28,3 +28,5 @@ CREATE TABLE IF NOT EXISTS raid_inventory (
  PRIMARY KEY(season,boss,tier,player_id,item_code)
 );
 CREATE INDEX IF NOT EXISTS raid_inventory_player_idx ON raid_inventory(player_id,season);
+
+CREATE INDEX IF NOT EXISTS raid_rooms_members_idx ON raid_rooms USING gin ((state->'players'));
