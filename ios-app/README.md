@@ -15,3 +15,6 @@ The publisher's iOS App ID and rewarded unit are configured in scripts/config.mj
 
 ## Scope / release gates
 Local guest play, original economy, native share/haptics, native reward bridge, settings and bundled assets. Apple login, Game Center, cloud sync, production icon/screenshots, support/privacy disclosures and App Store submission are separate next steps. Native build, real-device performance, offline play and actual test ad playback must pass before TestFlight. The existing Telegram account and AdsGram 61573 are not reused on native iOS.
+
+## Q-AdRouter V1 candidate
+StoreKit storefront country code (not physical location): CHN routes exclusively to Baidu, other known storefronts to AdMob, unknown disables ads. No GPS or automatic cross-region fallback. Trusted coarse network country may be added after privacy review. Baidu test IDs are configured; the native Baidu SDK plugin is not yet linked, so the China route is unavailable until it is built and verified. See native/BAIDU-INTEGRATION.md. Production requires approved non-test Baidu IDs.

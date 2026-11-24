@@ -1,9 +1,14 @@
-import {Capacitor} from '@capacitor/core';
+import {Capacitor,registerPlugin} from '@capacitor/core';
 import {AdMob,RewardAdPluginEvents,AdmobConsentStatus} from '@capacitor-community/admob';
 import {Haptics,ImpactStyle} from '@capacitor/haptics';
 import {Share} from '@capacitor/share';
 import {createRewardAd} from './reward-ad.mjs';
+import {createAdRouter,createBaiduAdapter} from './ad-router.mjs';
 import config from './ad-config.generated.json';
 const isIOS=Capacitor.isNativePlatform()&&Capacitor.getPlatform()==='ios';
+const region=registerPlugin('AntRegion'),baiduPlugin=registerPlugin('AntBaiduAds');
 const ads=createRewardAd({sdk:AdMob,events:RewardAdPluginEvents,consentStatus:AdmobConsentStatus,adId:config.rewardedId,test:config.test});
-window.AntNative=Object.freeze({isIOS,adTest:config.test,showReward:()=>isIOS?ads.show():Promise.resolve(false),privacy:()=>isIOS?ads.privacy():Promise.resolve(false),haptic:()=>{if(isIOS)Haptics.impact({style:ImpactStyle.Light}).catch(()=>{})},share:()=>isIOS?Share.share({title:'ANT CANVAS',text:'Little ants. Big art. A world to grow.'}).catch(()=>{}):Promise.resolve()});
+const getRegion=async()=>{if(!isIOS||!Capacitor.isPluginAvailable('AntRegion'))return {};let timer;try{return await Promise.race([region.getRegion(),new Promise(resolve=>{timer=setTimeout(()=>resolve({}),2500)})])}finally{clearTimeout(timer)}};
+const baidu=createBaiduAdapter({plugin:baiduPlugin,available:()=>isIOS&&Capacitor.isPluginAvailable('AntBaiduAds'),config:config.baidu,consent:async()=>localStorage.getItem('ant_baidu_ad_consent')==='yes'});
+const router=createAdRouter({region:getRegion,admob:ads,baidu});
+window.AntNative=Object.freeze({isIOS,adTest:config.test,adStatus:()=>router.status(),showReward:()=>isIOS?router.show():Promise.resolve(false),privacy:()=>isIOS?router.privacy():Promise.resolve(false),setBaiduConsent:yes=>localStorage.setItem('ant_baidu_ad_consent',yes?'yes':'no'),baiduConsent:()=>localStorage.getItem('ant_baidu_ad_consent')==='yes',haptic:()=>{if(isIOS)Haptics.impact({style:ImpactStyle.Light}).catch(()=>{})},share:()=>isIOS?Share.share({title:'ANT CANVAS',text:'Little ants. Big art. A world to grow.'}).catch(()=>{}):Promise.resolve()});
