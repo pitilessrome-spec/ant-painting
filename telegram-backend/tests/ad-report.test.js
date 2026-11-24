@@ -1,0 +1,3 @@
+const test=require('node:test'),assert=require('node:assert/strict'),{parse}=require('../lib/ad-report.js');const a='2026-11-17',b='2026-11-24';
+test('exact platform row and zero values',()=>{assert.equal(parse('Name,Impressions,Earned\nOther,300,5\nANT CANVAS,23,0.09',a,b).revenue,'0.09');assert.equal(parse('Name;Impressions;Earned\n"TMA ANT CANVAS";0;0.00',a,b).impressions,0)});
+test('reject missing, ambiguous, malformed and invalid date reports',()=>{for(const csv of ['Name,Impressions,Earned\nOther,1,1','Name,Impressions,Earned\nANT CANVAS,1,1\nANT CANVAS,1,1','Name,Impressions,Earned\nANT CANVAS,1,-','Name,Impressions,Earned\nANT CANVAS,-1,1'])assert.throws(()=>parse(csv,a,b));assert.throws(()=>parse('Name,Impressions,Earned\nANT CANVAS,1,1','2026-02-30',b))});

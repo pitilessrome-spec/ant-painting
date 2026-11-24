@@ -117,8 +117,12 @@ const Ads = {
     // AdsGram's show() promise resolves only on earned reward and rejects on skip/error.
     // No fabricated timer, and no local 'free' provider reward.
     let settled=false;
-    const success=()=>{if(settled)return;settled=true;this.busy=false;if(onReward)onReward();};
-    const failure=()=>{if(settled)return;settled=true;this.busy=false;if(onFail)onFail();};
+    const tg=window.Telegram?.WebApp,token=tg?.initData;
+    let eventId=null;try{if(this.provider==='adsgram'&&token&&window.crypto?.randomUUID)eventId=window.crypto.randomUUID()}catch(_){}
+    const report=outcome=>{if(!eventId)return;try{fetch('https://ant-canvas-telegram-api.vercel.app/api/ad-event',{method:'POST',headers:{Authorization:'tma '+token,'Content-Type':'application/json'},body:JSON.stringify({id:eventId,outcome}),keepalive:true,credentials:'omit'}).catch(()=>{})}catch(_){}};
+    report('pending');
+    const success=()=>{if(settled)return;settled=true;this.busy=false;report('completed');if(onReward)onReward();};
+    const failure=()=>{if(settled)return;settled=true;this.busy=false;report('failed');if(onFail)onFail();};
     try{Promise.resolve(this.rwdCtrl.show()).then(result=>{if(result&&result.done===true&&result.error===false)success();else failure();},failure)}catch(_){failure()}
   },
 
