@@ -135,6 +135,8 @@ function handleEv(){
 }
 
 /* ---------- UI (HTML) ---------- */
+// Preserve interactive elements while counters change, particularly the fifth-slot ad button.
+function patchControls(root,html,key){const t=document.createElement('template');t.innerHTML=html;const old=new Map(Array.from(root.children,(el,i)=>[key(el,i),el]));let pos=0;for(const fresh of t.content.children){const k=key(fresh,pos),existing=old.get(k);let el=fresh.cloneNode(true);if(existing&&existing.tagName===fresh.tagName){el=existing;old.delete(k);for(const a of [...el.attributes])if(!fresh.hasAttribute(a.name))el.removeAttribute(a.name);for(const a of fresh.attributes)if(el.getAttribute(a.name)!==a.value)el.setAttribute(a.name,a.value);if(el.innerHTML!==fresh.innerHTML)el.innerHTML=fresh.innerHTML}else if(existing){existing.remove();old.delete(k)}if(root.children[pos]!==el)root.insertBefore(el,root.children[pos]||null);pos++}for(const el of old.values())el.remove()}
 function renderUI(){
  if(!G)return;
  $('#lv').textContent='Level '+LV;
@@ -146,7 +148,7 @@ function renderUI(){
  let sh='';
  for(let i=0;i<G.cap;i++){const b=G.slots[i];sh+=b?`<div class="tile tk" style="${tokStyle(b.c)}"><span>${G.slotDisplayCount(b)}</span></div>`:'<div class="tile empty"></div>'}
  if(G.cap===4)sh+='<button type="button" class="tile unlock ad-slot" data-act="unlock" aria-label="Unlock fifth slot by watching a rewarded advertisement" title="Watch a rewarded ad to unlock the fifth slot">🎬<small>AD SLOT</small></button>';
- if(sh!==lastSlotsHTML){$('#slots').innerHTML=sh;lastSlotsHTML=sh}
+ if(sh!==lastSlotsHTML){patchControls($('#slots'),sh,(_,i)=>i);lastSlotsHTML=sh}
  const hc=G.state==='play'&&hintT>0?G.hint():-1;
  const hintButton=document.querySelector('[data-act="hint"]'),shuffleButton=document.querySelector('[data-act="reshuffle"]'),reviveButton=document.querySelector('[data-act="reviveAd"]');
  if(hintButton){const left=G.difficulty.hints-G.hintsUsed;hintButton.textContent=Number.isFinite(left)?'Hint '+left:'Hint';hintButton.disabled=left<=0;}
@@ -161,9 +163,9 @@ function renderUI(){
    if(play)cls.push('pl');
    if(r===0&&c===hc&&hintT>0)cls.push('hl');
    if(r===0&&c===shakeCol&&now<shakeUntil)cls.push('shk');
-   th+=`<div class="${cls.join(' ')}" data-col="${c}" style="left:${24+c*80}px;top:${[0,40,74][r]}px;width:72px;height:${[52,46,38][r]}px;opacity:${[1,.85,.5][r]};z-index:${10-r};${tokStyle(b.c)}"><span>${b.n}</span>${play?'<i class="dot"></i>':''}</div>`;
+   th+=`<div class="${cls.join(' ')}" data-col="${c}" data-row="${r}" style="left:${24+c*80}px;top:${[0,40,74][r]}px;width:72px;height:${[52,46,38][r]}px;opacity:${[1,.85,.5][r]};z-index:${10-r};${tokStyle(b.c)}"><span>${b.n}</span>${play?'<i class="dot"></i>':''}</div>`;
  }
- if(th!==lastTokensHTML){$('#tok').innerHTML=th;lastTokensHTML=th}
+ if(th!==lastTokensHTML){patchControls($('#tok'),th,el=>el.dataset.col+':'+el.dataset.row);lastTokensHTML=th}
 }
 
 /* ---------- Levels and flow ---------- */
@@ -203,7 +205,7 @@ stage.addEventListener('click',e=>{
    const c=+el.dataset.col,r=G.place(c);
    if(r===1){beep(520,.07,.05);renderUI();if(window.AntPolish)window.AntPolish.onPlaced(G)}
    else if(r===2)toast('All slots are full, wait a moment');
-   else if(r===0)toast('No box in this column');
+   else if(r===0&&G.state==='play')toast('No box in this column');
    else if(r===3){toast("This color can't be eaten yet");shakeCol=c;shakeUntil=performance.now()+400;renderUI()}
    return;
  }

@@ -110,6 +110,7 @@
     if (window.Ads && typeof Ads.gameplay === 'function') Ads.gameplay(false);
   }
   function start() {
+    navigating=false;clearTimeout(navTimer);
     document.getElementById('ah-how').hidden = true;
     if (!open) return;
     open = false;
