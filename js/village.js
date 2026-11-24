@@ -44,7 +44,7 @@ const JOBS=Object.freeze(['wood','petal','builder','scout']),DEFAULT_JOBS=['wood
 function colony(){return state.colony||{queen:1,warehouse:1,hatch:null,achievements:{}}}
 function storageHours(){return MAX_HOURS+4*(colony().warehouse-1)}
 function capacity(){return 5+2*(colony().queen-1)}
-function freshWorker(){return {phase:0,pending:0,xp:{wood:0,petal:0,builder:0,scout:0}}}
+function freshWorker(index=0){return {route:index%5,phase:0,pending:0,xp:{wood:0,petal:0,builder:0,scout:0}}}
 function levelFor(xp){return Math.min(10,1+Math.floor(Math.sqrt(Math.max(0,xp)/30)))}
 function workRates(roles){
  const maps=[state,...Object.values(state.world?.maps||{})];let woodBonus=0,petalBonus=0;
@@ -55,7 +55,7 @@ function workRates(roles){
 function workLedger(now){
  let w=state.work?JSON.parse(JSON.stringify(state.work)):{roles:DEFAULT_JOBS.slice(),last:state.life.lastGather,stored:0,wood:0,petal:0,batch:0};
  if(!Array.isArray(w.roles)||w.roles.length<5||w.roles.length>MAX_ANTS||w.roles.some(r=>!JOBS.includes(r)))w.roles=DEFAULT_JOBS.slice();
- if(!Array.isArray(w.workers)||w.workers.length!==w.roles.length)w.workers=w.roles.map(()=>freshWorker());
+ if(!Array.isArray(w.workers)||w.workers.length!==w.roles.length)w.workers=w.roles.map((_,i)=>freshWorker(i));
  w.deliveries=Number.isSafeInteger(w.deliveries)?w.deliveries:0;
  const rate=workRates(w.roles),valid=Number.isFinite(now)&&now>=w.last&&dayNumber(now)>=state.life.day;
  if(valid){const dt=(!state.work||rate.wood||rate.petal)?Math.min(Math.max(0,storageHours()*HOUR-w.stored),now-w.last):0;w.stored+=dt;
@@ -64,12 +64,14 @@ function workLedger(now){
   w.last=now}
  return {w,rate,valid};
 }
-function workPreview(now=Date.now()){const {w,rate,valid}=workLedger(now);const full=w.stored>=storageHours()*HOUR;return {roles:w.roles.slice(),workers:w.workers.map((a,i)=>{const job=w.roles[i],gather=job==='wood'||job==='petal',phase=a.phase/CYCLE,active=valid&&gather&&!full;return {id:i,job,xp:a.xp[job],level:levelFor(a.xp[job]),totalXP:Object.values(a.xp).reduce((s,v)=>s+v,0),phase,active,status:!gather?(job==='builder'?(state.world?.upgrade?'Building':'Ready to build'):(state.world?.expedition?'Exploring':'Ready to explore')):full?'Warehouse full':phase<.36?'Outbound':phase<.5?'Gathering':phase<.92?'Returning':'Delivering'}}),deliveries:w.deliveries,wood:Math.floor((w.wood+1e-6)/UNIT),petals:Math.floor((w.petal+1e-6)/UNIT),woodRate:rate.wood/4,petalRate:rate.petal/4,builders:rate.builders,scouts:rate.scouts,storedHours:w.stored/HOUR,maxHours:storageHours(),batch:w.batch,valid,nextMs:full?Infinity:Math.min(...w.workers.map((a,i)=>['wood','petal'].includes(w.roles[i])?CYCLE-a.phase:Infinity))}}
+function workPreview(now=Date.now()){const {w,rate,valid}=workLedger(now);const full=w.stored>=storageHours()*HOUR;return {roles:w.roles.slice(),workers:w.workers.map((a,i)=>{const job=w.roles[i],gather=job==='wood'||job==='petal',phase=a.phase/CYCLE,active=valid&&gather&&!full;return {id:i,route:Number.isInteger(a.route)&&a.route>=0&&a.route<5?a.route:i%5,job,xp:a.xp[job],level:levelFor(a.xp[job]),totalXP:Object.values(a.xp).reduce((s,v)=>s+v,0),phase,active,status:!gather?(job==='builder'?(state.world?.upgrade?'Building':'Ready to build'):(state.world?.expedition?'Exploring':'Ready to explore')):full?'Warehouse full':phase<.36?'Outbound':phase<.5?'Gathering':phase<.92?'Returning':'Delivering'}}),deliveries:w.deliveries,stockWood:w.wood/UNIT,stockPetals:w.petal/UNIT,wood:Math.floor((w.wood+1e-6)/UNIT),petals:Math.floor((w.petal+1e-6)/UNIT),woodRate:rate.wood/4,petalRate:rate.petal/4,builders:rate.builders,scouts:rate.scouts,storedHours:w.stored/HOUR,maxHours:storageHours(),batch:w.batch,valid,nextMs:full?Infinity:Math.min(...w.workers.map((a,i)=>['wood','petal'].includes(w.roles[i])?CYCLE-a.phase:Infinity))}}
 function skillPower(job,now){return workPreview(now).workers.filter(a=>a.job===job).reduce((s,a)=>s+1+(a.level-1)*.05,0)}
-function jobTeam(job){return state.work.roles.map((r,i)=>r===job?i:-1).filter(i=>i>=0)}
+function jobTeam(job){return state.work.roles.map((r,i)=>r===job&&!workerBusy(i)?i:-1).filter(i=>i>=0)}
 function jobXP(team,job,amount){for(const i of team||[]){const a=state.work.workers[i];if(a)a.xp[job]+=amount}}
 function settleWork(now=Date.now()){const x=workLedger(now);if(!x.valid)return false;state.work=x.w;return true}
-function assignWorker(index,job,now=Date.now()){if(!Number.isInteger(index)||index<0||index>=(state.work?.roles.length||5)||!JOBS.includes(job))return {ok:false,error:'Invalid worker assignment'};const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};if(state.work.stored>=storageHours()*HOUR&&state.work.wood<UNIT&&state.work.petal<UNIT)state.work.stored=0;if(state.work.roles[index]!==job){const a=state.work.workers[index];a.phase=0;a.pending=0;state.work.roles[index]=job}return lifeCommit(before,{roles:state.work.roles.slice()})}
+function workerBusy(index){return !!(state.world?.upgrade?.team?.includes(index)||state.world?.expedition?.team?.includes(index))}
+function assignRoute(index,route,now=Date.now()){if(!Number.isInteger(index)||index<0||index>=state.work.roles.length||!Number.isInteger(route)||route<0||route>=5||workerBusy(index))return {ok:false,error:'Choose an available ant and marked work site'};const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};const a=state.work.workers[index];if(a.route!==route){a.route=route;a.phase=0;a.pending=0}return lifeCommit(before,{index,route})}
+function assignWorker(index,job,now=Date.now()){if(!Number.isInteger(index)||index<0||index>=(state.work?.roles.length||5)||!JOBS.includes(job)||workerBusy(index)&&state.work.roles[index]!==job)return {ok:false,error:'Invalid assignment or ant is busy'};const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};if(state.work.stored>=storageHours()*HOUR&&state.work.wood<UNIT&&state.work.petal<UNIT)state.work.stored=0;if(state.work.roles[index]!==job){const a=state.work.workers[index];a.phase=0;a.pending=0;state.work.roles[index]=job}return lifeCommit(before,{roles:state.work.roles.slice()})}
 function lifePreview(now=Date.now()){
  const l=state.life,day=dayNumber(now),valid=day>=l.day;
  const work=workPreview(now),hours=Math.min(storageHours(),Math.floor(work.storedHours));
@@ -82,7 +84,7 @@ function collectAnts(now=Date.now()){return collectBatch(now,1,null)}
 function collectBatch(now,multiplier,expectedBatch){
  const p=lifePreview(now);if(!p.valid||(!p.wood&&!p.petals)||expectedBatch!==null&&p.work.batch!==expectedBatch)return {ok:false,error:'No materials ready or collection changed'};
  const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};lifeDay(now);
- const w=state.work;w.wood-=p.wood*UNIT;w.petal-=p.petals*UNIT;w.stored=0;w.batch++;state.life.lastGather=now;state.life.gather++;
+ const w=state.work;w.wood=Math.max(0,w.wood-p.wood*UNIT);w.petal=Math.max(0,w.petal-p.petals*UNIT);w.stored=0;w.batch++;state.life.lastGather=now;state.life.gather++;
  const wood=p.wood*multiplier,petals=p.petals*multiplier;state.wood+=wood;state.petals+=petals;
  return lifeCommit(before,{wood,petals});
 }
@@ -114,11 +116,11 @@ if(ensureWorld())write();
 // Migrate legacy elapsed production once; preserve every existing balance and plot.
 if(!state.work&&settleWork(Date.now()))write();
 // V3.9 migrates the V3.8 elapsed ledger at the old rates before enabling delivery cycles.
-if(!state.colony){const now=Date.now(),w=state.work;if(w&&!w.workers){const rates=workRates(w.roles),dt=Math.min(Math.max(0,MAX_HOURS*HOUR-w.stored),Math.max(0,now-w.last));if(now>=w.last){w.wood+=dt*rates.wood;w.petal+=dt*rates.petal;w.stored+=dt;w.last=now}w.workers=w.roles.map(()=>freshWorker());w.deliveries=0}state.colony={queen:1,warehouse:1,hatch:null,achievements:{}};write()}
+if(!state.colony){const now=Date.now(),w=state.work;if(w&&!w.workers){const rates=workRates(w.roles),dt=Math.min(Math.max(0,MAX_HOURS*HOUR-w.stored),Math.max(0,now-w.last));if(now>=w.last){w.wood+=dt*rates.wood;w.petal+=dt*rates.petal;w.stored+=dt;w.last=now}w.workers=w.roles.map((_,i)=>freshWorker(i));w.deliveries=0}state.colony={queen:1,warehouse:1,hatch:null,achievements:{}};write()}
 function colonyPreview(now=Date.now()){const c=colony(),w=workPreview(now),n=w.roles.length;return {queen:c.queen,warehouse:c.warehouse,population:n,capacity:capacity(),maxHours:storageHours(),hatch:c.hatch?{...c.hatch,remaining:Math.max(0,c.hatch.finish-now)}:null,queenCost:c.queen<5?{wood:12*c.queen,petals:6*c.queen}:null,warehouseCost:c.warehouse<5?{wood:8*c.warehouse,petals:4*c.warehouse}:null,hatchCost:{wood:6+2*(n-5),petals:3+(n-5)},deliveries:w.deliveries,valid:w.valid}}
 function colonyUpgrade(kind,now=Date.now()){const p=colonyPreview(now),cost=kind==='queen'?p.queenCost:kind==='warehouse'?p.warehouseCost:null;if(!p.valid||!cost)return {ok:false,error:'Upgrade unavailable'};if(state.wood<cost.wood||state.petals<cost.petals)return {ok:false,error:'Not enough materials'};const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};state.wood-=cost.wood;state.petals-=cost.petals;state.colony[kind]++;return lifeCommit(before,{level:state.colony[kind]})}
 function hatchStart(now=Date.now()){const p=colonyPreview(now),cost=p.hatchCost;if(!p.valid||p.hatch||p.population>=p.capacity)return {ok:false,error:'Nursery busy or queen capacity reached'};if(state.wood<cost.wood||state.petals<cost.petals)return {ok:false,error:'Not enough materials'};const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};state.wood-=cost.wood;state.petals-=cost.petals;state.colony.hatch={start:now,finish:now+180000};return lifeCommit(before,{finish:now+180000})}
-function hatchClaim(now=Date.now()){const p=colonyPreview(now);if(!p.valid||!p.hatch||p.hatch.remaining||p.population>=p.capacity)return {ok:false,error:'Egg is not ready'};const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};state.work.roles.push('wood');state.work.workers.push(freshWorker());state.colony.hatch=null;return lifeCommit(before,{population:state.work.roles.length})}
+function hatchClaim(now=Date.now()){const p=colonyPreview(now);if(!p.valid||!p.hatch||p.hatch.remaining||p.population>=p.capacity)return {ok:false,error:'Egg is not ready'};const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};state.work.roles.push('wood');state.work.workers.push(freshWorker(state.work.roles.length-1));state.colony.hatch=null;return lifeCommit(before,{population:state.work.roles.length})}
 const COLONY_GOALS=[{id:'delivery',name:'First 100 deliveries',goal:100,key:'deliveries',wood:4,petals:2},{id:'family',name:'Seven ants',goal:7,key:'population',wood:6,petals:3},{id:'storage',name:'Warehouse Lv.3',goal:3,key:'warehouse',wood:8,petals:4},{id:'queen',name:'Queen Lv.5',goal:5,key:'queen',wood:15,petals:8}];
 function colonyGoals(now=Date.now()){const p=colonyPreview(now);return COLONY_GOALS.map(g=>({...g,progress:Math.min(g.goal,p[g.key]),claimed:!!colony().achievements[g.id],ready:p.valid&&p[g.key]>=g.goal}))}
 function claimColonyGoal(id,now=Date.now()){const g=colonyGoals(now).find(x=>x.id===id);if(!g||!g.ready||g.claimed)return {ok:false,error:'Achievement not ready'};const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};state.colony.achievements[id]=true;state.wood+=g.wood;state.petals+=g.petals;return lifeCommit(before,{wood:g.wood,petals:g.petals})}
@@ -332,5 +334,5 @@ function applyAdReward(ticket,now=Date.now()){
  else if(t.kind==='expedition'){const e=state.world.expedition;e.finish=now+Math.ceil((e.finish-now)/2);e.adBoosted=true;result=lifeCommit(before,{remaining:e.finish-now})}
  if(!result?.ok){state=before;return result||{ok:false,error:'Reward unavailable'}}return result;
 }
-global.AntVillage=Object.freeze({colonyPreview,colonyUpgrade,hatchStart,hatchClaim,colonyGoals,claimColonyGoal,workPreview,assignWorker,upgradePreview,finishUpgrade,adTicket,applyAdReward,award,place,upgrade,upgradeCost,getLevel,worldPreview,activityPreview,activity,itemAllowed,milestones,claimMilestone,selectRegion,expeditionStart,expeditionClaim,lifePreview,collectAnts,signIn,claimDaily,refundCost,remove,replace,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
+global.AntVillage=Object.freeze({colonyPreview,colonyUpgrade,hatchStart,hatchClaim,colonyGoals,claimColonyGoal,assignRoute,workPreview,assignWorker,upgradePreview,finishUpgrade,adTicket,applyAdReward,award,place,upgrade,upgradeCost,getLevel,worldPreview,activityPreview,activity,itemAllowed,milestones,claimMilestone,selectRegion,expeditionStart,expeditionClaim,lifePreview,collectAnts,signIn,claimDaily,refundCost,remove,replace,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
 })(typeof window==='undefined'?globalThis:window);
