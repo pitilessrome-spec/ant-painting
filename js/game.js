@@ -31,7 +31,7 @@ function specialCells(lv,n){
  const layers=[[],[],[]];if(kind){const mid=Math.floor(n/2);for(let i=0;i<n*n;i++)if(boss[i])layers[mid+1-Math.floor(i/n)]?.push(i);
  for(let layer=1;layer<layers.length;layer++)for(const i of layers[layer]){
    const lower=layers[layer-1];
-   guards[i]=kind==='Web Guardian'?lower.filter(j=>Math.abs(j%n-i%n)<=1):kind==='Frost Sentinel'?lower.filter(j=>j%n===i%n):lower.slice();
+   guards[i]=kind==='Web Guardian'?lower.filter(j=>Math.abs(j%n-i%n)<=1):kind==='Frost Sentinel'?lower.filter(j=>j%n===i%n):kind==='Rainbow King'?lower.filter((j,k)=>j%n===i%n||k===(lower.length-1-lower.findIndex(v=>v%n===i%n))):lower.slice();
  }}
  const gem=lv>=5?Math.floor(n/3)*n+Math.floor(n/2):-1,markers=[];for(let i=0;i<n*n;i++)if(ice[i]||boss[i]||i===gem)markers.push(i);return {ice,boss,guards,layers,kind,gem,markers,power:lv>=7&&lv%6===1?'bomb':lv>=8&&lv%6===2?'wild':null};
 }
