@@ -2,8 +2,8 @@
 (function () {
   'use strict';
   const CONFIG = Object.freeze({
-    botUsername: '', // Set after BotFather creates the bot, without @
-    miniAppShortName: '', // Optional, from BotFather /newapp
+    botUsername: 'AntCanvasArtBot',
+    miniAppShortName: 'antcanvas',
     apiBaseUrl: 'https://ant-canvas-telegram-api.vercel.app' // Public HTTPS API, bot and DB secrets live only on backend
   });
   const GAME_URL = 'https://pitilessrome-spec.github.io/ant-painting/';
@@ -84,7 +84,7 @@
   function inviteUrl() {
     const bot = CONFIG.botUsername.replace(/^@/, '');
     const ref = validated && playerId ? '?startapp=ref_' + encodeURIComponent(playerId) : '?startapp';
-    return bot ? ('https://t.me/' + bot + ref) : GAME_URL;
+    return bot ? ('https://t.me/' + bot + (CONFIG.miniAppShortName ? '/' + CONFIG.miniAppShortName : '') + ref) : GAME_URL;
   }
   function share() {
     const url = inviteUrl();

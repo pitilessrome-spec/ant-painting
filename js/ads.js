@@ -25,9 +25,12 @@ const Ads = {
   busy: false,    // an ad is playing: the game is paused
   rwdCtrl: null,  // AdsGram rewarded ad controller
   intCtrl: null,  // AdsGram interstitial ad controller
+  rewardedGames: new WeakSet(), // one reward per game attempt
+  slotStats: {requested:0, completed:0, granted:0, failed:0, stale:0}, // session diagnostics, not billable impressions
 
   async init() {
     if (this.provider === 'adsgram') {
+      if(this.ready&&this.rwdCtrl)return;
       const c = AD_CONFIG.adsgram;
       if (!window.Adsgram) { console.warn('AdsGram SDK not loaded, ads unavailable'); return; }
       const tg=window.Telegram&&window.Telegram.WebApp;
@@ -90,6 +93,23 @@ const Ads = {
   canRewardSlot() {
     const tg=window.Telegram&&window.Telegram.WebApp;
     return this.provider==='adsgram'&&this.ready&&!!this.rwdCtrl&&!!(tg&&tg.initData);
+  },
+  // A level retry creates a new Game. Never grant the reward to a different attempt.
+  rewardedSlotFor(game,isCurrent,onReward,onFail) {
+    const eligible=()=>!!game&&isCurrent()&&game.state==='play'&&game.cap===4&&!this.rewardedGames.has(game);
+    if(!eligible()||this.busy){if(onFail)onFail('ineligible');return;}
+    if(!this.ready)this.init(); // recover from late SDK load on an explicit click only
+    if(!this.canRewardSlot()){if(onFail)onFail('unavailable');return;}
+    this.slotStats.requested++;
+    this.rewardedSlot(()=>{
+      this.slotStats.completed++;
+      if(!eligible()){this.slotStats.stale++;if(onFail)onFail('stale');return;}
+      this.rewardedGames.add(game);
+      game.addSlot();
+      if(game.cap!==5){this.slotStats.failed++;if(onFail)onFail('grant_failed');return;}
+      this.slotStats.granted++;
+      if(onReward)onReward();
+    },()=>{this.slotStats.failed++;if(onFail)onFail('ad_failed');});
   },
   rewardedSlot(onReward,onFail) {
     if(!this.canRewardSlot()||this.busy){if(onFail)onFail();return;}
