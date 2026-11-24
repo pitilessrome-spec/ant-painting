@@ -1,0 +1,4 @@
+const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');for(const f of ['art.js','game.js'])vm.runInThisContext(fs.readFileSync(path.join(__dirname,'../js',f),'utf8'));
+function playLogic(g,policy){for(let i=0;i<10000&&g.left>0;i++){for(let j=0;j<g.slots.length;j++){const s=g.slots[j];if(s&&s.n<=0)g.slots[j]=null;}if(g.slots.every(Boolean))return false;const c=policy(g);if(c<0||g.place(c)!==1)return false;}return g.left===0}
+function checks(){const out=[];for(const lv of [9,10,19,20,40,80]){const g=makeGame(lv),sn=g.snapshot();if(!playLogic(g,x=>x.hint()))throw Error('Unsolvable '+lv);g.restore(sn);let won=0;for(let i=0;i<2;i++){const r=rng(lv*73+i+100),copy=g.snapshot();if(playLogic(g,x=>{const a=x.cols.map((c,k)=>c.length?k:-1).filter(k=>k>=0);return a[Math.floor(r()*a.length)]??-1}))won++;g.restore(copy)}out.push({level:lv,chunk:g.difficulty.chunk,randomWins:won,attempts:2,solution:true})}return out}
+console.log(checks());

@@ -5,7 +5,12 @@ function levelParams(lv) {
   return {
     cap: 4,   // 4 slots at the start; watching ads adds more (up to 7)
     cmin: lv <= 10 ? 8 : lv <= 300 ? 12 : 30,
-    cmax: lv <= 10 ? 20 : lv <= 300 ? 30 : 50
+    cmax: lv <= 10 ? 20 : lv <= 300 ? 30 : 50,
+    // Chunked queues expose later boxes earlier, requiring planning.
+    chunk: lv < 10 ? 1 : lv < 20 ? 2 : lv < 40 ? 3 : lv < 80 ? 4 : 5,
+    hints: lv < 10 ? Infinity : lv < 40 ? 3 : 2,
+    reshuffles: lv < 10 ? 0 : 1,
+    revives: lv < 10 ? Infinity : 1
   };
 }
 
@@ -84,6 +89,7 @@ class Game {
     this.n = P.n; this.role = P.role; this.pal = palette(lv); this.subj = P.subj; this.kind=P.kind; this.theme=P.theme;
     const prm = levelParams(lv);
     this.cmin = prm.cmin; this.cmax = prm.cmax;
+    this.difficulty=prm;this.hintsUsed=0;this.reshufflesUsed=0;this.revivesUsed=0;
     const N = this.n * this.n;
     this.total = N; this.left = N;
     this.eaten = new Uint8Array(N);
@@ -110,12 +116,13 @@ class Game {
     }
     const seq = makeSeqFrom(this.role, this.n, this.eaten, this.rand, this.cmin, this.cmax);
     this.cols = [[], [], [], []];
-    seq.forEach((b, i) => this.cols[i % 4].push({ c: b.c, n: b.n, id: i }));
+    seq.forEach((b, i) => this.cols[Math.floor(i / this.difficulty.chunk) % 4].push({ c: b.c, n: b.n, id: i }));
     this.slots.fill(null);
     this.stalled = false;
   }
-  reshuffle() { if (this.state !== 'play') return false; this.rebuild(); return true; }
-  revive() { if (this.state !== 'lose') return false; this.addSlot(); this.rebuild(); this.state = 'play'; return true; }
+  reshuffle() { if (this.state !== 'play'||this.reshufflesUsed>=this.difficulty.reshuffles) return false; this.reshufflesUsed++;this.rebuild(); return true; }
+  revive() { if (this.state !== 'lose'||this.revivesUsed>=this.difficulty.revives) return false; this.revivesUsed++;this.addSlot(); this.rebuild(); this.state = 'play'; return true; }
+  useHint() {if(this.state!=='play'||this.hintsUsed>=this.difficulty.hints)return false;this.hintsUsed++;return true;}
   addSlot() { if (this.cap < 7) { this.cap++; this.slots.push(null); } }
 
   // Can this color be eaten right now? Returns the cell to eat, or -1

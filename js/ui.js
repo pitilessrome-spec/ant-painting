@@ -146,7 +146,11 @@ function renderUI(){
  for(let i=0;i<G.cap;i++){const b=G.slots[i];sh+=b?`<div class="tile tk" style="${tokStyle(b.c)}"><span>${G.slotDisplayCount(b)}</span></div>`:'<div class="tile empty"></div>'}
  if(G.cap===4)sh+='<button type="button" class="tile unlock ad-slot" data-act="unlock" aria-label="Unlock fifth slot by watching a rewarded advertisement" title="Watch a rewarded ad to unlock the fifth slot">🎬<small>AD SLOT</small></button>';
  $('#slots').innerHTML=sh;
- const hc=G.state==='play'?G.hint():-1;
+ const hc=G.state==='play'&&hintT>0?G.hint():-1;
+ const hintButton=document.querySelector('[data-act="hint"]'),shuffleButton=document.querySelector('[data-act="reshuffle"]'),reviveButton=document.querySelector('[data-act="reviveAd"]');
+ if(hintButton){const left=G.difficulty.hints-G.hintsUsed;hintButton.textContent=Number.isFinite(left)?'Hint '+left:'Hint';hintButton.disabled=left<=0;}
+ if(shuffleButton){shuffleButton.textContent=LV>=10?'Reshuffle '+Math.max(0,G.difficulty.reshuffles-G.reshufflesUsed):'Reshuffle';shuffleButton.disabled=LV>=10&&G.reshufflesUsed>=G.difficulty.reshuffles;}
+ if(reviveButton)reviveButton.hidden=G.revivesUsed>=G.difficulty.revives;
  let th='';
  const now=performance.now();
  for(let c=0;c<4;c++)for(let r=2;r>=0;r--){
@@ -219,12 +223,12 @@ stage.addEventListener('pointerdown',e=>{
    else{ spIdx=0; G.speed=SPEEDS[spIdx] }
    renderUI()
  }
- else if(a==='hint')ad(()=>{hintT=6000;toast('The glowing box is the next one to load')});
+ else if(a==='hint'){if(G.useHint()){hintT=6000;toast('Look at the exposed colors before loading a box')}else toast('Hints used for this attempt. Plan your next move.');}
  else if(a==='reshuffle'){
    if(LV<10)toast('Reshuffle unlocks at level 10');
    else if(G.ants.length)toast('Wait for the ants to finish first');
-   else if(!reshuf){ G.reshuffle(); reshuf=true; toast('Boxes reshuffled'); renderUI(); }
-   else ad(()=>{ if(G.reshuffle())toast('Boxes reshuffled'); renderUI(); });
+   else if(G.reshuffle()){reshuf=true;toast('Boxes reshuffled');renderUI();}
+   else toast('Reshuffle used. Retry the level for a fresh attempt.');
  }
  else if(a==='prev'&&LV>1)newLevel(LV-1);
  else if(a==='next'&&LV<MAXLV)newLevel(LV+1);
@@ -232,7 +236,7 @@ stage.addEventListener('pointerdown',e=>{
  else if(a==='retry')newLevel(LV);
  else if(a==='viewGallery'){location.href='collection.html'}
  else if(a==='viewVillage'){location.href='village.html?v=world-v32'}
- else if(a==='reviveAd')ad(()=>{G.revive();$('#lose').classList.remove('on');shown='play';renderUI()});
+ else if(a==='reviveAd'){if(G.revive()){$('#lose').classList.remove('on');shown='play';renderUI()}else toast('Revive used. Retry the level.');}
  else if(a==='snd'){SND=SND?0:1;save();toast(SND?'Sound on':'Sound off')}
 });
 
