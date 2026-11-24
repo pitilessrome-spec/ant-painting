@@ -1,0 +1,64 @@
+/* ANT CANVAS · Storybook Village art direction and responsive workshop. */
+:root{--ink:#664b32;--cream:#fff6db;--navy:#305d53}
+body{color:#604d36;background:radial-gradient(ellipse at 20% 0%,#e1f3be,transparent 56%),linear-gradient(150deg,#d7eee0,#fff8e0 52%,#cae5d1);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.topbar{background:linear-gradient(110deg,#416e51,#2d5549);box-shadow:0 4px 18px #35564730}
+.brand-icon{background:linear-gradient(145deg,#fff0a6,#eab477);box-shadow:0 3px #b37d48}
+.return{background:#ffffff1c;border-color:#f5eac16b}
+main{max-width:1320px;padding-top:20px}
+.eyebrow{color:#779168;letter-spacing:2px}
+h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(29px,4.7vw,43px);letter-spacing:-.8px;color:#416347}
+.lead{color:#74826a}
+.resource-line{gap:9px;margin:15px 0}
+.stat{background:linear-gradient(150deg,#fffdf0,#fff5d8);border:1px solid #fff;box-shadow:0 4px 0 #c7b58e34,0 8px 20px #667a4815;border-radius:16px}
+.stat-icon{background:#f4ead0}.stat strong{color:#6d573a}.stat small{color:#8d866b}
+.main-grid{grid-template-columns:minmax(0,1.85fr) minmax(275px,.75fr);gap:16px}
+#world-panel{position:relative;overflow:hidden;background:#bde8b1;border:7px solid #fffcdf;border-radius:27px;box-shadow:0 6px 0 #c1b890,0 15px 34px #365f4530}
+#village-world{display:block;width:100%;height:auto;aspect-ratio:4/3;overflow:hidden;isolation:isolate}
+#world-panel:after{content:"";pointer-events:none;position:absolute;inset:0;z-index:1;border-radius:19px;box-shadow:inset 0 0 0 2px #ffffffb5,inset 0 -15px 28px #3c5a341e}
+.world-plaque{z-index:2;top:13px;left:12px;color:#764a2a;font-family:Georgia,serif;letter-spacing:.1px;font-size:15px;line-height:1.25;background:linear-gradient(165deg,#fff4d0,#edc08a);border:2px solid #fff5d1;padding:9px 16px;border-radius:14px;box-shadow:0 3px 0 #af8251,0 5px 13px #3d63364a}
+.world-plaque small{font-family:system-ui,sans-serif;color:#865c35;font-size:10px;font-weight:950;letter-spacing:.6px}
+.world-tools{z-index:2;top:14px;right:12px}
+.world-tools button{background:linear-gradient(#fffef2,#f9f1db);color:#655a42;border:2px solid #fffdf3;border-radius:18px;box-shadow:0 3px 0 #c6af83,0 5px 8px #43664b30;font-weight:900;padding:8px 11px}
+.world-story{z-index:2;left:50%;right:auto;transform:translateX(-50%);width:max-content;max-width:calc(100% - 18px);bottom:9px;color:#805b34;background:linear-gradient(155deg,#fff8dcf7,#f7ddaaf7);border:2px solid #fff5d1;border-radius:19px;box-shadow:0 3px 0 #b49459,0 5px 10px #2b573f35;font-size:12px;font-weight:850;padding:9px 17px;pointer-events:none;text-wrap:balance}
+#village-world .plot-interactive{outline:none;cursor:pointer;transition:filter .16s}
+#village-world .plot-interactive:focus-visible,#village-world .plot-interactive:hover{filter:drop-shadow(0 0 5px #fff4a1)}
+#village-world .plot-interactive.selected .sb-plot-halo{stroke:#fffbe3;opacity:1}
+#village-world .plot-name{font-family:system-ui,sans-serif;fill:#fff9d8;stroke:#547041;stroke-width:3;paint-order:stroke;text-anchor:middle;font-size:12px;font-weight:900}
+#village-world .plot-level{fill:#ffe88d;stroke:#856b3d;stroke-width:2.3;paint-order:stroke;text-anchor:middle;font-size:12px;font-weight:900}
+#village-world .village-ant{filter:drop-shadow(0 1px 1px #46633c25);pointer-events:none}
+.sb-night-shade{opacity:0;transition:opacity .8s}
+.world-panel.night .sb-night-shade{opacity:1}
+.world-panel.night #village-world .sb-lantern-halo{opacity:.95}
+#village-world .sb-smoke{animation:sb-smoke 3.5s ease-out infinite;transform-box:fill-box;transform-origin:center}
+#village-world .sb-water-glint{animation:sb-water 3.8s ease-in-out infinite alternate}
+#village-world .sb-windmill{transform-origin:0 0;transform-box:view-box;animation:sb-mill 12s linear infinite}
+#village-world .sb-build-spark{animation:sb-spark 2.1s ease-in-out infinite alternate}
+#village-world .sb-plot-halo{animation:sb-spark 3s ease-in-out infinite alternate}
+#village-world .sb-fountain{stroke-dasharray:7 3;animation:sb-fountain 2s linear infinite}
+#village-world .sb-flowers{filter:drop-shadow(0 1px 0 #5b833940)}
+@keyframes sb-smoke{0%{opacity:.7;translate:0 0;scale:.8}100%{opacity:0;translate:10px -29px;scale:1.6}}
+@keyframes sb-water{from{opacity:.27}to{opacity:.9}}
+@keyframes sb-mill{to{rotate:360deg}}
+@keyframes sb-spark{from{opacity:.42}to{opacity:1}}
+@keyframes sb-fountain{to{stroke-dashoffset:-24}}
+.panel{background:linear-gradient(150deg,#fffef0,#fff7df);border-color:#fffff4;box-shadow:0 5px 0 #d6c49c2d,0 9px 22px #456d4119}
+.panel h2{font-family:Georgia,serif;color:#567044;font-size:20px}
+.panel .sub,.panel small{color:#8c856e}
+.item{background:linear-gradient(#fffef4,#f4f0db);border-color:#e9dec0;box-shadow:0 3px #c4c5a0}
+.item.selected{background:#fff0bc;border-color:#e4b164;box-shadow:0 3px #ba8b50}
+.item .item-name{color:#6a573c}.item .item-cost{color:#71834b}
+.btn{background:linear-gradient(#ffebaa,#eec278);color:#80552d;box-shadow:0 3px #b18a52}
+.btn.secondary{background:linear-gradient(#e4efca,#c8ddac);color:#567047;box-shadow:0 3px #92aa78}
+.build-detail{background:#ecedcf;color:#78815e}.build-detail b{color:#60724b}
+#village-message{color:#697c51}
+.treasure-panel{background:linear-gradient(145deg,#5c6950,#344d48);border-color:#a7b69b;color:#fff9dc}
+.treasure-panel h2{color:#fff4cf}.treasure-panel .sub,.chest-info p{color:#dce1be}
+.collectible{background:linear-gradient(140deg,#f3eed4,#e6edcf)}.combo{background:#eef0d9}
+.combo.unlocked{background:linear-gradient(140deg,#fff1bc,#dce9c5)}
+.combo span,.notice{color:#83886c}
+.modal-card{background:linear-gradient(150deg,#fff9df,#f1efd1)}
+.modal-card h2{color:#65794a}
+@media(max-width:1000px){.main-grid{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}#world-panel{max-width:960px}}
+@media(max-width:700px){main{padding:12px 8px 40px}.main-grid,.lower-grid,.side{grid-template-columns:1fr}#world-panel{border-width:4px;border-radius:20px}.world-plaque{top:7px;left:7px;padding:6px 9px;font-size:11px;border-radius:10px}.world-plaque small{font-size:7px}.world-tools{top:7px;right:7px;gap:4px}.world-tools button{font-size:9px;padding:6px 7px;border-radius:13px}.world-story{font-size:9px;padding:6px 10px;bottom:7px;line-height:1.3;border-radius:12px}.resource-line{gap:7px}.stat{padding:8px 10px}}
+@media(max-width:380px){.world-plaque small{letter-spacing:0}.world-tools button{padding:5px 5px;font-size:8px}.world-plaque{font-size:10px;padding:5px 6px}.world-story{max-width:calc(100% - 12px)}}
+@media(prefers-reduced-motion:reduce){#village-world *{animation:none!important;transition:none!important}}
