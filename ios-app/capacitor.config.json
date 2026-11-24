@@ -1,0 +1,13 @@
+{
+  "appId": "com.antcanvas.game",
+  "appName": "ANT CANVAS",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "automatic",
+    "scrollEnabled": true,
+    "allowsLinkPreview": false
+  },
+  "server": {
+    "iosScheme": "capacitor"
+  }
+}
