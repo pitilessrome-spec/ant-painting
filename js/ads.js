@@ -122,6 +122,16 @@ const Ads = {
     try{Promise.resolve(this.rwdCtrl.show()).then(result=>{if(result&&result.done===true&&result.error===false)success();else failure();},failure)}catch(_){failure()}
   },
 
+  // Earned ad only, tied to the exact failed attempt and revive count.
+  rewardedReviveFor(game,isCurrent,onReward,onFail){
+    const count=game&&game.revivesUsed;
+    const eligible=()=>!!game&&isCurrent()&&game.state==='lose'&&game.revivesUsed===count&&count<game.difficulty.revives;
+    if(!eligible()||this.busy){if(onFail)onFail('ineligible');return;}
+    if(!this.ready)this.init();
+    if(!this.canRewardSlot()){if(onFail)onFail('unavailable');return;}
+    this.rewardedSlot(()=>{if(!eligible()){if(onFail)onFail('stale');return;}if(game.revive()){if(onReward)onReward();}else if(onFail)onFail('grant_failed');},()=>{if(onFail)onFail('ad_failed');});
+  },
+
   // Interstitial: shown between levels; the next level starts after it finishes or is closed. Never used for rewards
   midgame(done) {
     if (this.provider === 'adsgram') {

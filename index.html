@@ -74,8 +74,9 @@ html.ant-ready #ant-boot{opacity:0;pointer-events:none}
 #ant-boot.ab-slow .ab-retry{display:block}
 @keyframes ab-load{from{transform:translateX(-110%)}to{transform:translateX(360%)}}
 @media(prefers-reduced-motion:reduce){#ant-boot .ab-progress{animation:none}}
+html,body,#stage,#stage [data-col],#stage [data-act]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}#stage [data-col]{touch-action:none;-webkit-touch-callout:none}#stage button{touch-action:manipulation}
 </style>
-<link rel="stylesheet" href="css/home.css?v=home-v1">
+<link rel="stylesheet" href="css/home.css?v=world-v37">
 <link rel="stylesheet" href="css/polish.css?v=ant-v3">
 </head>
 <body>
@@ -109,7 +110,7 @@ html.ant-ready #ant-boot{opacity:0;pointer-events:none}
   <button class="btn grn" id="rsh" data-act="reshuffle">Reshuffle</button>
  </div>
  <div id="win" class="over"><div class="card"><h2>Level cleared!</h2><p id="winSub"></p><div id="winReward" style="font:850 12px system-ui;color:#4e956d;margin:9px 0 0"></div><button class="cbtn" data-act="nextLv">Next level →</button><button class="cbtn ghost" data-act="viewGallery">🖼️ My Art Gallery</button><button class="cbtn ghost" data-act="viewVillage">🌿 My Ant Village</button></div></div>
- <div id="lose" class="over"><div class="card"><h2>No moves left</h2><p>Get a revive: +1 slot, and the remaining boxes are reshuffled so you can keep going.</p><button class="cbtn" data-act="reviveAd">Revive (+1 slot)</button><button class="cbtn ghost" data-act="retry">Retry level</button></div></div>
+ <div id="lose" class="over"><div class="card"><h2>No moves left</h2><p>Watch a complete ad to revive and reshuffle the remaining boxes. Retry is always free.</p><button class="cbtn" data-act="reviveAd">▶ Watch ad to revive</button><button class="cbtn ghost" data-act="retry">Retry level</button></div></div>
  <div id="ad" class="over"><div class="card"><h2>Ad</h2><p>(Ad placeholder)</p><div id="adbox"><div id="adbar"></div></div></div></div>
 </div>
 <script src="vendor/three.min.js"></script>
@@ -118,7 +119,7 @@ html.ant-ready #ant-boot{opacity:0;pointer-events:none}
 <!-- Needed for the Telegram mini app: Telegram Web App SDK and AdsGram ad SDK. Can be skipped for local testing -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
-<script src="js/ads.js?v=adsgram-61573-r2"></script>
+<script src="js/ads.js?v=world-v37"></script>
 <script src="js/telegram.js?v=world-v36"></script>
 <script src="js/profile.js?v=ant-v3"></script>
 <script src="js/village.js?v=world-v36"></script>
@@ -127,7 +128,7 @@ html.ant-ready #ant-boot{opacity:0;pointer-events:none}
 <script src="js/mystery.js?v=ant-v4"></script>
 <script src="js/blast-fx.js?v=ant-v3b"></script>
 <script src="js/game.js?v=strategy-v34"></script>
-<script src="js/home.js?v=world-v36"></script>
+<script src="js/home.js?v=world-v37"></script>
 <script src="js/polish.js?v=ant-v4"></script>
-<script src="js/ui.js?v=world-v36"></script>
+<script src="js/ui.js?v=world-v37"></script>
 </body></html>

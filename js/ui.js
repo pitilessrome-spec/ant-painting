@@ -195,8 +195,9 @@ function onWin(){
 }
 
 stage.addEventListener('pointerdown',e=>{
- if(!G||adT>0||Ads.busy)return;
+ if(!G||adT>0||Ads.busy||!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
  const el=e.target.closest('[data-col],[data-act]');if(!el)return;
+ if(e.cancelable)e.preventDefault();
  if(el.dataset.col!==undefined){
    const c=+el.dataset.col,r=G.place(c);
    if(r===1){beep(520,.07,.05);renderUI();if(window.AntPolish)window.AntPolish.onPlaced(G)}
@@ -219,7 +220,7 @@ stage.addEventListener('pointerdown',e=>{
   }
  else if(a==='speed'){
    if(spIdx===0){ if(LV<10)toast('×2 unlocks at level 10'); else{spIdx=1;G.speed=SPEEDS[spIdx]} }
-   else if(spIdx===1){ if(x3ok){spIdx=2;G.speed=SPEEDS[spIdx]} else ad(()=>{x3ok=true;spIdx=2;G.speed=SPEEDS[spIdx];renderUI();toast('×3 unlocked for this level')}) }
+   else if(spIdx===1){ if(x3ok){spIdx=2;G.speed=SPEEDS[spIdx]} else {const game=G;if(!Ads.ready)Ads.init();Ads.rewardedSlot(()=>{if(G!==game||game.state!=='play')return;x3ok=true;spIdx=2;game.speed=SPEEDS[spIdx];renderUI();toast('×3 unlocked for this level')},()=>toast('Ad skipped or unavailable · ×2 remains free'));} }
    else{ spIdx=0; G.speed=SPEEDS[spIdx] }
    renderUI()
  }
@@ -236,7 +237,7 @@ stage.addEventListener('pointerdown',e=>{
  else if(a==='retry')newLevel(LV);
  else if(a==='viewGallery'){location.href='collection.html'}
  else if(a==='viewVillage'){location.href='village.html?v=world-v36'}
- else if(a==='reviveAd'){if(G.revive()){$('#lose').classList.remove('on');shown='play';renderUI()}else toast('Revive used. Retry the level.');}
+ else if(a==='reviveAd'){const game=G;Ads.rewardedReviveFor(game,()=>G===game,()=>{$('#lose').classList.remove('on');shown='play';renderUI();toast('Revived! Keep going.')},reason=>{if(reason!=='ineligible')toast('Ad skipped or unavailable · retry is free');});}
  else if(a==='snd'){SND=SND?0:1;save();toast(SND?'Sound on':'Sound off')}
 });
 

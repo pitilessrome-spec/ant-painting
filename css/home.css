@@ -79,3 +79,5 @@
 @keyframes ah-walk{0%,100%{translate:0 0}50%{translate:8px -6px}}
 @keyframes ah-twinkle{0%,100%{opacity:.5;scale:.82}50%{opacity:1;scale:1.2}}
 @media(prefers-reduced-motion:reduce){#ant-home *,#ant-home *:before,#ant-home *:after{animation:none!important;transition:none!important}}
+
+#ant-home .ah-secondary-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}#ant-home .ah-secondary{padding:10px 3px;min-height:44px;font-size:12px;touch-action:manipulation}
