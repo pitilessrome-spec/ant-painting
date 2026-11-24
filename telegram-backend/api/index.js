@@ -255,7 +255,7 @@ async function handler(req,res) {
     if(path==='admin/ad-report')return await adminAdReport(req,res);
     if (path==='admin/stats' && req.method==='GET') return await adminStats(req,res);
     if (path==='webhook' && req.method==='POST') return await handleWebhook(req,res);
-    if (!['ad-event','profile','profile/name','leaderboard','start-level','progress','backup','social/friends','social/publish','social/visit','social/overview','social/like','social/gift','social/contest/enter','social/contest/withdraw','social/contest/view','social/contest/vote'].includes(path)) return json(res,404,{error:'Not found'});
+    if (!path.startsWith('raid/')&&!['ad-event','profile','profile/name','leaderboard','start-level','progress','backup','social/friends','social/publish','social/visit','social/overview','social/like','social/gift','social/contest/enter','social/contest/withdraw','social/contest/view','social/contest/vote'].includes(path)) return json(res,404,{error:'Not found'});
     const header=req.headers.authorization||'';
     const checked=checkInitData(header.startsWith('tma ')?header.slice(4):'',process.env.TELEGRAM_BOT_TOKEN);
     if(!checked.user){console.warn('Telegram authentication rejected:',checked.code);return json(res,checked.code==='BOT_NOT_CONFIGURED'?503:401,{error:'Valid Telegram Mini App sign-in required',code:checked.code});}
@@ -268,6 +268,7 @@ async function handler(req,res) {
       await db.query(`WITH fresh AS (INSERT INTO players(telegram_id) VALUES($1) ON CONFLICT DO NOTHING RETURNING telegram_id) INSERT INTO player_referrals(invitee_id,inviter_id) SELECT fresh.telegram_id,p.telegram_id FROM fresh JOIN players p ON p.telegram_id=$2 ON CONFLICT DO NOTHING`,[user.id,inviter]);
     }else await db.query('INSERT INTO players(telegram_id) VALUES($1) ON CONFLICT DO NOTHING',[user.id]);
     await db.query('UPDATE players SET display_name=$2 WHERE telegram_id=$1 AND display_name IS DISTINCT FROM $2',[user.id,user.displayName]);
+    if(path.startsWith('raid/'))return await require('../lib/raid-service').route(req,res,db,user,path);
     if(path==='backup'||path.startsWith('social/'))return await social(req,res,db,user,path);
     if (path==='profile' && req.method==='GET') {
       const {rows}=await db.query('SELECT best_level,display_name,show_display_name FROM players WHERE telegram_id=$1',[user.id]);
