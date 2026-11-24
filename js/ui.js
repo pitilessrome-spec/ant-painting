@@ -261,3 +261,8 @@ fit();window.addEventListener('resize',fit);
 newLevel(st.lv||MAXLV);
 if(window.AntHome)window.AntHome.afterBoot();
 requestAnimationFrame(frame);
+// Reveal only when the main menu exists and the 360x640 stage is correctly fitted.
+// This prevents Telegram's initial blue blank panel and offscreen gameplay controls.
+requestAnimationFrame(()=>requestAnimationFrame(()=>{
+ if(window.AntHome&&window.AntHome.isOpen)document.documentElement.classList.add('ant-ready');
+}));
