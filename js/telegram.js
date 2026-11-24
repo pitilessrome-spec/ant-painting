@@ -10,6 +10,7 @@
   const tg = (window.Telegram && window.Telegram.WebApp) || null;
   const active = !!(tg && tg.initData);
   let validated = false;
+  let connecting=false,authNote='';
   let playerId = '';
   let bestOnline = 0;
   let busy = false;
@@ -74,13 +75,13 @@
     $('#tg-share-btn').addEventListener('click', share);
     $('#tg-invite').addEventListener('click', share);
     $('#tg-cloud').addEventListener('click',()=>{location.href='social.html?v=ops-v31'});
-    $('#tg-refresh').addEventListener('click', fetchRanks);
+    $('#tg-refresh').addEventListener('click', () => validated ? fetchRanks() : connect());
     $('#tg-online-start').addEventListener('click', () => { closePanel(); if (typeof window.newLevel === 'function') window.newLevel(bestOnline + 1); });
     $('#tg-close').addEventListener('click', closePanel);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closePanel(); });
     render();
   }
-  function openPanel() { isPanelOpen = true; render(); $('#telegram-hub').classList.add('on'); fetchRanks(); }
+  function openPanel() { isPanelOpen = true; render(); $('#telegram-hub').classList.add('on'); if(validated)fetchRanks();else connect(); }
   function closePanel() { isPanelOpen = false; $('#telegram-hub').classList.remove('on'); }
   function message(t) { const e = $('#tg-toast'); if (e) e.textContent = t; }
   function inviteUrl() {
@@ -106,12 +107,12 @@
     $('#tg-local-best').textContent = currentLevel();
     $('#tg-global-best').textContent = validated ? bestOnline : '—';
     $('#tg-online-start').hidden = !validated;
-    let account = active ? 'Telegram detected · connecting securely' : 'Browser mode · local progress';
+    let account = active ? (connecting?'Telegram detected · connecting securely':'Telegram detected · sign-in required') : 'Browser mode · local progress';
     if (validated) account = 'Telegram player ' + playerId;
     $('#tg-account').textContent = account;
     $('#tg-online-note').textContent = validated
-      ? 'Your verified game progress is backed up online.'
-      : active ? 'Online sync is unavailable until the game bot and API are activated.'
+      ? 'Your verified level score is stored online. Use Friends & Cloud to back up your village.'
+      : active ? (authNote||'Connecting to Telegram game service…')
       : 'Open the game from its Telegram bot to join the verified leaderboard. Browser progress is local.';
   }
   async function api(path, method, data) {
@@ -122,11 +123,13 @@
       headers: {'Authorization': 'tma ' + tg.initData, 'Content-Type': 'application/json'},
       ...(data ? {body: JSON.stringify(data)} : {})
     });
-    if (!res.ok) throw Error('Game service error ' + res.status);
-    return await res.json();
+    const result=await res.json().catch(()=>({}));
+    if(!res.ok){const e=Error('Game service HTTP '+res.status);e.code=result.code||'HTTP_'+res.status;throw e;}
+    return result;
   }
   async function connect() {
-    if (!active || !CONFIG.apiBaseUrl) return;
+    if (!active || !CONFIG.apiBaseUrl || connecting || validated) return;
+    connecting=true;authNote='';render();
     try {
       const profile = await api('profile');
       validated = true;
@@ -135,7 +138,8 @@
       render();
       await fetchRanks();
       if (Number.isInteger(window.ANT_CANVAS_CURRENT_LEVEL)) await onLevelStart(window.ANT_CANVAS_CURRENT_LEVEL);
-    } catch (e) { console.warn('ANT CANVAS Telegram authentication unavailable:', e.message); render(); }
+    } catch (e) { const notes={INIT_DATA_EXPIRED:'Telegram session expired. Close the Mini App completely and reopen it from the bot.',SIGNATURE_MISMATCH:'Telegram signature does not match the configured bot token. Contact the game administrator.',INIT_DATA_MISSING:'Open the game using its Telegram Mini App link.',INIT_DATA_INVALID:'Invalid Telegram session. Reopen the Mini App.',BOT_NOT_CONFIGURED:'Bot token is not configured on the server.',HTTP_503:'Game database or API temporarily unavailable.'};authNote=notes[e.code]||'Connection failed. Tap Refresh rankings to retry ('+(e.code||'NETWORK')+').';console.warn('ANT CANVAS sign-in failed:',e.code||'NETWORK'); }
+    finally{connecting=false;render();}
   }
   async function fetchRanks() {
     if (!$('#tg-ranks')) return;

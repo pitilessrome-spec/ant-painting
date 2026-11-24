@@ -6,30 +6,27 @@ const GAME_URL = 'https://pitilessrome-spec.github.io/ant-painting/';
 const CORS_ORIGIN = process.env.GAME_ORIGIN || 'https://pitilessrome-spec.github.io';
 function json(res, status, object) { res.statusCode=status; res.setHeader('Content-Type','application/json; charset=utf-8'); res.end(JSON.stringify(object)); }
 function params(raw) {const p = new URLSearchParams(raw); return [...p.entries()];}
-function verifyInitData(raw, token) {
-  if (!raw || typeof raw!=='string' || raw.length>12000 || !token) return null;
-  let q;
-  try {q=params(raw);}catch(_){return null;}
-  const hash=q.find(([k])=>k==='hash');
-  if (!hash || !/^[0-9a-f]{64}$/i.test(hash[1])) return null;
-  const fields=q.filter(([k])=>k!=='hash').sort((a,b)=>a[0].localeCompare(b[0]));
-  if (new Set(fields.map(([k])=>k)).size!==fields.length) return null;
-  const check=fields.map(([k,v])=>k+'='+v).join('\n');
-  const secret=createHmac('sha256','WebAppData').update(token).digest();
-  const digest=createHmac('sha256',secret).update(check).digest();
-  if (!timingSafeEqual(digest,Buffer.from(hash[1],'hex'))) return null;
-  const auth=fields.find(([k])=>k==='auth_date');
-  const now=Math.floor(Date.now()/1000);
-  const timestamp=Number(auth && auth[1]);
-  if (!Number.isInteger(timestamp) || timestamp>now+30 || now-timestamp>3600) return null;
-  try {
-    const userRaw=fields.find(([k])=>k==='user');
-    const user=JSON.parse(userRaw&&userRaw[1]);
-    if (!user || !Number.isSafeInteger(user.id) || user.id<=0) return null;
-    const start=fields.find(([k])=>k==='start_param');
-    return {id:String(user.id),...(start?{startParam:start[1]}:{})};
-  } catch (_) { return null; }
+function checkInitData(raw,token,now=Math.floor(Date.now()/1000)){
+ if(!token)return {code:'BOT_NOT_CONFIGURED'};
+ if(!raw||typeof raw!=='string'||raw.length>12000)return {code:'INIT_DATA_MISSING'};
+ let q;try{q=params(raw)}catch(_){return {code:'INIT_DATA_INVALID'}}
+ if(new Set(q.map(([k])=>k)).size!==q.length)return {code:'INIT_DATA_INVALID'};
+ const hash=q.find(([k])=>k==='hash');
+ if(!hash||!/^[0-9a-f]{64}$/i.test(hash[1]))return {code:'INIT_DATA_INVALID'};
+ const fields=q.filter(([k])=>k!=='hash').sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
+ const check=fields.map(([k,v])=>k+'='+v).join('\n');
+ const secret=createHmac('sha256','WebAppData').update(token).digest();
+ const digest=createHmac('sha256',secret).update(check).digest();
+ if(!timingSafeEqual(digest,Buffer.from(hash[1],'hex')))return {code:'SIGNATURE_MISMATCH'};
+ const auth=fields.find(([k])=>k==='auth_date'),timestamp=Number(auth&&auth[1]);
+ if(!Number.isInteger(timestamp)||timestamp>now+30||now-timestamp>3600)return {code:'INIT_DATA_EXPIRED'};
+ try{const userRaw=fields.find(([k])=>k==='user'),user=JSON.parse(userRaw&&userRaw[1]);
+ if(!user||!Number.isSafeInteger(user.id)||user.id<=0)return {code:'INIT_DATA_INVALID'};
+ const start=fields.find(([k])=>k==='start_param');
+ return {user:{id:String(user.id),...(start?{startParam:start[1]}:{})}};
+ }catch(_){return {code:'INIT_DATA_INVALID'}}
 }
+function verifyInitData(raw,token){return checkInitData(raw,token).user||null;}
 function connection() {
   if (!process.env.DATABASE_URL) throw Error('Database not configured');
   if (!pool) { const {Pool} = require('pg'); pool = new Pool({connectionString:process.env.DATABASE_URL, ssl:process.env.DB_SSL==='disable'?false:{rejectUnauthorized:true},max:4,connectionTimeoutMillis:4000}); }
@@ -96,7 +93,7 @@ async function adminStats(req,res){
  (SELECT COALESCE(round(avg(best_level),2),0)::float FROM players) AS average_best_level,
  (SELECT count(*)::int FROM y) AS yesterday_active,
  (SELECT count(*)::int FROM y JOIN t USING(telegram_id)) AS returned_today`);
- const m=rows[0];return json(res,200,{metrics:m,timezone:'Asia/Singapore',asOf:new Date().toISOString(),retention:m.yesterday_active?m.returned_today/m.yesterday_active:null,adImpressions:null,adRevenue:null});
+ const m=rows[0];let botStatus={status:'unavailable'};try{const b=await bot('getMe',{});if(b&&b.username)botStatus={status:b.username.toLowerCase()==='antcanvasartbot'?'matched':'mismatch',username:b.username};}catch(_){botStatus={status:'invalid_or_unreachable'};}return json(res,200,{botStatus,metrics:m,timezone:'Asia/Singapore',asOf:new Date().toISOString(),retention:m.yesterday_active?m.returned_today/m.yesterday_active:null,adImpressions:null,adRevenue:null});
 }
 // Private backup is user-supplied cosmetic progress, never a trusted score.
 const SAVE_KEYS=new Set(['mbh3','ant_canvas_profile_v1','ant_canvas_collection_v1','ant_canvas_village_v1']);
@@ -156,8 +153,9 @@ async function handler(req,res) {
     if (path==='webhook' && req.method==='POST') return await handleWebhook(req,res);
     if (!['profile','leaderboard','start-level','progress','backup','social/friends','social/publish','social/visit'].includes(path)) return json(res,404,{error:'Not found'});
     const header=req.headers.authorization||'';
-    const user=verifyInitData(header.startsWith('tma ')?header.slice(4):'',process.env.TELEGRAM_BOT_TOKEN);
-    if (!user) return json(res,401,{error:'Valid Telegram Mini App sign-in required'});
+    const checked=checkInitData(header.startsWith('tma ')?header.slice(4):'',process.env.TELEGRAM_BOT_TOKEN);
+    if(!checked.user){console.warn('Telegram authentication rejected:',checked.code);return json(res,checked.code==='BOT_NOT_CONFIGURED'?503:401,{error:'Valid Telegram Mini App sign-in required',code:checked.code});}
+    const user=checked.user;
     const db=connection();
     const inviter=referralId(user.startParam,user.id);
     if(inviter){
@@ -217,3 +215,5 @@ module.exports.verifyInitData=verifyInitData;
 module.exports.adminAuthorized=adminAuthorized;
 
 module.exports.validBackup=validBackup;module.exports.publicVillage=publicVillage;module.exports.referralId=referralId;
+
+module.exports.checkInitData=checkInitData;
