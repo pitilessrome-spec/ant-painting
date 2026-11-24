@@ -94,7 +94,18 @@ function cottage(x,y,s){
   a+='<path d="M'+n(xa+1)+' '+n(ya+6)+'Q'+n((xa+xb)/2+7)+' '+n((ya+yb)/2+11)+' '+n(xb+6)+' '+n(yb+6)+'" stroke="#ffd0ae" stroke-width="4" fill="none" stroke-linecap="round" opacity=".78"/>';
   a+='<path d="M'+n(-xa+1)+' '+n(ya+6)+'Q'+n(-(xa+xb)/2+7)+' '+n((ya+yb)/2+11)+' '+n(-xb-2)+' '+n(yb+6)+'" stroke="#c76750" stroke-width="3.3" fill="none" stroke-linecap="round" opacity=".9"/>';
  }
+ // Fine roof tile seams, curved ceramic highlights and a warm stucco grain.
+ for(let i=0;i<5;i++){
+   const x=-15-i*14,y=-145+i*12;
+   a+='<path d="M'+(x-6)+' '+(y+6)+'q3 7 9 9M'+(-x+4)+' '+(y+6)+'q-3 7 -9 9" fill="none" stroke="#a95747" stroke-width="1.35" opacity=".48"/>';
+ }
+ for(let i=0;i<29;i++){
+  const px=-76+rnd()*151,py=-61+rnd()*65;
+  if(Math.abs(px)<36)continue;
+  a+='<ellipse cx="'+n(px)+'" cy="'+n(py)+'" rx="'+n(.7+rnd()*1.4)+'" ry=".75" fill="#bc906b" opacity=".19"/>';
+ }
  a+=windowShape(0,-98,16)+windowShape(-54,-38,13)+windowShape(54,-38,13);
+ for(const x of [-54,54])a+='<path d="M'+(x-17)+' -22h34l-4 8h-26Z" fill="url(#sb-wood)" stroke="#a46b43" stroke-width="1.4"/>'+flower(x-9,-18,.54,'#f6a2bf')+flower(x,-18,.55,'#fff2c5')+flower(x+9,-18,.54,'#f6a2bf');
  a+='<path d="M-31 7V-42Q-30 -75 0 -76Q31 -75 31 -42V7Z" fill="#cda270" stroke="#a6734b" stroke-width="4"/><path d="M-23 8V-42Q-23 -67 0 -69Q23 -67 23 -42V8Z" fill="url(#sb-wood)" stroke="#885730" stroke-width="3"/>';
  for(let px of [-13,0,13])a+='<path d="M'+px+' -55V5" stroke="#92603c" stroke-width="2" opacity=".75"/>';
  a+='<circle cx="14" cy="-18" r="3.7" fill="#ffe089" stroke="#906037" stroke-width="1.2"/><path d="M-39 9Q0 17 39 9V16Q0 28 -39 16Z" fill="#c0a58a" stroke="#98846d" stroke-width="2"/>';
@@ -114,7 +125,7 @@ function bridge(x,y,s){
  return group(x,y,s,a);
 }
 function windmill(x,y,s){
- return group(x,y,s,'<path d="M-23 0L-15 -61H15L24 0Z" fill="url(#sb-cream)" stroke="#b99365" stroke-width="2"/><path d="M-27 -59L0 -86L26 -59Z" fill="url(#sb-roof)" stroke="#af6c50" stroke-width="2"/><path d="M-7 0V-16Q0 -28 7 -16V0" fill="#9e7044"/><g class="sb-windmill" transform="translate(0 -48)">'+[0,90,180,270].map(a=>'<g transform="rotate('+a+')"><path d="M0 0V-44" stroke="#9b754c" stroke-width="3"/><path d="M0 -11L12 -19L12 -43H0Z" fill="#fff4cc" stroke="#a98054" stroke-width="1.7"/><path d="M0 -26H12M5 -15V-43" stroke="#d1b58a" stroke-width="1"/></g>').join('')+'<circle r="5" fill="#bc8550" stroke="#ffdc96" stroke-width="1.5"/></g>');
+ return group(x,y,s,'<path d="M-23 0L-15 -61H15L24 0Z" fill="url(#sb-cream)" stroke="#b99365" stroke-width="2"/><path d="M-27 -59L0 -86L26 -59Z" fill="url(#sb-roof)" stroke="#af6c50" stroke-width="2"/><path d="M-7 0V-16Q0 -28 7 -16V0" fill="#9e7044"/><g transform="translate(0 -48)"><g class="sb-windmill"><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="13s" repeatCount="indefinite"/>'+[0,90,180,270].map(a=>'<g transform="rotate('+a+')"><path d="M0 0V-44" stroke="#9b754c" stroke-width="3"/><path d="M0 -11L12 -19L12 -43H0Z" fill="#fff4cc" stroke="#a98054" stroke-width="1.7"/><path d="M0 -26H12M5 -15V-43" stroke="#d1b58a" stroke-width="1"/></g>').join('')+'<circle r="5" fill="#bc8550" stroke="#ffdc96" stroke-width="1.5"/></g></g>');
 }
 function road(d,w){
  return '<path d="'+d+'" fill="none" stroke="#7ea74b" stroke-width="'+(w+7)+'" stroke-linecap="round" opacity=".25"/><path d="'+d+'" fill="none" stroke="#d7b97c" stroke-width="'+(w+2)+'" stroke-linecap="round"/><path d="'+d+'" fill="none" stroke="#f7e5b4" stroke-width="'+w+'" stroke-linecap="round"/><path d="'+d+'" fill="none" stroke="#d5b68a" stroke-width="2" stroke-dasharray="2 19" stroke-linecap="round" opacity=".7"/>';
@@ -156,6 +167,17 @@ function scene(){
  a+=mushroom(48,586,1.25)+mushroom(87,595,.72)+mushroom(909,675,1.35)+mushroom(866,690,.7);
  a+=lantern(260,419,.75)+lantern(612,382,.7)+lantern(671,421,.75)+lantern(788,430,.75);
  a+=cottage(475,437,1.12);
+ // Decorative fence and meadow edge details are scenery, not unlockable construction.
+ for(const [x,y,k] of [[120,536,0.9],[309,592,.65],[790,506,.65]]){
+  a+=group(x,y,k,'<path d="M-30 4Q0 13 30 4" stroke="#a7794b" stroke-width="2.7" fill="none"/><path d="M-30 -3Q0 6 30 -3" stroke="#d1a16b" stroke-width="3" fill="none"/>'+[-30,-10,10,30].map(i=>'<path d="M'+i+' 9V-12" stroke="#9b7047" stroke-width="4" stroke-linecap="round"/><circle cx="'+i+'" cy="-12" r="2.3" fill="#efcd93"/>').join(''));
+ }
+ // Small, independent decorative butterflies with fluttering wings and gentle continuous flight.
+ const flights=[
+  {path:'M287 183Q328 165 339 195Q308 221 287 183Z',c:'#f9c969',d:7},
+  {path:'M838 552Q892 522 902 571Q865 606 838 552Z',c:'#f8b3d3',d:9},
+  {path:'M109 583Q140 550 177 582Q140 610 109 583Z',c:'#e8c1fa',d:8}
+ ];
+ a+='<g pointer-events="none">'+flights.map((b,i)=>'<g class="sb-butterfly-flight"><animateMotion path="'+b.path+'" dur="'+b.d+'s" begin="-'+i*2+'s" repeatCount="indefinite"/><g class="sb-flutter"><path d="M0 1Q-12 -12 -14 -2Q-15 7 0 2Q13 -12 15 -3Q13 7 0 2Z" fill="'+b.c+'" stroke="#fff5d6" stroke-width="1.2"/><ellipse cx="0" cy="2" rx="1.5" ry="5" fill="#775241"/><path d="M0 -2Q-2 -7 -5 -8M0 -2Q2 -7 5 -8" fill="none" stroke="#775241" stroke-width="1"/></g></g>').join('')+'</g>';
  // Framing foliage brings the viewpoint into the miniature landscape.
  a+='<g pointer-events="none" opacity=".95">'+canopy(-16,181,1.25)+canopy(958,159,1.05)+'</g>';
  a+='<g id="village-buildings"></g><g id="village-combo-effects"></g><g id="village-residents"></g><g class="sb-night-shade" pointer-events="none"><rect width="960" height="720" fill="#152d69" opacity=".29"/></g>';
@@ -193,7 +215,7 @@ function plotNode(p,st,selected){
  const sign='<g filter="url(#sb-shadow)"><path d="M0 4V-40" stroke="#9c693f" stroke-width="6" stroke-linecap="round"/><rect x="-23" y="-47" width="46" height="25" rx="6" fill="url(#sb-wood)" stroke="#a06c40" stroke-width="2"/><path d="M-18 -41H18M-18 -27H18" stroke="#ffe0a7" stroke-width="1.5" opacity=".73"/><path d="M-8 -35L-1 -42L5 -36L1 -32L8 -25L4 -23L-3 -30L-7 -27L-13 -33Z" fill="#fff1c4" stroke="#a27850" stroke-width=".65"/></g>';
  return group(p.x,p.y,1,'<g class="plot-interactive'+(chosen?' selected':'')+'" data-plot="'+p.id+'" tabindex="0" role="button" aria-label="'+name+', plot '+(p.id+1)+'">'+
  '<ellipse cy="-3" rx="59" ry="29" fill="transparent" pointer-events="all"/>'+ring+
- (item?building(id,lv)+'<text class="plot-name" y="34">'+name+'</text>'+(lv>1?'<text class="plot-level" y="-116">'+('★'.repeat(lv))+'</text>':''):sign)+
+ (item?building(id,lv)+'<text class="plot-name" y="34">'+name+'</text>'+(lv>1?'<text class="plot-level" y="50">'+('★'.repeat(lv))+'</text>':''):sign)+
  '</g>');
 }
 function render(st,selected){
