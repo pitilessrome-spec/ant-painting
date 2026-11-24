@@ -84,6 +84,24 @@ function adminAuthorized(header,secret){
  const supplied=Buffer.from(header.slice(7),'utf8'),expected=Buffer.from(secret,'utf8');
  return supplied.length===expected.length&&timingSafeEqual(supplied,expected);
 }
+const adReportParser=require('../lib/ad-report.js');
+const ADS_REPORT_SQL="CREATE TABLE IF NOT EXISTS admin_adsgram_reports (\n  platform TEXT NOT NULL CHECK (platform='ANT CANVAS'),\n  period_start DATE NOT NULL, period_end DATE NOT NULL,\n  impressions BIGINT NOT NULL CHECK (impressions>=0),\n  revenue NUMERIC(20,8) NOT NULL CHECK (revenue>=0),\n  imported_at TIMESTAMPTZ NOT NULL DEFAULT now(),\n  PRIMARY KEY(platform,period_start,period_end),\n  CHECK(period_start<=period_end)\n);";
+let adsReportMigration;
+async function ensureAdsReports(db){if(!adsReportMigration)adsReportMigration=db.query(ADS_REPORT_SQL).catch(e=>{adsReportMigration=null;throw e});return adsReportMigration}
+async function adminAdReport(req,res){
+ const key=process.env.ANT_ADMIN_KEY;
+ if(!key||key.length<32)return json(res,503,{error:'Administrator access is not configured'});
+ if(!adminAuthorized(req.headers.authorization,key))return json(res,401,{error:'Invalid administrator credentials'});
+ if(!process.env.DATABASE_URL)return json(res,503,{error:'Database is not configured'});
+ if(!['GET','POST'].includes(req.method))return json(res,405,{error:'Method not allowed'});
+ let report;
+ if(req.method==='POST'){try{const b=req.body||{};report=adReportParser.parse(b.csv,b.from,b.to)}catch(e){return json(res,400,{error:e.message})}}
+ const db=connection();await ensureAdsReports(db);
+ if(report)await db.query("INSERT INTO admin_adsgram_reports(platform,period_start,period_end,impressions,revenue) VALUES($1,$2,$3,$4,$5) ON CONFLICT(platform,period_start,period_end) DO UPDATE SET impressions=EXCLUDED.impressions,revenue=EXCLUDED.revenue,imported_at=now()",[report.platform,report.from,report.to,report.impressions,report.revenue]);
+ const {rows}=await db.query("SELECT platform,period_start::text AS from,period_end::text AS to,impressions::text,revenue::text,imported_at AS \"importedAt\" FROM admin_adsgram_reports WHERE platform='ANT CANVAS' ORDER BY imported_at DESC,period_end DESC LIMIT 1");
+ return json(res,200,{report:rows[0]?{...rows[0],impressions:Number(rows[0].impressions),source:'admin_csv',currency:'USDT'}:null});
+}
+
 async function adminStats(req,res){
  const key=process.env.ANT_ADMIN_KEY;
  if(!key||key.length<32)return json(res,503,{error:'Administrator access is not configured'});
@@ -208,6 +226,7 @@ async function handler(req,res) {
   const path=(req.url||'').split('?')[0].replace(/^\/api\/?/,'').replace(/\/$/,'');
   if (path==='health' && req.method==='GET') return json(res,200,{status:'online',botConfigured:!!process.env.TELEGRAM_BOT_TOKEN,storageConfigured:!!process.env.DATABASE_URL,adminConfigured:typeof process.env.ANT_ADMIN_KEY==='string'&&process.env.ANT_ADMIN_KEY.length>=32});
   try {
+    if(path==='admin/ad-report')return await adminAdReport(req,res);
     if (path==='admin/stats' && req.method==='GET') return await adminStats(req,res);
     if (path==='webhook' && req.method==='POST') return await handleWebhook(req,res);
     if (!['profile','profile/name','leaderboard','start-level','progress','backup','social/friends','social/publish','social/visit','social/overview','social/like','social/gift','social/contest/enter','social/contest/withdraw','social/contest/view','social/contest/vote'].includes(path)) return json(res,404,{error:'Not found'});
