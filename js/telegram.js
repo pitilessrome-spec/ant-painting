@@ -81,7 +81,7 @@
     $('#tg-invite').addEventListener('click', share);
     $('#tg-name-show').addEventListener('click',()=>setNamePreference(true));
     $('#tg-name-hide').addEventListener('click',()=>setNamePreference(false));
-    $('#tg-cloud').addEventListener('click',()=>{location.href='social.html?v=community-v34'});
+    $('#tg-cloud').addEventListener('click',()=>{location.href='social.html?v=world-v35'});
     $('#tg-refresh').addEventListener('click', () => validated ? fetchRanks() : connect());
     $('#tg-online-start').addEventListener('click', () => { closePanel(); if (typeof window.newLevel === 'function') window.newLevel(bestOnline + 1); });
     $('#tg-close').addEventListener('click', closePanel);

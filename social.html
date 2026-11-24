@@ -15,7 +15,7 @@ async function load(){backup=await api('backup');$('backup-info').textContent=ba
 const REGION_NAMES={garden:'🌿 Storybook Garden',forest:'🍄 Mushroom Forest',island:'🏝️ Coral Island',snow:'❄️ Snowlight Valley'};
 const ITEM_IDS=['flower','mushroom','lantern','fountain','butterfly','castle','grove','dock','ice'];
 let visitData=null,visitRegion='',scenePromise=null;
-function loadScene(){if(window.AntVillageScene)return Promise.resolve(window.AntVillageScene);if(!scenePromise)scenePromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='js/village-storybook.js?v=community-v34';script.onload=()=>window.AntVillageScene?resolve(window.AntVillageScene):reject(Error('Map not available'));script.onerror=()=>reject(Error('Map could not load'));document.body.append(script)}).catch(e=>{scenePromise=null;throw e});return scenePromise}
+function loadScene(){if(window.AntVillageScene)return Promise.resolve(window.AntVillageScene);if(!scenePromise)scenePromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='js/village-storybook.js?v=world-v35';script.onload=()=>window.AntVillageScene?resolve(window.AntVillageScene):reject(Error('Map not available'));script.onerror=()=>reject(Error('Map could not load'));document.body.append(script)}).catch(e=>{scenePromise=null;throw e});return scenePromise}
 function visitClock(){if(!visitData||!window.AntVillageScene)return;const h=new Date().getHours();window.AntVillageScene.setNight(h<6||h>=18);$('visit-scene-label').textContent=(h<6||h>=18?'🌙 ':'☀️ ')+(REGION_NAMES[visitRegion]||'Village')+' · Guest'}
 async function renderVisit(id){
  if(!visitData)return;const r=visitData.regions.find(x=>x.region===id&&x.unlocked!==false);if(!r)return;

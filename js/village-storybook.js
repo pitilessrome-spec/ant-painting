@@ -28,11 +28,15 @@ const gardenRoads=[
 // Varying initial positions and walking speeds prevent a line of synchronized workers.
 let plots=gardenPlots,roads=gardenRoads,loops=[roads[0]],region='garden',generation=0;
 const layouts={
- forest:[[160,295],[350,245],[740,270],[110,475],[820,450],[230,620],[475,630],[790,620]],
- island:[[180,280],[365,230],[730,280],[135,475],[825,445],[245,615],[485,630],[760,615]],
- snow:[[155,300],[345,245],[750,265],[120,470],[835,440],[240,615],[470,630],[790,615]]
+ forest:{points:[[170,238],[365,180],[690,195],[790,345],[195,459],[385,416],[610,594],[805,590]],routes:['M128 265Q235 306 344 249Q425 206 510 273Q613 316 710 241Q795 214 834 280Q864 341 780 370Q684 399 596 348Q485 292 408 343Q331 394 230 359Q126 332 128 265Z','M144 510Q254 558 390 476Q476 417 566 484Q625 538 775 523Q866 523 870 600Q859 666 753 657Q620 681 542 625Q465 571 373 597Q221 638 145 574Q123 545 144 510Z'],spurs:['M344 249Q365 218 365 180','M710 241L690 195','M230 359Q186 410 195 459','M390 476L385 416','M566 484Q578 550 610 594','M775 523L805 590','M408 343Q443 385 476 417']},
+ island:{points:[[150,259],[335,264],[665,206],[817,321],[143,524],[325,604],[638,530],[810,605]],routes:['M99 279Q150 180 288 210Q370 235 389 299Q357 355 230 350Q103 350 99 279Z','M594 248Q663 170 772 234Q865 270 863 344Q801 400 689 345Q600 316 594 248Z','M86 542Q141 454 255 499Q354 529 365 605Q290 662 158 631Q83 607 86 542Z','M577 550Q660 463 771 520Q870 561 862 620Q782 680 657 648Q590 629 577 550Z'],spurs:['M389 299Q482 327 594 248','M230 350Q206 416 185 488','M689 345Q720 424 700 491','M365 605Q476 570 577 550']},
+ snow:{points:[[230,210],[418,210],[600,305],[786,335],[141,435],[333,505],[580,615],[800,590]],routes:['M175 245Q260 170 395 253Q489 319 590 348Q716 395 835 373Q890 401 835 430Q729 464 589 420Q480 382 382 325Q260 260 175 285Q136 270 175 245Z','M92 479Q170 411 274 470Q402 547 511 537Q656 510 833 546Q885 574 844 640Q775 684 645 660Q475 616 330 622Q196 620 106 565Q67 537 92 479Z'],spurs:['M260 210L230 210','M395 253L418 210','M590 348L600 305','M835 373L786 335','M274 470L333 505','M511 537L580 615','M833 546L800 590','M382 325Q324 410 274 470']}
 };
-function configureRegion(id){region=layouts[id]?id:'garden';if(region==='garden'){plots=gardenPlots;roads=gardenRoads}else{plots=layouts[region].map((p,i)=>({id:[0,1,2,3,5,6,7,8][i],x:p[0],y:p[1]}));const ring=region==='forest'?'M230 365 C290 280 520 235 660 310 C730 355 715 470 635 535 C520 595 290 570 205 480 C175 430 185 395 230 365Z':region==='island'?'M225 365 C320 255 550 250 685 335 C755 400 715 500 615 540 C475 595 285 565 210 465 C185 420 190 395 225 365Z':'M225 360 C325 270 545 250 685 325 C755 395 720 490 635 540 C485 605 280 570 205 470 C170 425 190 390 225 360Z';const anchors=[[230,365],[350,285],[685,325],[205,470],[715,440],[280,550],[475,570],[635,540]];roads=[ring,...plots.map((p,i)=>'M'+anchors[i][0]+' '+anchors[i][1]+' Q'+(p.x+anchors[i][0])/2+' '+anchors[i][1]+' '+p.x+' '+p.y)]}loops=[roads[0]];}
+function configureRegion(id){
+ region=Object.hasOwn(layouts,id)?id:'garden';
+ if(region==='garden'){plots=gardenPlots;roads=gardenRoads;loops=[roads[0]];return}
+ const l=layouts[region];plots=l.points.map((p,i)=>({id:[0,1,2,3,5,6,7,8][i],x:p[0],y:p[1]}));loops=l.routes;roads=[...l.routes,...l.spurs];
+}
 
 let seed=73191;
 function rnd(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
@@ -48,7 +52,7 @@ const defs='<defs>'+
  '<pattern id="sb-paper" patternUnits="userSpaceOnUse" width="19" height="19"><circle cx="3" cy="4" r=".7" fill="#fffbd1" opacity=".3"/><circle cx="13" cy="13" r=".8" fill="#346e43" opacity=".12"/></pattern>'+
  '</defs>';
 function flower(x,y,s,c){
- let petals='';for(let i=0;i<5+guestCount;i++){const a=i*Math.PI*2/5;petals+='<ellipse cx="'+n(Math.sin(a)*4.7)+'" cy="'+n(-13+Math.cos(a)*4.7)+'" rx="4.1" ry="5.6" transform="rotate('+(-i*72)+' '+n(Math.sin(a)*4.7)+' '+n(-13+Math.cos(a)*4.7)+')" fill="'+c+'" stroke="#fff4cc" stroke-width=".55"/>';}
+ let petals='';for(let i=0;i<5;i++){const a=i*Math.PI*2/5;petals+='<ellipse cx="'+n(Math.sin(a)*4.7)+'" cy="'+n(-13+Math.cos(a)*4.7)+'" rx="4.1" ry="5.6" transform="rotate('+(-i*72)+' '+n(Math.sin(a)*4.7)+' '+n(-13+Math.cos(a)*4.7)+')" fill="'+c+'" stroke="#fff4cc" stroke-width=".55"/>';}
  return group(x,y,s,'<path d="M0 0Q-1 -7 0 -13M0 -4Q-7 -9 -9 -4M0 -7Q7 -12 9 -7" fill="none" stroke="#4b8b43" stroke-width="1.9" stroke-linecap="round"/>'+petals+'<circle cy="-13" r="3" fill="#ffd576" stroke="#e6a74f" stroke-width=".6"/>');
 }
 function flowerbed(x,y,s,count=14){
@@ -194,40 +198,58 @@ function scene(){
 }
 function pine(x,y,k){return group(x,y,k,shadow(42,10)+'<path d="M-8 3V-90H8V3Z" fill="#796b65"/><path d="M-55 -30L0 -145L55 -30Z" fill="#466f7c" stroke="#b8dce1" stroke-width="2"/><path d="M-43 -69L0 -165L43 -69Z" fill="#537f90"/><path d="M0 -165L-25 -110L-7 -116L7 -103L28 -110Z M-40 -64L-53 -34L-19 -46L3 -37L23 -47L53 -34L40 -64L12 -55L0 -66L-15 -55Z" fill="#f0f8fa"/>')}
 function palm(x,y,k){return group(x,y,k,shadow(42,10)+'<path d="M-8 0Q15 -57 2 -112L13 -112Q31 -60 7 0Z" fill="#c19462" stroke="#98693d" stroke-width="2"/>'+[-65,-33,0,35,68].map(a=>'<g transform="translate(7 -110) rotate('+a+')"><path d="M0 0Q-42 -35 -66 2Q-35 -8 0 0Z" fill="#4d9d69" stroke="#a9dd83" stroke-width="2"/></g>').join('')+'<circle cx="5" cy="-105" r="7" fill="#9d6d45"/>')}
-function regionalDetails(forest,island,snow){
- let a='';
- if(forest){
-  a+='<g opacity=".7"><path d="M0 180Q145 95 275 170T590 154T960 170V210Q830 168 690 220T355 208T0 230Z" fill="#677f4e"/><path d="M0 170Q120 112 230 145M730 157Q842 106 960 155" fill="none" stroke="#456944" stroke-width="9"/></g>';
-  for(let i=0;i<36;i++){let x=12+rnd()*936,y=252+rnd()*450;if(plots.some(p=>Math.hypot(x-p.x,y-p.y)<72)||Math.hypot(x-475,y-430)<160)continue;a+=mushroom(n(x),n(y),n(.18+rnd()*.38));if(i%3===0)a+='<circle cx="'+n(x+8)+'" cy="'+n(y-18)+'" r="12" fill="url(#sb-light)" opacity=".6"/>'}
- }else if(island){
-  a+='<g opacity=".85"><path d="M0 396Q38 375 69 400M2 430Q32 411 66 437M895 403Q930 369 960 376M902 486Q935 454 960 457" stroke="#e7ffff" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M30 523l28 -13 25 13-25 8Z" fill="#bf8150"/><path d="M56 513V478L78 507Z" fill="#fff2c2" stroke="#ddbb82" stroke-width="2"/></g>';
-  for(let i=0;i<30;i++){let x=20+rnd()*920,y=274+rnd()*430;if(plots.some(p=>Math.hypot(x-p.x,y-p.y)<74)||Math.hypot(x-475,y-430)<155)continue;a+=group(n(x),n(y),n(.4+rnd()*.45),'<path d="M0 0Q-12 -15 -7 -25Q1 -22 1 -11Q10 -28 18 -24Q23 -15 5 0Z" fill="'+['#efae9c','#f4d58b','#cf8ead'][i%3]+'"/><circle cx="0" cy="-7" r="2" fill="#fff6d5"/>')}
- }else if(snow){
-  a+='<g class="is-night-only" opacity=".65"><path d="M30 93Q210 14 390 105T740 65T960 82" fill="none" stroke="#9ce7bd" stroke-width="20" stroke-linecap="round"/><path d="M25 103Q210 35 390 120T735 80T960 100" fill="none" stroke="#c4a4ef" stroke-width="10" stroke-linecap="round"/></g>';
-  for(let i=0;i<38;i++){let x=15+rnd()*930,y=295+rnd()*415;if(plots.some(p=>Math.hypot(x-p.x,y-p.y)<70)||Math.hypot(x-475,y-430)<150)continue;a+=group(n(x),n(y),n(.5+rnd()*.6),'<ellipse rx="15" ry="5" fill="#b5d5e1"/><path d="M-8 -1L-3 -16 3 -25 10 -10 7 0Z" fill="#aedbea" stroke="#f7feff" stroke-width="1.4"/>')}
- }
+// V3.5: three independent environments, with unique silhouettes and route networks.
+const extraDefs='<defs><linearGradient id="m-forest" x2=".25" y2="1"><stop stop-color="#2e5550"/><stop offset=".42" stop-color="#728a60"/><stop offset="1" stop-color="#344e43"/></linearGradient><linearGradient id="m-bark" x2="1" y2=".2"><stop stop-color="#3d4437"/><stop offset=".45" stop-color="#886446"/><stop offset=".8" stop-color="#ae8056"/><stop offset="1" stop-color="#544b39"/></linearGradient><linearGradient id="m-water" x2=".35" y2="1"><stop stop-color="#b2eee0"/><stop offset=".45" stop-color="#42b9ba"/><stop offset="1" stop-color="#217f9c"/></linearGradient><linearGradient id="m-sand" x2=".3" y2="1"><stop stop-color="#fff5ce"/><stop offset="1" stop-color="#dfb87e"/></linearGradient><linearGradient id="m-snow" x2=".4" y2="1"><stop stop-color="#fffef9"/><stop offset=".55" stop-color="#e0edf2"/><stop offset="1" stop-color="#9db9cb"/></linearGradient><linearGradient id="m-cliff" x2=".2" y2="1"><stop stop-color="#a1adbe"/><stop offset="1" stop-color="#566d83"/></linearGradient><radialGradient id="m-mist"><stop stop-color="#fff3bd" stop-opacity=".8"/><stop offset="1" stop-color="#fff3bd" stop-opacity="0"/></radialGradient><filter id="m-depth" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#233b43" flood-opacity=".36"/></filter></defs>';
+function plate(x,y,rx,ry,top,edge){return '<g filter="url(#m-depth)"><ellipse cx="'+x+'" cy="'+(y+16)+'" rx="'+rx+'" ry="'+ry+'" fill="'+edge+'"/><ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" fill="'+top+'" stroke="#f6e7b8" stroke-opacity=".65" stroke-width="3"/></g>'}
+function planks(d,w=25){return '<path d="'+d+'" stroke="#453b32" stroke-opacity=".6" stroke-width="'+(w+9)+'" fill="none" stroke-linecap="round"/><path d="'+d+'" stroke="#be9262" stroke-width="'+w+'" fill="none" stroke-linecap="round"/><path d="'+d+'" stroke="#7e5b43" stroke-width="'+(w-5)+'" stroke-dasharray="2 10" fill="none" opacity=".55"/><path d="'+d+'" stroke="#f5ca83" stroke-width="2" fill="none" opacity=".85"/>'}
+function paths(color,edge,width){return roads.map((d,i)=>'<path d="'+d+'" stroke="'+edge+'" stroke-width="'+(i<loops.length?width+8:width-2)+'" stroke-linecap="round" fill="none"/><path d="'+d+'" stroke="'+color+'" stroke-width="'+(i<loops.length?width:width-8)+'" stroke-linecap="round" fill="none"/>').join('')}
+function forestWorld(){
+ let a='<rect width="960" height="720" fill="url(#m-forest)"/><ellipse cx="480" cy="98" rx="420" ry="230" fill="url(#m-mist)"/>';
+ for(let i=0;i<16;i++){let x=-30+i*70,y=540+(i%3)*55,w=33+(i%4)*17;a+='<path d="M'+(x-w)+' 0Q'+(x+w)+' 160 '+(x-w*.35)+' '+y+'L'+(x+w)+' '+(y+35)+'Q'+(x+w*1.5)+' 250 '+(x+w)+' 0Z" fill="'+['#36584c','#466351','#56705a'][i%3]+'" opacity=".55"/>'}
+ a+='<path d="M0 580Q210 510 371 574T700 551T960 577V720H0Z" fill="#344e42"/><path d="M0 632Q240 560 380 651T720 617T960 649V720H0Z" fill="#253e38"/>';
+ a+='<path d="M416 0Q390 110 428 240Q462 350 435 495L395 654Q470 603 509 650L566 690Q501 522 541 383Q578 222 533 0Z" fill="url(#m-bark)" stroke="#514b38" stroke-width="5"/><path d="M450 0Q423 170 474 300T465 580M510 0Q546 174 502 324T516 597" stroke="#cf9d65" stroke-width="6" opacity=".44" fill="none"/><path d="M465 206Q260 162 84 235M522 248Q690 136 923 228M463 432Q266 362 36 486M514 511Q734 448 950 565" stroke="#554c38" stroke-width="45" fill="none" stroke-linecap="round"/>';
+ for(const p of [[170,238,110,60],[365,180,98,50],[690,195,103,55],[790,345,110,55],[195,459,120,57],[385,416,104,54],[610,594,115,58],[805,590,118,56]])a+=plate(...p,'#aeaf72','#6e6648');
+ for(const d of roads)a+=planks(d,loops.includes(d)?23:19);
+ // The tree itself is the landmark, not a central cottage.
+ a+=group(478,157,1.08,'<path d="M-53 1V-57Q0-115 53-57V1Z" fill="#d8ae76" stroke="#72533b" stroke-width="4"/><path d="M-65-51Q-46-103 0-109Q47-105 65-51Z" fill="#bd6f73" stroke="#6a4e42" stroke-width="4"/><path d="M-18 2V-25Q0-47 18-25V2Z" fill="#614b37"/>'+windowShape(-32,-38,9)+windowShape(32,-38,9)+'<rect x="-60" y="7" width="120" height="19" rx="7" fill="#664c37"/><text y="20" text-anchor="middle" font-size="11" fill="#fff1bc" font-weight="bold">TREETOP POST</text>');
+ for(const p of [[35,175,1.05],[890,180,1.1],[55,444,.85],[912,465,1.15],[50,697,1.12],[905,712,1.12]])a+=canopy(...p);
+ for(let i=0;i<35;i++){const x=20+rnd()*920,y=100+rnd()*590;if(plots.some(p=>Math.hypot(x-p.x,y-p.y)<90))continue;a+=mushroom(n(x),n(y),n(.2+rnd()*.4));a+='<circle cx="'+n(x+9)+'" cy="'+n(y-22)+'" r="2.8" fill="#ffefa0" opacity=".85"/>'}
+ a+='<g class="is-night-only">'+Array.from({length:40},(_,i)=>'<circle cx="'+(24+i*83%914)+'" cy="'+(70+i*61%610)+'" r="9" fill="url(#sb-light)"/>').join('')+'</g>';
+ return a;
+}
+function islandWorld(){
+ let a='<rect width="960" height="720" fill="url(#m-water)"/>';
+ // A lagoon and four separate islands, connected by actual wooden causeways.
+ for(let i=0;i<32;i++){const x=(i*83+43)%960,y=35+(i*53)%650;a+='<path d="M'+x+' '+y+'q20 -7 40 0t40 0" fill="none" stroke="#d8ffff" stroke-opacity=".38" stroke-width="2.5" stroke-linecap="round" class="sb-water-glint"/>'}
+ for(const [x,y,rx,ry] of [[242,263,210,126],[735,270,200,130],[224,558,207,126],[728,585,208,120]]){a+='<ellipse cx="'+x+'" cy="'+(y+8)+'" rx="'+(rx+17)+'" ry="'+(ry+17)+'" fill="#c4f1e4" opacity=".6"/>'+plate(x,y,rx,ry,'url(#m-sand)','#bc9c68');a+='<ellipse cx="'+x+'" cy="'+(y-3)+'" rx="'+(rx-25)+'" ry="'+(ry-28)+'" fill="#a7cb83" opacity=".8"/>'}
+ for(const d of layouts.island.spurs)a+=planks(d,23);
+ for(const d of loops)a+='<path d="'+d+'" stroke="#ceb282" stroke-width="29" fill="none" stroke-linecap="round"/><path d="'+d+'" stroke="#f7e2ad" stroke-width="22" fill="none" stroke-linecap="round"/>';
+ // lighthouse on its own rock in the open lagoon
+ a+=plate(488,432,72,39,'#e6d6ab','#899c93')+group(488,427,1,'<path d="M-27 0L-17-100H17L27 0Z" fill="#fff1d2" stroke="#ad9d83" stroke-width="3"/><path d="M-23-38H23L19-63H-19Z" fill="#d97768"/><rect x="-25" y="-116" width="50" height="26" rx="4" fill="#ffe9a0" stroke="#7c8d83" stroke-width="4"/><path d="M-32-116L0-143 32-116Z" fill="#bd6c60" stroke="#9a5d50" stroke-width="3"/><path d="M-8 0V-22Q0-34 8-22V0Z" fill="#9d8664"/><g class="is-night-only"><path d="M0-103L-248-150V-52Z" fill="#fff0a5" opacity=".26"/><circle cy="-103" r="54" fill="url(#sb-light)"/></g>');
+ for(const p of [[65,285,.9],[389,223,.66],[575,275,.85],[896,302,1],[43,559,.8],[376,548,.74],[549,622,.85],[909,628,.9]])a+=palm(...p);
+ for(let i=0;i<28;i++){const [cx,cy]=[[242,263],[735,270],[224,558],[728,585]][i%4];const t=rnd()*6.283,rx=130+rnd()*38,x=cx+Math.cos(t)*rx,y=cy+Math.sin(t)*(78+rnd()*16);if(plots.some(p=>Math.hypot(x-p.x,y-p.y)<64))continue;a+=group(n(x),n(y),.65,'<path d="M-12 0Q-17-18-10-22Q-2-18 0-7Q4-28 10-26Q19-21 10-6L18-17Q25-10 12 0Z" fill="'+['#f08c8d','#e5b779','#d597b6'][i%3]+'" stroke="#ffe5c3" stroke-width="1.3"/>')}
+ for(const [x,y,k] of [[475,146,.8],[70,420,.6],[883,447,.8]])a+=group(x,y,k,'<ellipse rx="35" ry="9" fill="#267a92" opacity=".32"/><path d="M-32-4Q0 16 32-4L22 6H-20Z" fill="#b77951" stroke="#8b654e" stroke-width="2"/><path d="M-2-7V-57L27-8Z" fill="#fff3c8" stroke="#d6ad76" stroke-width="2"/><path d="M-6-9V-46L-25-9Z" fill="#efaa91"/>');
+ return a;
+}
+function snowWorld(){
+ let a='<rect width="960" height="720" fill="#c1dce8"/><circle cx="791" cy="75" r="42" fill="#fff4da"/>';
+ a+='<path d="M0 259L110 76 218 244 349 24 505 256 659 51 827 243 950 94 960 720H0Z" fill="#8da7bc"/><path d="M78 133L110 76 146 136 124 127 110 148 95 126ZM295 112L349 24 402 115 370 98 349 123 327 94ZM612 126L659 51 706 130 680 115 659 136 638 112Z" fill="#f6fbff"/>';
+ // Mountain terraces descend diagonally, with cliffs and a frozen lake instead of a central lawn.
+ a+='<g filter="url(#m-depth)"><path d="M0 155Q250 100 430 188L560 291Q732 224 960 320V397Q713 355 547 390L406 276Q200 247 0 297Z" fill="url(#m-cliff)"/><path d="M0 155Q250 100 430 188L560 291Q732 224 960 320L960 359Q713 309 547 345L406 232Q200 203 0 254Z" fill="url(#m-snow)" stroke="#faffff" stroke-width="5"/><path d="M0 380Q180 345 340 438Q460 504 570 470T960 476V720H0Z" fill="url(#m-cliff)"/><path d="M0 366Q180 330 340 423Q460 489 570 455T960 461V674Q800 712 620 670T300 690T0 660Z" fill="url(#m-snow)" stroke="#faffff" stroke-width="5"/></g>';
+ a+='<path d="M0 305Q102 267 170 298L218 333Q126 377 0 381Z" fill="#7bbdce" stroke="#e4f8fc" stroke-width="7"/><path d="M414 352L458 406 437 447 472 489" fill="none" stroke="#bcecf6" stroke-width="29" stroke-linecap="round"/><path d="M414 352L458 406 437 447 472 489" fill="none" stroke="#f4ffff" stroke-width="4" stroke-dasharray="8 10"/>';
+ a+='<ellipse cx="466" cy="603" rx="93" ry="48" fill="#88cad9" stroke="#f6fcfe" stroke-width="10"/><path d="M401 596l40 -14 25 15 29 -8 25 15M447 582l9 -12M495 589l19 -13" stroke="#d6f3fc" stroke-width="2.6" fill="none"/>';
+ a+=paths('#edf0e5','#a8b7bf',21);
+ for(const p of [[44,240,.75],[130,208,.63],[495,233,.63],[903,363,.85],[54,477,.78],[248,389,.65],[898,528,.7],[47,695,1.0],[930,718,1]])a+=pine(...p);
+ a+=group(490,193,.9,'<path d="M-57 0V-57L0-112 57-57V0Z" fill="#9e826c" stroke="#6d6a64" stroke-width="3"/><path d="M-68-57L0-124 68-57L56-47 0-108-56-47Z" fill="#fffafe" stroke="#bbcfdc" stroke-width="4"/><path d="M-13 0V-28Q0-43 13-28V0Z" fill="#765e50"/>'+windowShape(-32,-37,9)+windowShape(32,-37,9)+'<rect x="30" y="-102" width="12" height="39" fill="#927c73"/><path class="sb-smoke" d="M36-111q-12-12 0-20t-2-23" fill="none" stroke="#fff" stroke-width="8" opacity=".55"/>');
+ // Alpine railway cabin and cable route, an unmistakable alpine silhouette.
+ a+='<path d="M65 126L882 272" stroke="#697b8b" stroke-width="3" fill="none"/><path d="M65 126V210M882 272V345" stroke="#748695" stroke-width="8"/>'+group(692,238,.86,'<path d="M0-18V-4" stroke="#667785" stroke-width="3"/><rect x="-29" y="-4" width="58" height="39" rx="10" fill="#c96e67" stroke="#775b60" stroke-width="3"/><rect x="-19" y="3" width="38" height="17" rx="4" fill="#ffe6b6" stroke="#b38d7f" stroke-width="2"/><path d="M0 3V20" stroke="#b38d7f" stroke-width="2"/>');
+ for(let i=0;i<42;i++){let x=15+rnd()*930,y=270+rnd()*430;if(plots.some(p=>Math.hypot(x-p.x,y-p.y)<65))continue;a+=group(n(x),n(y),n(.3+rnd()*.5),'<ellipse rx="15" ry="5" fill="#bfd5e2"/><path d="M-8-1L-3-16 3-25 10-10 7 0Z" fill="#addae9" stroke="#f7feff" stroke-width="1.4"/>')}
+ a+='<g class="is-night-only" opacity=".72"><path d="M0 65Q220-13 390 85T740 42T960 52" stroke="#a2efc8" stroke-width="25" fill="none"/><path d="M0 82Q220 6 390 103T740 58T960 69" stroke="#c9b8ee" stroke-width="11" fill="none"/></g>';
  return a;
 }
 function regionalScene(){
- const forest=region==='forest',island=region==='island',snow=region==='snow';
- const sky=forest?'#f3cf95':island?'#91e6e5':'#bfdaed',land=forest?'#8ea263':island?'#c9df91':'#e1eef2',far=forest?'#627b5c':island?'#6eaf9a':'#8aa9bd',pathColor=forest?'#cdb382':island?'#f9e4b4':'#d5e1df';
- let a=defs+'<rect width="960" height="720" fill="'+sky+'" class="sky-day"/><rect width="960" height="720" fill="url(#sb-night)" class="sky-night" opacity="0"/><g class="is-day-only"><circle cx="790" cy="80" r="56" fill="url(#sb-sun)"/><circle cx="790" cy="80" r="24" fill="#fff5c7"/></g><g class="is-night-only"><circle cx="790" cy="80" r="28" fill="#fff4c5"/>'+Array.from({length:30},(_,i)=>'<circle cx="'+(25+i*83%900)+'" cy="'+(15+i*47%150)+'" r="1.7" fill="#fff5d0"/>').join('')+'</g>';
- if(snow)a+='<path d="M0 300L120 85 245 270 365 60 520 280 705 100 960 310V720H0Z" fill="#91adc0"/><path d="M83 151L120 85 158 151 136 145 120 166 106 146Z M310 148L365 60 418 150 386 137 365 158 345 136Z M650 164L705 100 762 169 728 157 705 179 680 157Z" fill="#f8fbff"/>';
- else a+='<path d="M0 260Q120 110 260 230Q435 80 590 205Q770 120 960 250V720H0Z" fill="'+far+'"/>';
- a+='<path d="M0 330Q145 210 330 300Q530 205 710 285Q840 230 960 300V720H0Z" fill="'+land+'"/>';
- if(island){a+='<path d="M0 400Q90 330 90 450Q30 575 155 720H0Z M960 335Q865 400 900 520Q945 600 815 720H960Z" fill="#57c9ce" stroke="#f9edbc" stroke-width="15"/><path d="M0 470Q80 410 45 550M950 420Q875 500 939 590" fill="none" stroke="#e8ffff" stroke-width="4" stroke-dasharray="13 14"/>'}
- if(forest){for(let i=0;i<10;i++)a+=canopy(20+i*103,236+(i%3)*20,.65+(i%3)*.15);a+='<path d="M0 680Q210 600 360 720H0Z" fill="#7e784d"/>'}
- if(snow){a+='<ellipse cx="724" cy="555" rx="93" ry="34" fill="#9bd9e8" stroke="#f8fcff" stroke-width="9"/><path d="M672 549l40 -8 32 9 42 -10" fill="none" stroke="#d6f5fc" stroke-width="2"/>'}
- for(const [x,y,k] of [[40,365,1],[910,340,1],[65,625,.9],[905,635,1],[278,215,.6],[595,245,.6]])a+=forest?mushroom(x,y,k*2):island?palm(x,y,k):pine(x,y,k);
- a+=regionalDetails(forest,island,snow);
- a+=roads.map((d,i)=>'<path d="'+d+'" fill="none" stroke="'+far+'" stroke-opacity=".35" stroke-width="'+(i?24:42)+'" stroke-linecap="round"/><path d="'+d+'" fill="none" stroke="'+pathColor+'" stroke-width="'+(i?17:32)+'" stroke-linecap="round"/>').join('');
- if(forest)a+=group(475,427,1.25,shadow(115,22)+mushroom(-52,-4,2)+mushroom(48,-8,2.3)+mushroom(0,0,3.4)+windowShape(0,-61,13)+'<path d="M-20 3V-34Q0 -58 20 -34V3Z" fill="#815b41" stroke="#f0c88b" stroke-width="3"/>');
- if(island)a+=group(475,427,1.2,shadow(115,24)+'<path d="M-82 4V-65H82V4Z" fill="#efbd75" stroke="#ad7a49" stroke-width="3"/><path d="M-107 -60Q0 -157 107 -60Q0 -36 -107 -60Z" fill="#d5a047" stroke="#fce6a6" stroke-width="4"/><path d="M-15 4V-40Q0 -58 15 -40V4Z" fill="#926a43"/>'+windowShape(-48,-33,12)+windowShape(48,-33,12)+palm(105,10,.65));
- if(snow)a+=group(475,427,1.2,shadow(112,26)+'<path d="M-85 4V-71L0 -140 85 -71V4Z" fill="#987a65" stroke="#655e5b" stroke-width="3"/><path d="M-99 -71L0 -154 99 -71L82 -60 0 -133 -82 -60Z" fill="#f7fbff" stroke="#c5dae4" stroke-width="4"/><path d="M-20 4V-42Q0 -66 20 -42V4Z" fill="#6e635c"/>'+windowShape(-50,-34,12)+windowShape(50,-34,12)+windowShape(0,-97,12));
- a+=group(475,471,1,'<rect x="-100" y="-12" width="200" height="27" rx="8" fill="#72563e" stroke="#d9c5a2" stroke-width="2"/><text text-anchor="middle" y="6" fill="#fff4cf" font-size="14" font-weight="bold">'+(forest?'MUSHROOM HALL':island?'CORAL HARBOR':'SNOWLIGHT LODGE')+'</text>');
- for(const [x,y,k] of [[65,530,.8],[300,690,.8],[610,665,.8],[915,690,.9]])a+=forest?mushroom(x,y,k):island?group(x,y,k,'<path d="M-18 0Q-26 -24 0 -25Q26 -24 18 0Z" fill="#f49d83" stroke="#fff1c6" stroke-width="2"/><path d="M-12 -2L0 -21 12 -2" fill="none" stroke="#fff0cb" stroke-width="2"/>'):pine(x,y,k*.65);
- a+='<g id="village-buildings"></g><g id="village-combo-effects"></g><g id="village-residents"></g><g class="sb-night-shade" pointer-events="none"><rect width="960" height="720" fill="#152d69" opacity=".29"/></g><g class="is-night-only" pointer-events="none">'+[[-105,-60],[105,-60]].map(p=>'<circle cx="'+(475+p[0])+'" cy="'+(427+p[1])+'" r="65" fill="url(#sb-light)" opacity=".65"/>').join('')+'</g>';
- svg.innerHTML=a;
+ const artwork=region==='forest'?forestWorld():region==='island'?islandWorld():snowWorld();
+ svg.innerHTML=defs+extraDefs+artwork+'<g id="village-buildings"></g><g id="village-combo-effects"></g><g id="village-residents"></g><g class="sb-night-shade" pointer-events="none"><rect width="960" height="720" fill="#152d69" opacity=".29"/></g>';
 }
 function building(id,lv){
  let a=shadow(49,13),s=lv===1?1:lv===2?1.10:1.19;
@@ -264,7 +286,7 @@ function plotNode(p,st,selected,readOnly=false){
  const id=st.placements[p.id],lv=Number(st.upgrades[p.id])||1,chosen=selected===p.id;
  const item=id&&Object.hasOwn(VISIT_NAMES,id)?{name:VISIT_NAMES[id]}:null,name=item?item.name:'Build here';
  if(readOnly){if(!item)return '';return group(p.x,p.y,1,building(id,Math.max(1,Math.min(3,lv)))+'<text class="plot-name" y="34">'+name+'</text>'+(lv>1?'<text class="plot-level" y="50">'+('★'.repeat(Math.max(1,Math.min(3,lv))))+'</text>':''));}
- const ring='<ellipse cy="3" rx="52" ry="18" fill="#a7d969" opacity=".5" stroke="#d6ec91" stroke-width="1.4"/><ellipse class="sb-plot-halo" cy="3" rx="49" ry="16" stroke="#fff0a5" stroke-width="'+(chosen?8:4)+'" fill="none" filter="url(#sb-glow)" opacity="'+(chosen?1:.68)+'"/><ellipse cy="3" rx="49" ry="16" stroke="#fff8c5" stroke-width="'+(chosen?3:1.8)+'" fill="none" opacity=".94"/>';
+ const ring='<ellipse cy="3" rx="52" ry="18" fill="'+(region==='snow'?'#a5d4e3':region==='island'?'#f5d78b':region==='forest'?'#bda66e':'#a7d969')+'" opacity=".5" stroke="#d6ec91" stroke-width="1.4"/><ellipse class="sb-plot-halo" cy="3" rx="49" ry="16" stroke="#fff0a5" stroke-width="'+(chosen?8:4)+'" fill="none" filter="url(#sb-glow)" opacity="'+(chosen?1:.68)+'"/><ellipse cy="3" rx="49" ry="16" stroke="#fff8c5" stroke-width="'+(chosen?3:1.8)+'" fill="none" opacity=".94"/>';
  const sign='<g filter="url(#sb-shadow)"><path d="M0 4V-40" stroke="#9c693f" stroke-width="6" stroke-linecap="round"/><rect x="-23" y="-47" width="46" height="25" rx="6" fill="url(#sb-wood)" stroke="#a06c40" stroke-width="2"/><path d="M-18 -41H18M-18 -27H18" stroke="#ffe0a7" stroke-width="1.5" opacity=".73"/><path d="M-8 -35L-1 -42L5 -36L1 -32L8 -25L4 -23L-3 -30L-7 -27L-13 -33Z" fill="#fff1c4" stroke="#a27850" stroke-width=".65"/></g>';
  return group(p.x,p.y,1,'<g class="plot-interactive'+(chosen?' selected':'')+'" data-plot="'+p.id+'" tabindex="0" role="button" aria-label="'+name+', plot '+(p.id+1)+'">'+
  '<ellipse cy="-3" rx="59" ry="29" fill="transparent" pointer-events="all"/>'+ring+
@@ -276,8 +298,8 @@ function render(st,selected,options={}){
  const b=svg.querySelector('#village-buildings');
  if(b)b.innerHTML=plots.map(p=>{seed=73191+Math.imul(p.id+1,913);return plotNode(p,st,selected,!!options.readOnly)}).join('');
  const fx=svg.querySelector('#village-combo-effects');
- if(fx&&options.readOnly)fx.innerHTML='';
- if(fx&&!options.readOnly&&window.AntVillage){
+ if(fx&&(options.readOnly||region!=='garden'))fx.innerHTML='';
+ if(fx&&!options.readOnly&&window.AntVillage&&region==='garden'){
   fx.innerHTML=window.AntVillage.discoveries().active.map((c,i)=>'<g transform="translate('+(333+i*130)+' '+(359+i*12)+')" class="sb-theme"><circle r="20" fill="url(#sb-light)"/><text text-anchor="middle" y="6" font-size="20">'+c.symbol+'</text></g>').join('');
  }
 }
@@ -305,7 +327,7 @@ function setGuests(count){const next=Math.max(0,Math.min(3,Math.trunc(Number(cou
 function residents(){
  const NS='http://www.w3.org/2000/svg',layer=svg.querySelector('#village-residents');
  const motion=[];
- for(let i=0;i<5;i++){
+ for(let i=0;i<5+guestCount;i++){
   const route=document.createElementNS(NS,'path');route.setAttribute('d',loops[i%loops.length]);route.setAttribute('fill','none');route.setAttribute('stroke','none');layer.appendChild(route);
   const el=document.createElementNS(NS,'g');el.setAttribute('class','resident village-ant');el.setAttribute('pointer-events','none');el.innerHTML=antMarkup(i%3)+(i>=5?'<g transform="translate(0 -24)"><circle r="9" fill="#fff3ce" stroke="#b89b63"/><text text-anchor="middle" y="3" font-size="10" fill="#a05f4a">♥</text></g>':'');layer.appendChild(el);
   const len=route.getTotalLength(),phase=(i*.271)%1;
