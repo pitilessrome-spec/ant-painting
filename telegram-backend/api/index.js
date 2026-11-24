@@ -84,6 +84,50 @@ function adminAuthorized(header,secret){
  const supplied=Buffer.from(header.slice(7),'utf8'),expected=Buffer.from(secret,'utf8');
  return supplied.length===expected.length&&timingSafeEqual(supplied,expected);
 }
+const adReportParser=require('../lib/ad-report.js');
+const AD_EVENTS_SQL="CREATE TABLE IF NOT EXISTS admin_ad_events (\n id UUID PRIMARY KEY, actor TEXT NOT NULL, outcome TEXT NOT NULL CHECK(outcome IN ('pending','completed','failed')),\n requested_at TIMESTAMPTZ NOT NULL DEFAULT now(), finished_at TIMESTAMPTZ\n);\nCREATE INDEX IF NOT EXISTS admin_ad_events_requested_idx ON admin_ad_events(requested_at);\nCREATE INDEX IF NOT EXISTS admin_ad_events_actor_idx ON admin_ad_events(actor,requested_at);";
+let adEventsMigration;
+async function ensureAdEvents(db){if(!adEventsMigration)adEventsMigration=db.query(AD_EVENTS_SQL).catch(e=>{adEventsMigration=null;throw e});return adEventsMigration}
+async function recordAdEvent(req,res,db,user){
+ if(req.method!=='POST')return json(res,405,{error:'Method not allowed'});
+ const {id,outcome}=req.body||{};
+ if(typeof id!=='string'||!(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))||!['pending','completed','failed'].includes(outcome))return json(res,400,{error:'Invalid ad event'});
+ const actor=createHmac('sha256',process.env.TELEGRAM_BOT_TOKEN).update('ad-event:'+user.id).digest('hex');
+ await ensureAdEvents(db);
+ await db.query(`INSERT INTO admin_ad_events(id,actor,outcome,finished_at)
+ SELECT $1,$2,$3,CASE WHEN $3='pending' THEN NULL ELSE now() END
+ WHERE (SELECT count(*) FROM admin_ad_events WHERE actor=$2 AND requested_at>now()-interval '1 day')<200 OR EXISTS(SELECT 1 FROM admin_ad_events WHERE id=$1 AND actor=$2)
+ ON CONFLICT(id) DO UPDATE SET outcome=EXCLUDED.outcome,finished_at=EXCLUDED.finished_at
+ WHERE admin_ad_events.actor=EXCLUDED.actor AND admin_ad_events.outcome='pending' AND EXCLUDED.outcome<>'pending'`,[id,actor,outcome]);
+ return json(res,200,{ok:true});
+}
+const ADS_REPORT_SQL="CREATE TABLE IF NOT EXISTS admin_adsgram_reports (\n  platform TEXT NOT NULL CHECK (platform='ANT CANVAS'),\n  period_start DATE NOT NULL, period_end DATE NOT NULL,\n  impressions BIGINT NOT NULL CHECK (impressions>=0),\n  revenue NUMERIC(20,8) NOT NULL CHECK (revenue>=0),\n  imported_at TIMESTAMPTZ NOT NULL DEFAULT now(),\n  PRIMARY KEY(platform,period_start,period_end),\n  CHECK(period_start<=period_end)\n);";
+let adsReportMigration;
+async function ensureAdsReports(db){if(!adsReportMigration)adsReportMigration=db.query(ADS_REPORT_SQL).catch(e=>{adsReportMigration=null;throw e});return adsReportMigration}
+async function adminAdReport(req,res){
+ const key=process.env.ANT_ADMIN_KEY;
+ if(!key||key.length<32)return json(res,503,{error:'Administrator access is not configured'});
+ if(!adminAuthorized(req.headers.authorization,key))return json(res,401,{error:'Invalid administrator credentials'});
+ if(!process.env.DATABASE_URL)return json(res,503,{error:'Database is not configured'});
+ if(!['GET','POST'].includes(req.method))return json(res,405,{error:'Method not allowed'});
+ let report;
+ if(req.method==='POST'){try{const b=req.body||{};report=adReportParser.parse(b.csv,b.from,b.to)}catch(e){return json(res,400,{error:e.message})}}
+ const db=connection();await ensureAdsReports(db);
+ if(report)await db.query("INSERT INTO admin_adsgram_reports(platform,period_start,period_end,impressions,revenue) VALUES($1,$2,$3,$4,$5) ON CONFLICT(platform,period_start,period_end) DO UPDATE SET impressions=EXCLUDED.impressions,revenue=EXCLUDED.revenue,imported_at=now()",[report.platform,report.from,report.to,report.impressions,report.revenue]);
+ const {rows}=await db.query("SELECT platform,period_start::text AS \"from\",period_end::text AS \"to\",impressions::text,revenue::text,imported_at AS \"importedAt\" FROM admin_adsgram_reports WHERE platform='ANT CANVAS' ORDER BY imported_at DESC,period_end DESC LIMIT 1");
+ const official=rows[0]?{...rows[0],impressions:Number(rows[0].impressions),source:'admin_csv',currency:'USDT'}:null;
+ let telemetry=null;try{
+ await ensureAdEvents(db);
+ const {rows:[today]}=await db.query(`SELECT count(*)::int AS requests,count(*) FILTER(WHERE outcome='completed')::int AS completed,count(*) FILTER(WHERE outcome='failed')::int AS failed FROM admin_ad_events WHERE requested_at>=date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`);
+ const {rows:[coverage]}=await db.query('SELECT min(requested_at) AS since FROM admin_ad_events');
+ let comparison=null;
+ const ecpm=official&&official.impressions>0?Number(official.revenue)*1000/official.impressions:null;
+ if(official){const {rows:[period]}=await db.query(`SELECT count(*)::int AS requests,count(*) FILTER(WHERE outcome='completed')::int AS completed FROM admin_ad_events WHERE requested_at >= ($1::date::timestamp AT TIME ZONE 'UTC') AND requested_at < (($2::date+1)::timestamp AT TIME ZONE 'UTC')`,[official.from,official.to]);comparison={...period,estimate:ecpm===null||!coverage.since?null:period.completed*ecpm/1000}}
+ telemetry={...today,since:coverage.since,ecpm,estimate:ecpm===null||!coverage.since?null:today.completed*ecpm/1000,comparison};
+ }catch(e){console.warn('Ad telemetry unavailable:',e.message)}
+ return json(res,200,{report:official,telemetry});
+}
+
 async function adminStats(req,res){
  const key=process.env.ANT_ADMIN_KEY;
  if(!key||key.length<32)return json(res,503,{error:'Administrator access is not configured'});
@@ -208,14 +252,16 @@ async function handler(req,res) {
   const path=(req.url||'').split('?')[0].replace(/^\/api\/?/,'').replace(/\/$/,'');
   if (path==='health' && req.method==='GET') return json(res,200,{status:'online',botConfigured:!!process.env.TELEGRAM_BOT_TOKEN,storageConfigured:!!process.env.DATABASE_URL,adminConfigured:typeof process.env.ANT_ADMIN_KEY==='string'&&process.env.ANT_ADMIN_KEY.length>=32});
   try {
+    if(path==='admin/ad-report')return await adminAdReport(req,res);
     if (path==='admin/stats' && req.method==='GET') return await adminStats(req,res);
     if (path==='webhook' && req.method==='POST') return await handleWebhook(req,res);
-    if (!['profile','profile/name','leaderboard','start-level','progress','backup','social/friends','social/publish','social/visit','social/overview','social/like','social/gift','social/contest/enter','social/contest/withdraw','social/contest/view','social/contest/vote'].includes(path)) return json(res,404,{error:'Not found'});
+    if (!['ad-event','profile','profile/name','leaderboard','start-level','progress','backup','social/friends','social/publish','social/visit','social/overview','social/like','social/gift','social/contest/enter','social/contest/withdraw','social/contest/view','social/contest/vote'].includes(path)) return json(res,404,{error:'Not found'});
     const header=req.headers.authorization||'';
     const checked=checkInitData(header.startsWith('tma ')?header.slice(4):'',process.env.TELEGRAM_BOT_TOKEN);
     if(!checked.user){console.warn('Telegram authentication rejected:',checked.code);return json(res,checked.code==='BOT_NOT_CONFIGURED'?503:401,{error:'Valid Telegram Mini App sign-in required',code:checked.code});}
     const user=checked.user;
     const db=connection();
+    if(path==='ad-event')return await recordAdEvent(req,res,db,user);
     await ensureNames(db);
     const inviter=referralId(user.startParam,user.id);
     if(inviter){
