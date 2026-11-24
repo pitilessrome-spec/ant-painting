@@ -65,15 +65,37 @@ function paintedScene(){
  let sparks='';for(let i=0;i<15;i++){const x=50+(i*117)%860,y=65+(i*83)%560;sparks+='<circle cx="'+x+'" cy="'+y+'" r="12" fill="url(#sb-light)" opacity=".7"/>'}
  let hot='';if(svg.dataset.readonly!=='true')for(const [x,y,name] of a.hot){const w=Math.max(80,name.length*8+22);hot+=group(x*9.6,y*7.2,1,'<g class="painted-activity" data-activity="1" role="button" tabindex="0" aria-label="'+name+'"><rect x="'+(-w/2)+'" y="-15" width="'+w+'" height="30" rx="15" fill="#fff5d9" stroke="#bb9257" stroke-width="2"/><text text-anchor="middle" y="5" font-size="13" font-weight="bold" fill="#6d4c2a">✦ '+name+'</text></g>')}
  svg.dataset.painted='true';
- svg.innerHTML=defs+'<image id="sb-map-image" width="960" height="720" preserveAspectRatio="none"/>'+(region==='snow'?'':'<g class="sb-night-shade" pointer-events="none"><rect width="960" height="720" fill="#182e63" opacity=".33"/></g>')+'<g class="is-night-only" pointer-events="none">'+sparks+'</g><g id="village-residents"></g><g id="village-buildings"></g><g id="village-combo-effects"></g>'+hot;
+ svg.innerHTML=defs+'<image id="sb-map-image" width="960" height="720" preserveAspectRatio="none"/>'+(region==='snow'?'':'<g class="sb-night-shade" pointer-events="none"><rect width="960" height="720" fill="#182e63" opacity=".33"/></g>')+'<g class="is-night-only" pointer-events="none">'+sparks+'</g><g id="village-buildings"></g><g id="village-residents"></g><g id="village-combo-effects"></g>'+hot;
+}
+// The plot coordinate is a ground-contact anchor, not a UI card center.
+const TERRAIN={garden:{shadow:'#35572c',soil:'#74834b',light:'#bac88b'},forest:{shadow:'#30283c',soil:'#6c6250',light:'#9da56b'},island:{shadow:'#6c6247',soil:'#bca477',light:'#e8d9a6'},snow:{shadow:'#64849b',soil:'#b6d0df',light:'#eff7fc'}};
+const OBJECT_SCALE={flower:.85,mushroom:.83,lantern:.84,fountain:.78,butterfly:.63,castle:.69,grove:.77,dock:.77,ice:.68};
+function naturalGround(){
+ const t=TERRAIN[region]||TERRAIN.garden;
+ let a='<ellipse class="sb-contact-shadow" rx="32" ry="9" cy="2" fill="'+t.shadow+'" opacity=".30"/><path d="M-37 2Q-29 -7 -13 -6Q0 -11 16 -5Q31 -7 39 2Q25 12 8 8Q-7 12 -24 7Z" fill="'+t.soil+'" opacity=".27"/>';
+ for(const [x,y,k] of [[-30,3,.31],[28,5,.28],[-20,9,.23],[23,10,.22]]){
+  if(region==='snow')a+='<path d="M'+(x-6)+' '+y+'q5 -10 10 -3l3 4q-7 5 -13 -1Z" fill="'+t.light+'" opacity=".8"/>';
+  else if(region==='island')a+=group(x,y,k,'<path d="M-10 0Q-13 -18 0 -17Q13 -18 10 0Z" fill="#e6c3a2" stroke="#b69775" stroke-width="1.5"/><path d="M0 -16V0M-6 -13L0 0L6 -13" stroke="#fff0ce" stroke-width="1.4" fill="none"/>')+grass(x+5,y,k*.75);
+  else if(region==='forest')a+=mushroom(x,y,k*.75)+grass(x+5,y,k*.8);
+  else a+=grass(x,y,k)+flower(x+4,y,k*.9,['#e8b0ca','#f5deb0','#c9b0d5','#fff1d6'][Math.abs(x)%4]);
+ }
+ return '<g class="sb-ground-detail" pointer-events="none">'+a+'</g>';
 }
 function paintedPlot(p,st,selected,readOnly){
- const id=st.placements[p.id],lv=Math.max(1,Math.min(3,Number(st.upgrades[p.id])||1)),name=VISIT_NAMES[id]||'Build site '+p.ordinal;
- const marks='<rect x="-43" y="-28" width="86" height="55" rx="12" fill="'+(id?'#dbe9b2':'#916130')+'" stroke="'+(selected===p.id?'#fff':'#fff2c2')+'" stroke-width="'+(selected===p.id?5:2)+'"/><text text-anchor="middle" y="17" font-size="13" font-weight="bold" fill="'+(id?'#4b6736':'#fff6d6')+'">'+(id?'Lv.'+lv:'Plot '+p.ordinal)+'</text>';
- const icons={flower:'🌼',mushroom:'🍄',lantern:'🏮',fountain:'⛲',butterfly:'🦋',castle:'🏰',grove:'✨',dock:'🐚',ice:'🔮'};
- const inner=marks+'<text text-anchor="middle" y="-1" font-size="26">'+(icons[id]||'🔨')+'</text>';
- const visual=id&&Object.hasOwn(VISIT_NAMES,id)?group(0,-29,.66,building(id,lv)):'';
- return group(p.x,p.y,1,readOnly?inner+visual:'<g class="plot-interactive" data-plot="'+p.id+'" tabindex="0" role="button" aria-label="'+name+'">'+inner+visual+'</g>');
+ const id=st.placements[p.id],lv=Math.max(1,Math.min(3,Number(st.upgrades[p.id])||1)),chosen=selected===p.id;
+ const built=!!id&&Object.hasOwn(VISIT_NAMES,id),name=built?VISIT_NAMES[id]:'Build site '+p.ordinal;
+ if(readOnly&&!built)return '';
+ const edge=Math.min(p.x,960-p.x),scale=Math.min(OBJECT_SCALE[id]||.8,Math.max(.42,(edge-4)/60));
+ const ring='<ellipse cy="3" rx="36" ry="13" fill="none" stroke="#fff1c7" stroke-width="2.6" stroke-dasharray="5 5" opacity=".95" pointer-events="none"/>';
+ let visual='';
+ if(built){
+   visual=naturalGround()+group(0,0,scale,building(id,lv,true),'sb-native-object');
+   if(!readOnly&&chosen)visual+='<text class="sb-native-level" text-anchor="middle" y="22" font-size="13" font-weight="800" fill="#fff7dc" stroke="#4c5339" stroke-width="3" paint-order="stroke" pointer-events="none">Lv.'+lv+'</text>'+ring;
+ }else{
+   visual='<g class="sb-empty-site" pointer-events="none">'+ring+'<path d="M0 1V-23" stroke="#8d6748" stroke-width="4" stroke-linecap="round"/><path d="M-15 -24Q0 -30 15 -24L12 -9Q0 -5 -12 -9Z" fill="#af8659" stroke="#f0d5a1" stroke-width="1.5"/><text text-anchor="middle" y="-13" font-size="12" font-weight="800" fill="#fff4d4">'+p.ordinal+'</text></g>';
+ }
+ const hit='<ellipse class="sb-plot-hit" cx="0" cy="-10" rx="36" ry="30" fill="transparent" pointer-events="all"/>';
+ return group(p.x,p.y,1,readOnly?'<g pointer-events="none">'+visual+'</g>':'<g class="plot-interactive'+(chosen?' selected':'')+'" data-plot="'+p.id+'" tabindex="0" role="button" aria-label="'+name+', plot '+p.ordinal+(built?', level '+lv:'')+'">'+hit+visual+'</g>');
 }
 let seed=73191;
 function rnd(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
@@ -295,10 +317,10 @@ function regionalScene(){
  const artwork=region==='forest'?forestWorld():region==='island'?islandWorld():snowWorld();
  svg.innerHTML=defs+extraDefs+artwork+'<g id="village-buildings"></g><g id="village-combo-effects"></g><g id="village-residents"></g><g class="sb-night-shade" pointer-events="none"><rect width="960" height="720" fill="#152d69" opacity=".29"/></g>';
 }
-function building(id,lv){
- let a=shadow(49,13),s=lv===1?1:lv===2?1.10:1.19;
+function building(id,lv,natural=false){
+ let a=natural?'':shadow(49,13),s=lv===1?1:lv===2?1.10:1.19;
  if(id==='flower'){
-  a+='<ellipse rx="48" ry="19" fill="#759f4a" stroke="#d8eda0" stroke-width="3"/>'+flowerbed(0,-4,1,lv===1?12:lv===2?19:28);
+  a+=(natural?'':'<ellipse rx="48" ry="19" fill="#759f4a" stroke="#d8eda0" stroke-width="3"/>')+flowerbed(0,-4,1,lv===1?12:lv===2?19:28);
   if(lv>=2)a+=mushroom(-37,4,.35)+mushroom(37,4,.39);
  }else if(id==='mushroom'){
   a+=mushroom(0,0,1.65)+windowShape(0,-24,8);
@@ -315,7 +337,7 @@ function building(id,lv){
  }else if(id==='grove'){
   a+=mushroom(-25,0,1.35)+mushroom(20,2,1.1)+mushroom(0,-5,1.65)+'<circle cx="0" cy="-62" r="48" fill="url(#sb-light)" opacity=".7"/>';
  }else if(id==='dock'){
-  a+='<ellipse rx="49" ry="20" fill="#60bfc8" stroke="#f7e9b3" stroke-width="4"/><path d="M-45 4L-45 -20 25 -20 25 4Z" fill="url(#sb-wood)" stroke="#a67b4b" stroke-width="2"/><path d="M-25 -20V-48L9 -48 22 -20Z" fill="#ffe0a2" stroke="#b28a5c" stroke-width="2"/><path d="M22 -48V-20L48 -24Z" fill="#ef9a7b"/>';
+  a+=(natural?'':'<ellipse rx="49" ry="20" fill="#60bfc8" stroke="#f7e9b3" stroke-width="4"/>')+'<path d="M-45 4L-45 -20 25 -20 25 4Z" fill="url(#sb-wood)" stroke="#a67b4b" stroke-width="2"/><path d="M-25 -20V-48L9 -48 22 -20Z" fill="#ffe0a2" stroke="#b28a5c" stroke-width="2"/><path d="M22 -48V-20L48 -24Z" fill="#ef9a7b"/>';
  }else if(id==='ice'){
   a+='<path d="M-35 0L-29 -57 0 -111 29 -57 35 0Z" fill="#a2dbe9" stroke="#f4ffff" stroke-width="3"/><path d="M0 -111V0M-29 -57L29 -57" stroke="#e7fdff" stroke-width="2"/>'+windowShape(0,-45,10)+'<circle cy="-98" r="20" fill="url(#sb-light)"/>';
  }else if(id==='castle'){
@@ -323,7 +345,7 @@ function building(id,lv){
   if(lv>=2)a+='<path d="M0 -90V-114" stroke="#986c42" stroke-width="3"/><path d="M0 -114L25 -108L0 -101Z" fill="#ffd97d"/>';
  }
  if(lv===3)a+='<g class="sb-build-spark"><path d="M-42 -86l4 8 8 4-8 4-4 8-4-8-8-4 8-4Z" fill="#fff6ad"/><path d="M42 -70l3 6 6 3-6 3-3 6-3-6-6-3 6-3Z" fill="#fff6ad"/></g>';
- return '<g transform="scale('+s+')" filter="url(#sb-shadow)">'+a+'</g>';
+ return '<g transform="scale('+s+')"'+(natural?'':' filter="url(#sb-shadow)"')+'>'+a+'</g>';
 }
 const VISIT_NAMES=Object.freeze({flower:'Flower Garden',mushroom:'Mushroom House',lantern:'Firefly Lantern',fountain:'Rainbow Fountain',butterfly:'Butterfly Tree',castle:'Royal Ant Palace',grove:'Glow Mushroom Grove',dock:'Shell Harbor',ice:'Crystal Observatory'});
 function plotNode(p,st,selected,readOnly=false){
@@ -343,7 +365,7 @@ function render(st,selected,options={}){
  const jobs=currentJobs().join(',')+'|'+(st.work?.workers||[]).map((a,i)=>a.route??i%5).join(',');if(jobs!==jobSignature){jobSignature=jobs;generation++;const layer=svg.querySelector('#village-residents');if(layer){layer.replaceChildren();residents()}}
  const next=st.world?.active||'garden';if(next!==region||!svg.dataset.mapRegion){generation++;configureRegion(next);svg.dataset.mapRegion=region;scene();residents()}
  const b=svg.querySelector('#village-buildings');
- if(b)b.innerHTML=plots.map(p=>{seed=73191+Math.imul(p.id+1,913);return plotNode(p,st,selected,!!options.readOnly)}).join('');
+ if(b)b.innerHTML=plots.slice().sort((a,b)=>a.y-b.y).map(p=>{seed=73191+Math.imul(p.id+1,913);return plotNode(p,st,selected,!!options.readOnly)}).join('');
  const fx=svg.querySelector('#village-combo-effects');
  if(fx&&(options.readOnly||region!=='garden'||artReady[region]))fx.innerHTML='';
  if(fx&&!options.readOnly&&window.AntVillage&&region==='garden'&&!artReady[region]){
@@ -389,14 +411,14 @@ function residents(){
  let last=0;const run=generation;
  function step(now){
   if(run!==generation)return;
-  if(svg.closest('[hidden]')){last=0;if(!reduced||live)requestAnimationFrame(step);return;}
+  if(document.hidden||svg.closest('[hidden]')){last=0;if(!reduced||live)requestAnimationFrame(step);return;}
   const dt=last?Math.min(.05,(now-last)/1000):0;last=now;
   if(live&&now-lastSample>=200){work=window.AntVillage.workPreview();lastSample=now}
   for(const m of motion){
-   const a=work?.workers[m.index];let working=!!a&&['wood','petal'].includes(a.job);if(working){const phase=a.phase;m.dir=phase<.5?1:-1;m.distance=m.len*(phase<.36?phase/.36:phase<.5?1:phase<.92?1-(phase-.5)/.42:0);m.pause=!a.active||phase>=.36&&phase<.5||phase>=.92?1:0}else if(a){const busy=a.job==='builder'?a.status==='Building':a.status==='Exploring';if(!busy){m.distance=0;m.pause=1;}else if(!reduced){m.pause=0;m.distance=(1+Math.sin(now/3000))*m.len/2;m.dir=Math.cos(now/3000)>=0?1:-1}}
+   const a=work?.workers[m.index];let working=!!a&&['wood','petal'].includes(a.job);if(working){const phase=a.phase;m.dir=phase<.5?1:-1;m.distance=m.len*(phase<.36?phase/.36:phase<.5?1:phase<.92?1-(phase-.5)/.42:0);m.pause=!a.active||phase>=.36&&phase<.5||phase>=.92?1:0}else if(a){const busy=(a.job==='builder'?a.status==='Building':a.status==='Exploring')&&a.taskRegion===region;if(!busy){m.distance=0;m.pause=1;}else if(!reduced){m.pause=0;m.distance=(1+Math.sin(now/3000))*m.len/2;m.dir=Math.cos(now/3000)>=0?1:-1}}
    else if(!reduced){if(m.pause>0){m.pause=Math.max(0,m.pause-dt)}else{m.distance+=m.dir*dt*m.speed;if(m.distance>=m.len||m.distance<=0){m.distance=Math.max(0,Math.min(m.len,m.distance));m.dir*=-1;m.pause=1.4;}}}
    const p=m.route.getPointAtLength(m.distance),q=m.route.getPointAtLength(Math.max(0,Math.min(m.len,m.distance+m.dir*1.5)));
-   const angle=Math.atan2(q.y-p.y,q.x-p.x)*180/Math.PI;
+   const angle=Math.abs(q.x-p.x)+Math.abs(q.y-p.y)>.001?Math.atan2(q.y-p.y,q.x-p.x)*180/Math.PI:(m.angle||0);m.angle=angle;
    m.el.setAttribute('transform','translate('+n(p.x)+' '+n(p.y)+') scale('+m.scale+')');
    m.heading.setAttribute('transform','rotate('+n(angle)+')');
    // The same saved trip phase drives animation and delivery settlement; frame rate cannot create rewards.
@@ -413,5 +435,5 @@ function residents(){
 // Wait for actual saved region or friend's selected region before requesting any map.
 const panel=svg.closest('#world-panel');if(panel&&!panel.querySelector('.map-loading')){const cover=document.createElement('div');cover.className='map-loading';cover.innerHTML='<span class="map-load-icon" aria-hidden="true">🐜</span><strong class="map-load-status" role="status">Preparing your world…</strong><button type="button" class="map-retry" hidden>Retry map</button>';panel.appendChild(cover);}if(panel)panel.querySelector('.map-retry')?.addEventListener('click',retryArt);
 artState('loading');
-window.AntVillageScene=Object.freeze({render,setNight,onSelect,setGuests,retryArt,version:'world-v502-no-flash'});
+window.AntVillageScene=Object.freeze({render,setNight,onSelect,setGuests,retryArt,version:'world-v503-natural-build'});
 })();

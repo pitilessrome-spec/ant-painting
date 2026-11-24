@@ -24,9 +24,16 @@ jobs:
         env:
           ANT_BAIDU_NATIVE: '1'
         run: npm run ios:add && npm run ios:sync
+      - name: Verify CocoaPods sandbox
+        working-directory: ios-app/ios/App
+        run: |
+          pod install
+          test -f Podfile.lock
+          test -f Pods/Manifest.lock
+          diff -u Podfile.lock Pods/Manifest.lock
       - name: Compile unsigned iPhone device app
         run: |
-          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/ant-device" CODE_SIGNING_ALLOWED=NO build
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/ant-device" CODE_SIGNING_ALLOWED=NO 'PODS_ROOT=$(SRCROOT)/Pods' 'PODS_PODFILE_DIR_PATH=$(SRCROOT)' build
           test -d "$RUNNER_TEMP/ant-device/Build/Products/Debug-iphoneos/App.app"
           ditto -c -k --keepParent "$RUNNER_TEMP/ant-device/Build/Products/Debug-iphoneos/App.app" "$RUNNER_TEMP/ANT-CANVAS-iOS-V0.2-unsigned.zip"
       - uses: actions/upload-artifact@v4
