@@ -7,7 +7,7 @@
 <meta name="description" content="Build a cozy village for your tiny ants. Unlock magical buildings, open milestone chests, and discover hidden treasures.">
 <title>My Ant Village · ANT CANVAS</title>
 <link rel="stylesheet" href="css/village-world.css?v=village-world-v2">
-<link rel="stylesheet" href="css/village-storybook.css?v=storybook-v1.1">
+<link rel="stylesheet" href="css/village-storybook.css?v=storybook-v1.2">
 </head>
 <body>
 <header class="topbar">
@@ -31,20 +31,20 @@
     <text x="480" y="305" text-anchor="middle" font-size="19" font-weight="bold" fill="#336579">Growing your ant village...</text>
    </svg>
    <div class="world-plaque"><small>ANT CANVAS WORLD</small>🌿 My Little Village</div>
-   <div class="world-tools"><button id="day-night" type="button" aria-pressed="false">🌙 Night</button><button id="world-sound" type="button">✨ Ants at work</button></div>
+   <div class="world-tools"><button id="day-night" type="button" title="Automatic local time">☀️ Day · Auto</button><button id="world-sound" type="button">✨ Ants at work</button></div>
    <div class="world-story" id="world-story" aria-live="polite">Tap a glowing plot to start building your little world.</div>
   </div>
   <div class="side">
    <section class="panel">
     <h2>🛠️ Decoration Workshop</h2>
-    <p class="sub">Select a plot on the map, then choose a building. You can upgrade each building from level 1 to level 3.</p>
-    <div class="shop-grid" id="shop"></div>
+    <p class="sub">1. Choose a plot. 2. Choose a building below. 3. Tap Build to confirm. Buildings can be upgraded to level 3.</p>
     <div class="build-detail" id="build-detail"><b>Choose a building plot</b>Use your collected materials to create something wonderful.</div>
     <div class="btn-row">
      <button class="btn" id="build" type="button" disabled>Build decoration</button>
      <button class="btn secondary" id="upgrade" type="button" disabled>Upgrade</button>
     </div>
     <div id="village-message" role="status" aria-live="polite">Build your first Flower Garden with materials from your first painting.</div>
+    <div class="shop-grid" id="shop"></div>
    </section>
    <section class="panel treasure-panel">
     <h2>🎁 Secret Treasure Chest</h2>
@@ -82,5 +82,5 @@
 </div>
 <script src="js/village.js?v=village-world-v2"></script>
 <script src="js/village-storybook.js?v=storybook-v1.1"></script>
-<script src="js/village-page.js?v=village-world-v2"></script>
+<script src="js/village-page.js?v=village-build-auto-r1"></script>
 </body></html>
