@@ -1,0 +1,3 @@
+const test=require('node:test'),assert=require('node:assert/strict');const {createReward}=require('./reward');
+test('unset ad id is disabled',async()=>{const a=createReward({},'');assert.equal(a.available(),false);assert.equal(await a.show(),false)});
+test('only full close rewards, no concurrent grant',async()=>{let close,error;const wx={createRewardedVideoAd:()=>({onClose:f=>close=f,onError:f=>error=f,show:()=>Promise.resolve(),load:()=>Promise.resolve()})};const a=createReward(wx,'adunit-test');let p=a.show();assert.equal(await a.show(),false);close({isEnded:false});assert.equal(await p,false);p=a.show();close({isEnded:true});assert.equal(await p,true);p=a.show();error({});assert.equal(await p,false)});

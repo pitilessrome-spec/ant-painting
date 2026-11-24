@@ -1,0 +1,11 @@
+{
+  "description": "ANT CANVAS native WeChat mini-game candidate",
+  "appid": "touristappid",
+  "compileType": "game",
+  "projectname": "ant-canvas-wechat",
+  "setting": {
+    "es6": true,
+    "minified": true
+  },
+  "miniprogramRoot": ""
+}
