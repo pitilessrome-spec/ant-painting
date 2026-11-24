@@ -113,3 +113,5 @@ html{touch-action:manipulation;-webkit-text-size-adjust:100%}button,a,select,[da
 
 /* V5.0.3: transparent natural constructions; UI only on selection. */
 #village-world .sb-ground-detail,#village-world .sb-native-level{pointer-events:none}#village-world .plot-interactive:focus-visible .sb-plot-hit{stroke:#fff0bb;stroke-width:2;stroke-dasharray:4 4}#village-world .plot-interactive{cursor:pointer;touch-action:manipulation}#village-world .sb-native-object{pointer-events:visiblePainted}
+
+@media(prefers-reduced-motion:no-preference){#reveal-modal:not([hidden]) .modal-card{animation:ant-reward-pop .3s cubic-bezier(.2,.8,.2,1) both}@keyframes ant-reward-pop{from{transform:scale(.94);opacity:.65}to{transform:scale(1);opacity:1}}}

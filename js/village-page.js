@@ -17,7 +17,7 @@ function showCollectible(title,emoji,desc){
  $('reveal-title').textContent=title;
  $('reveal-emoji').textContent=emoji;
  $('reveal-desc').textContent=desc;
- $('reveal-modal').hidden=false;
+ $('reveal-modal').hidden=false;window.AntSFX?.play('reward');
  $('reveal-close').focus();
 }
 function missing(st,cost){
@@ -165,7 +165,7 @@ function render(){
 document.getElementById('village-world').addEventListener('ant-site-select',e=>{selectedSite=e.detail.route;renderRewards();$('site-info').scrollIntoView({block:'nearest',behavior:'smooth'})});$('site-assign').onclick=()=>{const r=V.assignRoute(Number($('site-ant').value),selectedSite);announce(r.ok?'Ant assigned to site '+(selectedSite+1):r.error);render()};
 document.getElementById('village-world').addEventListener('ant-worker-select',e=>{const i=e.detail.index;if(!Number.isInteger(i)||i<0||i>=V.workPreview().roles.length)return;announce('Ant '+(i+1)+' · '+JOB_LABELS[V.workPreview().roles[i]]);document.getElementById('manage-workers').click();const sel=$('worker-list').querySelectorAll('select')[i];if(sel){sel.scrollIntoView({block:'center'});sel.focus({preventScroll:true})}});
 $('plot-select').addEventListener('change',e=>{selectedPlot=e.target.value===''?null:Number(e.target.value);selectedItem=null;removePending=false;render()});
-$('world-work-collect').addEventListener('click',()=>{const r=V.collectAnts();announce(r.ok?'Ants delivered '+rewardText(r):r.error);render()});
+$('world-work-collect').addEventListener('click',()=>{const r=V.collectAnts();if(r.ok){window.AntSFX?.play('reward');document.querySelector('.resource-line')?.animate?.([{transform:'scale(1)'},{transform:'scale(1.025)'},{transform:'scale(1)'}],{duration:320})}announce(r.ok?'Ants delivered '+rewardText(r):r.error);render()});
 S.onSelect(i=>{
  selectedPlot=i;selectedItem=null;removePending=false;
  const st=V.snapshot();
@@ -202,7 +202,7 @@ $('exp-role').addEventListener('change',e=>{roleChoice=e.target.value;renderExpe
 $('exp-start').addEventListener('click',()=>{const r=V.expeditionStart(routeChoice,roleChoice);announce(r.ok?'Your ant has set out!':r.error);render()});
 $('exp-claim').addEventListener('click',()=>{const r=V.expeditionClaim();announce(r.ok?'Expedition rewards: '+rewardText(r):r.error);if(r.ok&&r.relic)showCollectible('New relic discovered!',r.symbol,r.relic+' · '+rewardText(r));render()});
 setInterval(renderExpedition,1000);
-$('life-collect').addEventListener('click',()=>{const r=V.collectAnts();announce(r.ok?'Ants delivered '+rewardText(r):r.error);render()});
+$('life-collect').addEventListener('click',()=>{const r=V.collectAnts();if(r.ok){window.AntSFX?.play('reward');document.querySelector('.resource-line')?.animate?.([{transform:'scale(1)'},{transform:'scale(1.025)'},{transform:'scale(1)'}],{duration:320})}announce(r.ok?'Ants delivered '+rewardText(r):r.error);render()});
 $('life-sign').addEventListener('click',()=>{const r=V.signIn();announce(r.ok?'Daily reward: '+rewardText(r.reward):r.error);render()});
 setInterval(renderLife,30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)render()});
