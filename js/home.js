@@ -35,7 +35,7 @@
         "<button type='button' class='ah-secondary' data-home-action='village'>🌿 World</button>",
         "<button type='button' class='ah-secondary' data-home-action='how'>❔ Help</button>",
       "</div>",
-      "<p class='ah-footer' id='ah-status' aria-live='polite'>PUZZLE · COLONY · WORLD &nbsp; | &nbsp; V5.1.2 RC</p>",
+      "<p class='ah-footer' id='ah-status' aria-live='polite'>PUZZLE · COLONY · WORLD &nbsp; | &nbsp; V5.1.3 RC</p>",
     "</div>",
     "<div class='ah-how' id='ah-how' hidden role='dialog' aria-label='How to play ANT CANVAS'>",
       "<div class='ah-how-card'>",
@@ -98,7 +98,7 @@
     if(window.AntWorkshop)window.AntWorkshop.render(window.ANT_CANVAS_GAME||null);
   }
   function show() {
-    navigating=false;clearTimeout(navTimer);document.getElementById('ah-status').textContent='PUZZLE · COLONY · WORLD | V5.1.2 RC';
+    navigating=false;clearTimeout(navTimer);document.getElementById('ah-status').textContent='PUZZLE · COLONY · WORLD | V5.1.3 RC';
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     updateHome();
     root.hidden = false;
