@@ -29,5 +29,5 @@ function render(force=false){
  tag('💎 Ice ×'+a.ice);tag('🦌 Sculptures ×'+a.sculptures);tag('🌌 Auroras ×'+a.auroras);
  }
 }
-window.AntRegionActivities={render,setOnChange(fn){onChange=fn}};setInterval(()=>{if(!document.hidden)render()},1000);render(true);
+window.AntRegionActivities={render,setOnChange(fn){onChange=fn}};setInterval(()=>{if(!document.hidden&&!root.closest('[hidden]'))render()},1000);render(true);
 })();

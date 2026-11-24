@@ -225,7 +225,6 @@ function industry(){return state.industry||(state.industry={stock:{},shipment:nu
 function regionStock(id){const d=state.industry?.stock?.[id]||{};return {...d}}
 function inventoryAdd(region,good,count){const inv=industry().stock[region]||(industry().stock[region]={});inv[good]=(inv[good]||0)+count;if(!inv[good])delete inv[good]}
 function weekNumber(now){return Math.floor((dayNumber(now)+3)/7)}
-function weekly(){const w=state.weekly;if(w&&w.week===weekNumber(Date.now()))return w;return {week:weekNumber(Date.now()),counts:{},claimed:{}}}
 function trackWeekly(key,n,now=Date.now()){const week=weekNumber(now),w=state.weekly;if(w&&w.week>week)return;if(!w||w.week!==week)state.weekly={week,counts:{},claimed:{}};state.weekly.counts[key]=(state.weekly.counts[key]||0)+n}
 function industryProduce(region,good,qty,now){inventoryAdd(region,good,qty);industry().totals.produced+=qty;trackWeekly('produce',qty,now)}
 function industryPreview(now=Date.now()){const d=state.industry||{stock:{},craft:{},totals:{produced:0,shipped:0,crafted:0,sold:0}},region=state.world.active,valid=workPreview(now).valid,stock=regionStock(region),recipe=RECIPES[region],q=d.craft[region],s=d.shipment;return {region,valid,stock,goods:GOODS,recipe,craft:q?{...q,remaining:Math.max(0,q.finish-now)}:null,shipment:s?{...s,remaining:Math.max(0,s.finish-now)}:null,regions:REGIONS.map(r=>({...r,unlocked:paintings()>=r.unlock})),totals:{...d.totals},sold:d.soldDay===dayNumber(now)?d.sold:0,sellLimit:3}}
