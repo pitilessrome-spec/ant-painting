@@ -320,7 +320,7 @@ function plotNode(p,st,selected,readOnly=false){
 }
 function render(st,selected,options={}){
  lastRender=[st,selected,options];
- const jobs=currentJobs().join(',');if(jobs!==jobSignature){jobSignature=jobs;generation++;const layer=svg.querySelector('#village-residents');if(layer){layer.replaceChildren();residents()}}
+ const jobs=currentJobs().join(',')+'|'+(st.work?.workers||[]).map((a,i)=>a.route??i%5).join(',');if(jobs!==jobSignature){jobSignature=jobs;generation++;const layer=svg.querySelector('#village-residents');if(layer){layer.replaceChildren();residents()}}
  const next=st.world?.active||'garden';if(next!==region){generation++;configureRegion(next);scene();residents()}
  const b=svg.querySelector('#village-buildings');
  if(b)b.innerHTML=plots.map(p=>{seed=73191+Math.imul(p.id+1,913);return plotNode(p,st,selected,!!options.readOnly)}).join('');
@@ -333,7 +333,7 @@ function render(st,selected,options={}){
 function setNight(on){document.getElementById('world-panel').classList.toggle('night',!!on);return !!on;}
 function onSelect(fn){
  if(svg.dataset.readonly==='true')return;
- const manage=e=>{const worker=e.target.closest('[data-worker]');if(!worker)return false;e.preventDefault();svg.dispatchEvent(new CustomEvent('ant-worker-select',{bubbles:true,detail:{index:Number(worker.dataset.worker)}}));return true};
+ const manage=e=>{const site=e.target.closest('[data-site]');if(site){e.preventDefault();svg.dispatchEvent(new CustomEvent('ant-site-select',{bubbles:true,detail:{route:Number(site.dataset.site)}}));return true}const worker=e.target.closest('[data-worker]');if(!worker)return false;e.preventDefault();svg.dispatchEvent(new CustomEvent('ant-worker-select',{bubbles:true,detail:{index:Number(worker.dataset.worker)}}));return true};
  svg.addEventListener('click',e=>{if(manage(e))return;const p=e.target.closest('[data-plot]');if(p)fn(Number(p.getAttribute('data-plot')));else if(e.target.closest('[data-activity]'))document.getElementById('region-activities')?.scrollIntoView({behavior:'smooth',block:'start'});});
  svg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){if(manage(e))return;const p=e.target.closest('[data-plot]');if(p){e.preventDefault();fn(Number(p.getAttribute('data-plot')));}else if(e.target.closest('[data-activity]')){e.preventDefault();document.getElementById('region-activities')?.scrollIntoView({behavior:'smooth',block:'start'})}}});
 }
@@ -357,35 +357,39 @@ function residents(){
  const NS='http://www.w3.org/2000/svg',layer=svg.querySelector('#village-residents');
  const motion=[];
  if(!artReady[region])return; // no workers on an unverified fallback
- for(let i=0;i<5+guestCount;i++){
-  const route=document.createElementNS(NS,'path');route.setAttribute('d',loops[i%loops.length]);route.setAttribute('fill','none');route.setAttribute('stroke','none');layer.appendChild(route);
-  const el=document.createElementNS(NS,'g');el.setAttribute('class','resident village-ant');el.setAttribute('pointer-events','none');const job=currentJobs()[i]||'scout',jobIndex=({wood:2,petal:0,builder:1,scout:1})[job]??0;el.setAttribute('data-job',job);el.innerHTML=antMarkup(jobIndex)+(i>=5?'<g transform="translate(0 -24)"><circle r="9" fill="#fff3ce" stroke="#b89b63"/><text text-anchor="middle" y="3" font-size="10" fill="#a05f4a">♥</text></g>':'');if(i<5&&svg.dataset.readonly!=='true'){el.setAttribute('data-worker',String(i));el.setAttribute('role','button');el.setAttribute('aria-label','Manage ant '+(i+1)+' · '+job);el.setAttribute('tabindex','0');el.setAttribute('pointer-events','all');const hit=document.createElementNS(NS,'circle');hit.setAttribute('r','27');hit.setAttribute('fill','transparent');hit.setAttribute('pointer-events','all');el.insertBefore(hit,el.firstChild)}layer.appendChild(el);
+ const population=currentJobs().length,live=svg.dataset.readonly!=='true'&&!!window.AntVillage;let work=null,lastSample=-1000;
+ if(live){for(let i=0;i<loops.length;i++){const points=WALKABLE[region][i],a=points[0],b=points[points.length-1];const node=document.createElementNS(NS,'g');node.setAttribute('class','sb-work-site');node.setAttribute('data-site',String(i));node.setAttribute('role','button');node.setAttribute('tabindex','0');node.setAttribute('aria-label','Work site '+(i+1));node.innerHTML='<g transform="translate('+a.join(' ')+')"><circle r="11" fill="#fff8df" stroke="#9e845c" stroke-width="1.5"/><text text-anchor="middle" y="4" font-size="12">📦</text></g><g transform="translate('+b.join(' ')+')"><circle r="12" fill="#e9f6d3" stroke="#739447" stroke-width="1.6"/><text text-anchor="middle" y="4" font-size="12" fill="#426031">'+(i+1)+'</text></g>';layer.appendChild(node)}}
+ for(let i=0;i<population+guestCount;i++){
+  const route=document.createElementNS(NS,'path');const routeIndex=live&&i<population?(lastRender?.[0]?.work?.workers?.[i]?.route??i%5):i%loops.length;route.setAttribute('d',loops[routeIndex%loops.length]);route.setAttribute('fill','none');route.setAttribute('stroke','none');layer.appendChild(route);
+  const el=document.createElementNS(NS,'g');el.setAttribute('class','resident village-ant');el.setAttribute('pointer-events','none');const job=currentJobs()[i]||'scout',jobIndex=({wood:2,petal:0,builder:1,scout:1})[job]??0;el.setAttribute('data-job',job);el.innerHTML=antMarkup(jobIndex)+(i>=population?'<g transform="translate(0 -24)"><circle r="9" fill="#fff3ce" stroke="#b89b63"/><text text-anchor="middle" y="3" font-size="10" fill="#a05f4a">♥</text></g>':'');if(i<population&&svg.dataset.readonly!=='true'){el.setAttribute('data-worker',String(i));el.setAttribute('role','button');el.setAttribute('aria-label','Manage ant '+(i+1)+' · '+job);el.setAttribute('tabindex','0');el.setAttribute('pointer-events','all');const hit=document.createElementNS(NS,'circle');hit.setAttribute('r','27');hit.setAttribute('fill','transparent');hit.setAttribute('pointer-events','all');el.insertBefore(hit,el.firstChild)}layer.appendChild(el);
   const len=route.getTotalLength(),phase=(i*.271)%1;
-  motion.push({route,len,el,heading:el.querySelector('.sb-ant-heading'),body:el.querySelector('.sb-ant-body'),legs:[...el.querySelectorAll('.sb-ant-leg')],antennae:el.querySelector('.sb-ant-antennae'),cargo:el.querySelector('.sb-ant-cargo'),distance:len*phase,dir:1,pause:0,speed:10+i*1.1,scale:0.36+(i%3)*.025});
+  motion.push({index:i,route,len,el,heading:el.querySelector('.sb-ant-heading'),body:el.querySelector('.sb-ant-body'),legs:[...el.querySelectorAll('.sb-ant-leg')],antennae:el.querySelector('.sb-ant-antennae'),cargo:el.querySelector('.sb-ant-cargo'),distance:len*phase,dir:1,pause:0,speed:10+i*1.1,scale:0.36+(i%3)*.025});
  }
  const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
  let last=0;const run=generation;
  function step(now){
   if(run!==generation)return;
-  if(svg.closest('[hidden]')){last=0;if(!reduced)requestAnimationFrame(step);return;}
+  if(svg.closest('[hidden]')){last=0;if(!reduced||live)requestAnimationFrame(step);return;}
   const dt=last?Math.min(.05,(now-last)/1000):0;last=now;
+  if(live&&now-lastSample>=200){work=window.AntVillage.workPreview();lastSample=now}
   for(const m of motion){
-   if(!reduced){if(m.pause>0){m.pause=Math.max(0,m.pause-dt)}else{m.distance+=m.dir*dt*m.speed;if(m.distance>=m.len||m.distance<=0){m.distance=Math.max(0,Math.min(m.len,m.distance));m.dir*=-1;m.pause=1.4;}}}
+   const a=work?.workers[m.index];let working=!!a&&['wood','petal'].includes(a.job);if(working){const phase=a.phase;m.dir=phase<.5?1:-1;m.distance=m.len*(phase<.36?phase/.36:phase<.5?1:phase<.92?1-(phase-.5)/.42:0);m.pause=!a.active||phase>=.36&&phase<.5||phase>=.92?1:0}else if(a){const busy=a.job==='builder'?a.status==='Building':a.status==='Exploring';if(!busy){m.distance=0;m.pause=1;}else if(!reduced){m.pause=0;m.distance=(1+Math.sin(now/3000))*m.len/2;m.dir=Math.cos(now/3000)>=0?1:-1}}
+   else if(!reduced){if(m.pause>0){m.pause=Math.max(0,m.pause-dt)}else{m.distance+=m.dir*dt*m.speed;if(m.distance>=m.len||m.distance<=0){m.distance=Math.max(0,Math.min(m.len,m.distance));m.dir*=-1;m.pause=1.4;}}}
    const p=m.route.getPointAtLength(m.distance),q=m.route.getPointAtLength(Math.max(0,Math.min(m.len,m.distance+m.dir*1.5)));
    const angle=Math.atan2(q.y-p.y,q.x-p.x)*180/Math.PI;
    m.el.setAttribute('transform','translate('+n(p.x)+' '+n(p.y)+') scale('+m.scale+')');
    m.heading.setAttribute('transform','rotate('+n(angle)+')');
-   // Visual work represents the assigned colony job. Production is calculated by the saved elapsed-time ledger, not animation frames.
-   m.cargo.setAttribute('opacity',m.dir<0&&m.el.dataset.job!=='scout'?'1':'0');
+   // The same saved trip phase drives animation and delivery settlement; frame rate cannot create rewards.
+   m.cargo.setAttribute('opacity',working?(a.phase>=.5&&a.phase<.92?'1':'0'):m.pause===0&&m.dir<0&&m.el.dataset.job!=='scout'?'1':'0');
    const still=reduced||m.pause>0,gait=m.distance/6*2*Math.PI;
    m.body.setAttribute('transform','translate(0 '+n(still?0:Math.sin(gait*2)*.75)+')');
    m.legs.forEach((leg,j)=>leg.setAttribute('transform','rotate('+n(still?0:Math.sin(gait+(j%2)*Math.PI)*(j<3?21:-21))+')'));
    m.antennae.setAttribute('transform','rotate('+n(still?0:Math.sin(gait*.45)*5)+' 12 -6)');
   }
-  if(!reduced)requestAnimationFrame(step);
+  if(!reduced||live)requestAnimationFrame(step);
  }
  requestAnimationFrame(step);
 }
 scene();residents();
-window.AntVillageScene=Object.freeze({render,setNight,onSelect,setGuests,version:'world-v38-jobs'});
+window.AntVillageScene=Object.freeze({render,setNight,onSelect,setGuests,version:'world-v39-colony'});
 })();

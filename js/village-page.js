@@ -4,7 +4,7 @@
 const V=window.AntVillage,S=window.AntVillageScene;
 if(!V||!S)return;
 const $=id=>document.getElementById(id);
-let selectedPlot=null,selectedItem=null,removePending=false,routeChoice='trail',roleChoice='scout';
+let selectedPlot=null,selectedItem=null,removePending=false,routeChoice='trail',roleChoice='scout',selectedSite=0;
 function isNight(date=new Date()){const h=date.getHours();return h<6||h>=18;}
 function syncDayNight(){const night=isNight();S.setNight(night);$('day-night').textContent=night?'🌙 Night · Auto':'☀️ Day · Auto';$('day-night').title='Local time · Day 06:00–18:00';}
 function revealBuild(){const el=$('build-detail');if(el.getBoundingClientRect().top<0||el.getBoundingClientRect().bottom>window.innerHeight)el.scrollIntoView({block:'center',behavior:'smooth'});}
@@ -30,15 +30,16 @@ function renderWorkers(w=V.workPreview()){
  const list=$('worker-list');if(!list)return;
  $('worker-rate').textContent='🪵 '+w.woodRate+'/h · 🌸 '+w.petalRate+'/h · '+w.builders+' builders · '+w.scouts+' scouts';
  $('world-work-rate').textContent='🪵 '+w.woodRate+'/h · 🌸 '+w.petalRate+'/h · '+w.builders+' builders · '+w.scouts+' scouts';
- if(!list.children.length)for(let i=0;i<5;i++){const row=document.createElement('label'),name=document.createElement('span'),sel=document.createElement('select');name.textContent='🐜 Ant '+(i+1);sel.setAttribute('aria-label','Ant '+(i+1)+' job');for(const [id,label] of Object.entries(JOB_LABELS)){const opt=document.createElement('option');opt.value=id;opt.textContent=label;sel.append(opt)}sel.onchange=()=>{const r=V.assignWorker(i,sel.value);announce(r.ok?'Ant '+(i+1)+' assigned: '+JOB_LABELS[sel.value]:r.error);render()};row.append(name,sel);list.append(row)}
- [...list.querySelectorAll('select')].forEach((el,i)=>{if(document.activeElement!==el)el.value=w.roles[i]});
+ if(list.children.length!==w.roles.length){list.replaceChildren();for(let i=0;i<w.roles.length;i++){const row=document.createElement('label'),name=document.createElement('span'),sel=document.createElement('select');name.textContent='🐜 Ant '+(i+1);sel.setAttribute('aria-label','Ant '+(i+1)+' job');for(const [id,label] of Object.entries(JOB_LABELS)){const opt=document.createElement('option');opt.value=id;opt.textContent=label;sel.append(opt)}sel.onchange=()=>{const r=V.assignWorker(i,sel.value);announce(r.ok?'Ant '+(i+1)+' assigned: '+JOB_LABELS[sel.value]:r.error);render()};row.append(name,sel);list.append(row)}}
+ [...list.querySelectorAll('select')].forEach((el,i)=>{if(document.activeElement!==el)el.value=w.roles[i];const a=w.workers[i];el.parentElement.firstElementChild.textContent='🐜 Ant '+(i+1)+' · Lv.'+a.level+' · '+a.status});
 }
-function renderRewards(){const w=V.workPreview();$('world-work-stock').textContent=rewardText(w);$('world-work-collect').disabled=!w.valid||(!w.wood&&!w.petals);const q=V.upgradePreview();$('upgrade-status').textContent=q?V.catalog[q.item].name+' · '+q.region+' · '+(q.remaining?Math.ceil(q.remaining/1000)+'s left':'Ready to complete'):'No upgrade underway';$('upgrade-finish').hidden=!q;$('upgrade-finish').disabled=!q||q.remaining>0;for(const kind of ['gather','daily','chest','upgrade','expedition']){const b=$('ad-'+kind);b.disabled=!V.adTicket(kind)||typeof Ads==='undefined'||Ads.busy;}}
+function renderColony(){const c=V.colonyPreview(),st=V.snapshot();$('colony-pop').textContent='🐜 '+c.population+' / '+c.capacity+' ants · 👑 Lv.'+c.queen;$('colony-storage').textContent='📦 Warehouse Lv.'+c.warehouse+' · '+c.maxHours+'h capacity';$('colony-deliveries').textContent=c.deliveries+' completed deliveries';for(const [kind,cost] of [['queen',c.queenCost],['warehouse',c.warehouseCost]]){const b=$('colony-'+kind);b.textContent=cost?'Upgrade '+kind+' · '+cost.wood+' 🪵 '+cost.petals+' 🌸':'Max level';b.disabled=!c.valid||!cost||!!missing(st,cost)}const start=$('hatch-start'),claim=$('hatch-claim');start.hidden=!!c.hatch;start.disabled=!c.valid||c.population>=c.capacity||!!missing(st,c.hatchCost);start.textContent='Hatch ant · '+c.hatchCost.wood+' 🪵 '+c.hatchCost.petals+' 🌸';claim.hidden=!c.hatch;claim.disabled=!c.valid||!c.hatch||c.hatch.remaining>0;claim.textContent=c.hatch?.remaining?'🥚 '+Math.ceil(c.hatch.remaining/1000)+'s until hatch':'🐜 Welcome new ant';$('hatch-note').textContent=c.population>=c.capacity?'Upgrade your queen to raise capacity.':c.hatch?'Egg in nursery':'Hatching takes 3 minutes · no ad required';const goals=$('colony-goals');const signature=V.colonyGoals().map(g=>g.id+g.progress+g.claimed+g.ready).join('|');if(goals.dataset.signature!==signature){goals.dataset.signature=signature;goals.replaceChildren();for(const g of V.colonyGoals()){const row=document.createElement('div'),label=document.createElement('span'),b=document.createElement('button');row.className='life-task';label.textContent=g.name+' · '+g.progress+'/'+g.goal;b.className='btn secondary';b.textContent=g.claimed?'Claimed':'Claim';b.disabled=!g.ready||g.claimed;b.onclick=()=>{const r=V.claimColonyGoal(g.id);announce(r.ok?'Achievement reward: '+rewardText(r):r.error);render()};row.append(label,b);goals.append(row)}}}
+function renderRewards(){const w=V.workPreview();renderColony();$('world-work-stock').textContent=rewardText(w);$('world-delivery-progress').textContent='Delivered '+w.deliveries+' trips · stored 🪵 '+w.stockWood.toFixed(2)+' / 🌸 '+w.stockPetals.toFixed(2);const select=$('site-ant');if(select.options.length!==w.roles.length){select.replaceChildren();for(const a of w.workers){const opt=document.createElement('option');opt.value=String(a.id);opt.textContent='Ant '+(a.id+1);select.append(opt)}}$('site-info').textContent='Site '+(selectedSite+1)+' · '+w.workers.filter(a=>a.route===selectedSite).length+' assigned ants';$('world-work-collect').disabled=!w.valid||(!w.wood&&!w.petals);const q=V.upgradePreview();$('upgrade-status').textContent=q?V.catalog[q.item].name+' · '+q.region+' · '+(q.remaining?Math.ceil(q.remaining/1000)+'s left':'Ready to complete'):'No upgrade underway';$('upgrade-finish').hidden=!q;$('upgrade-finish').disabled=!q||q.remaining>0;for(const kind of ['gather','daily','chest','upgrade','expedition']){const b=$('ad-'+kind);b.disabled=!V.adTicket(kind)||typeof Ads==='undefined'||Ads.busy;}}
 function showAdReward(kind){const ticket=V.adTicket(kind);if(!ticket)return announce('Reward not available or daily limit reached');if(typeof Ads==='undefined')return announce('Ad unavailable · free options remain');if(!Ads.ready)Ads.init();Ads.rewardedSlot(()=>{const r=V.applyAdReward(ticket);announce(r.ok?(kind==='upgrade'?'Upgrade completed!':kind==='expedition'?'Expedition time reduced by 50%':rewardText(r)):r.error);if(r.ok&&r.souvenir)showCollectible('A secret treasure!',r.souvenir.symbol,r.souvenir.name+' · '+rewardText(r));render();renderRewards()},()=>{announce('Ad skipped or unavailable · no reward granted');renderRewards()});renderRewards()}
 function renderLife(){
  const p=V.lifePreview(),collect=$('life-collect'),sign=$('life-sign');
  $('life-stock').textContent=rewardText(p);
- $('life-time').textContent=p.work.storedHours>=p.maxHours?'Storage full · collect to resume':Number.isFinite(p.nextMs)?'Next delivery in '+Math.ceil(p.nextMs/60000)+' min · up to 8 hours':'Assign gatherers to produce materials';renderWorkers(p.work);
+ $('life-time').textContent=p.work.storedHours>=p.maxHours?'Storage full · collect to resume':Number.isFinite(p.nextMs)?'Next work trip: '+Math.ceil(p.nextMs/1000)+'s · '+p.maxHours+'h capacity':'Assign gatherers to produce materials';renderWorkers(p.work);
  collect.disabled=!p.valid||(!p.wood&&!p.petals);
  sign.disabled=!p.valid||p.signClaimed;
  sign.textContent=p.signClaimed?'✓ Claimed today':'Claim day '+p.streak+' · '+rewardText(p.signReward);
@@ -161,7 +162,8 @@ function render(){
   card.append(emoji,title,desc);combos.appendChild(card);
  }
 }
-document.getElementById('village-world').addEventListener('ant-worker-select',e=>{const i=e.detail.index;if(!Number.isInteger(i)||i<0||i>=5)return;announce('Ant '+(i+1)+' · '+JOB_LABELS[V.workPreview().roles[i]]);document.getElementById('manage-workers').click();const sel=$('worker-list').querySelectorAll('select')[i];if(sel){sel.scrollIntoView({block:'center'});sel.focus({preventScroll:true})}});
+document.getElementById('village-world').addEventListener('ant-site-select',e=>{selectedSite=e.detail.route;renderRewards();$('site-info').scrollIntoView({block:'nearest',behavior:'smooth'})});$('site-assign').onclick=()=>{const r=V.assignRoute(Number($('site-ant').value),selectedSite);announce(r.ok?'Ant assigned to site '+(selectedSite+1):r.error);render()};
+document.getElementById('village-world').addEventListener('ant-worker-select',e=>{const i=e.detail.index;if(!Number.isInteger(i)||i<0||i>=V.workPreview().roles.length)return;announce('Ant '+(i+1)+' · '+JOB_LABELS[V.workPreview().roles[i]]);document.getElementById('manage-workers').click();const sel=$('worker-list').querySelectorAll('select')[i];if(sel){sel.scrollIntoView({block:'center'});sel.focus({preventScroll:true})}});
 $('plot-select').addEventListener('change',e=>{selectedPlot=e.target.value===''?null:Number(e.target.value);selectedItem=null;removePending=false;render()});
 $('world-work-collect').addEventListener('click',()=>{const r=V.collectAnts();announce(r.ok?'Ants delivered '+rewardText(r):r.error);render()});
 S.onSelect(i=>{
@@ -191,9 +193,10 @@ $('remove').addEventListener('click',()=>{
 });
 $('remove-cancel').addEventListener('click',()=>{removePending=false;render();});
 $('upgrade').addEventListener('click',()=>{if(selectedPlot===null)return;const r=V.upgrade(selectedPlot);announce(r.ok?'Builders started the upgrade! Wait for free or watch an ad to finish.':r.error);render()});
+for(const kind of ['queen','warehouse'])$('colony-'+kind).onclick=()=>{const r=V.colonyUpgrade(kind);announce(r.ok?kind+' upgraded to Lv.'+r.level:r.error);render()};$('hatch-start').onclick=()=>{const r=V.hatchStart();announce(r.ok?'Egg is incubating!':r.error);render()};$('hatch-claim').onclick=()=>{const r=V.hatchClaim();announce(r.ok?'A new worker joined your colony!':r.error);render()};
 $('upgrade-finish').addEventListener('click',()=>{const r=V.finishUpgrade();announce(r.ok?'Building upgraded to Lv.'+r.level:r.error);if(r.ok)showCollectible('Building upgraded!',V.catalog[r.item].symbol,'Level '+r.level);render()});
 for(const kind of ['gather','daily','chest','upgrade','expedition'])$('ad-'+kind).addEventListener('click',()=>showAdReward(kind));
-setInterval(()=>{if(!document.hidden){renderRewards();const w=V.workPreview();$('life-stock').textContent=rewardText(w);$('life-collect').disabled=!w.valid||(!w.wood&&!w.petals)}},1000);
+setInterval(()=>{if(!document.hidden){renderRewards();const w=V.workPreview();$('life-stock').textContent=rewardText(w);$('life-collect').disabled=!w.valid||(!w.wood&&!w.petals);if(!$('worker-list').closest('[hidden]'))renderWorkers(w)}},1000);
 $('exp-route').addEventListener('change',e=>{routeChoice=e.target.value;renderExpedition()});
 $('exp-role').addEventListener('change',e=>{roleChoice=e.target.value;renderExpedition()});
 $('exp-start').addEventListener('click',()=>{const r=V.expeditionStart(routeChoice,roleChoice);announce(r.ok?'Your ant has set out!':r.error);render()});
@@ -224,8 +227,7 @@ setInterval(syncDayNight,15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncDayNight();});
 window.addEventListener('focus',syncDayNight);
 $('world-sound').addEventListener('click',()=>{
- const lines=['🐜 Your ants are delivering flowers to the garden.','🪵 Little workers are building new homes.','🌿 Your village is growing one masterpiece at a time.','✨ The residents are exploring the river path.'];
- const message=lines[Math.floor(Math.random()*lines.length)];
+ const w=V.workPreview();const message='🐜 '+w.roles.length+' ants · '+w.deliveries+' completed deliveries · '+w.workers.filter(a=>a.status==='Returning').length+' returning with materials';
  announce(message);
 });
 window.AntRegionActivities?.setOnChange(render);
