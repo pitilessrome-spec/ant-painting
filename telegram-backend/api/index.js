@@ -118,8 +118,53 @@ function publicVillage(save){
  return REGION_IDS.map((id,i)=>{const m=id===active?v:(w.maps&&w.maps[id])||{};return {region:id,unlocked:cleared>=[0,5,15,30][i]||id===active||PLOT_IDS.some(k=>ITEM_IDS.includes(m.placements&&m.placements[k])),buildings:PLOT_IDS.filter(k=>ITEM_IDS.includes(m.placements&&m.placements[k])).map(k=>({plot:Number(k),item:m.placements[k],level:Math.max(1,Math.min(3,Math.trunc(Number(m.upgrades&&m.upgrades[k])||1)))}))}})
 }
 function referralId(param,self){const m=typeof param==='string'&&/^ref_([1-9][0-9]{0,15})$/.exec(param);return m&&m[1]!==self?m[1]:null}
+const INTERACTION_SQL="CREATE TABLE IF NOT EXISTS village_events (\n actor_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,\n target_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,\n kind TEXT NOT NULL CHECK(kind IN ('like','gift','visit','vote')),\n period DATE NOT NULL,\n created_at TIMESTAMPTZ NOT NULL DEFAULT now(),\n PRIMARY KEY(actor_id,target_id,kind,period),\n CHECK(actor_id<>target_id)\n);\nCREATE INDEX IF NOT EXISTS village_events_inbox_idx ON village_events(target_id,kind,created_at DESC);\nCREATE UNIQUE INDEX IF NOT EXISTS village_one_weekly_vote ON village_events(actor_id,period) WHERE kind='vote';\nCREATE TABLE IF NOT EXISTS village_contest (\n entry_id UUID PRIMARY KEY,\n owner_id BIGINT NOT NULL REFERENCES players(telegram_id) ON DELETE CASCADE,\n week DATE NOT NULL,\n region TEXT NOT NULL CHECK(region IN ('garden','forest','island','snow')),\n layout JSONB NOT NULL,\n created_at TIMESTAMPTZ NOT NULL DEFAULT now(),\n withdrawn BOOLEAN NOT NULL DEFAULT false,\n UNIQUE(owner_id,week)\n);";
+let interactionsMigration;
+async function ensureInteractions(db){if(!interactionsMigration)interactionsMigration=(async()=>{await db.query(INTERACTION_SQL)})().catch(e=>{interactionsMigration=null;throw e});return interactionsMigration}
+function eventCalendar(now=Date.now()){
+ const d=new Date(now+8*3600000),day=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())),monday=new Date(+day-((day.getUTCDay()+6)%7)*86400000),week=monday.toISOString().slice(0,10),idx=((Math.floor((+monday-Date.UTC(2026,10,23))/604800000)%4)+4)%4;
+ return {day:day.toISOString().slice(0,10),week,region:REGION_IDS[idx],theme:['Blooming Garden','Enchanted Forest','Coral Paradise','Winter Wonderland'][idx],endsAt:new Date(+monday+7*86400000-8*3600000).toISOString()}
+}
+const LINKED="EXISTS(SELECT 1 FROM player_referrals r WHERE (r.inviter_id=$1 AND r.invitee_id=$2) OR (r.inviter_id=$2 AND r.invitee_id=$1))";
+async function interaction(req,res,db,user,path){
+ const b=req.body||{},cal=eventCalendar(),id=user.id;
+ await ensureInteractions(db);
+ if(path==='social/overview'&&req.method==='GET'){
+ const stats=await db.query("SELECT count(DISTINCT actor_id) FILTER(WHERE kind='visit' AND created_at>=now()-interval '24 hours')::int AS recent_visitors,count(*) FILTER(WHERE kind='like')::int AS likes,count(*) FILTER(WHERE kind='gift')::int AS gifts FROM village_events WHERE target_id=$1",[id]);
+ const inbox=await db.query("SELECT e.kind,e.created_at,p.telegram_id::text AS id,p.display_name,p.show_display_name FROM village_events e JOIN players p ON p.telegram_id=e.actor_id WHERE e.target_id=$1 AND e.kind IN ('visit','gift') ORDER BY e.created_at DESC LIMIT 30",[id]);
+ const rank=await db.query(`SELECT p.telegram_id::text AS id,p.display_name,p.show_display_name,count(e.actor_id)::int AS likes FROM players p JOIN player_backups b ON b.telegram_id=p.telegram_id AND b.public_village LEFT JOIN village_events e ON e.target_id=p.telegram_id AND e.kind='like' WHERE p.telegram_id=$1 OR EXISTS(SELECT 1 FROM player_referrals r WHERE (r.inviter_id=$1 AND r.invitee_id=p.telegram_id) OR (r.invitee_id=$1 AND r.inviter_id=p.telegram_id)) GROUP BY p.telegram_id,p.display_name,p.show_display_name ORDER BY likes DESC,p.telegram_id LIMIT 30`,[id]);
+ const entries=await db.query(`SELECT c.entry_id,c.region,c.owner_id::text AS id,p.display_name,p.show_display_name,count(e.actor_id)::int AS votes FROM village_contest c JOIN players p ON p.telegram_id=c.owner_id JOIN player_backups b ON b.telegram_id=c.owner_id AND b.public_village LEFT JOIN village_events e ON e.target_id=c.owner_id AND e.kind='vote' AND e.period=c.week WHERE c.week=$1 AND NOT c.withdrawn GROUP BY c.entry_id,c.region,c.owner_id,p.display_name,p.show_display_name ORDER BY votes DESC,c.created_at,c.entry_id LIMIT 30`,[cal.week]);
+ const own=await db.query("SELECT entry_id,withdrawn FROM village_contest WHERE owner_id=$1 AND week=$2",[id,cal.week]);const voted=await db.query("SELECT 1 FROM village_events WHERE actor_id=$1 AND kind='vote' AND period=$2 LIMIT 1",[id,cal.week]);
+ return json(res,200,{...stats.rows[0],inbox:inbox.rows.map(r=>({kind:r.kind,name:playerLabel(r),at:r.created_at})),ranks:rank.rows.map(r=>({name:playerLabel(r),likes:r.likes,me:r.id===id})),contest:{...cal,entered:!!own.rows.length&&!own.rows[0].withdrawn,withdrawn:!!own.rows[0]?.withdrawn,voted:!!voted.rows.length,entries:entries.rows.map(r=>({entryId:r.entry_id,name:playerLabel(r),region:r.region,votes:r.votes,me:r.id===id}))}});
+ }
+ if(path==='social/like'||path==='social/gift'){
+ if(req.method!=='POST'||typeof b.friendId!=='string'||!/^\d{1,16}$/.test(b.friendId)||b.friendId===id)return json(res,400,{error:'Invalid friend'});
+ const kind=path.endsWith('like')?'like':'gift',period=kind==='like'?'1970-01-01':cal.day;
+ const result=await db.query(`INSERT INTO village_events(actor_id,target_id,kind,period) SELECT $1,$2,$3,$4 WHERE ${LINKED} AND ($3='gift' OR EXISTS(SELECT 1 FROM player_backups WHERE telegram_id=$2 AND public_village)) ON CONFLICT DO NOTHING RETURNING created_at`,[id,b.friendId,kind,period]);
+ if(!result.rows.length)return json(res,409,{error:kind==='like'?'Already liked or village is not shared':'Gift already sent today or not a linked friend'});
+ return json(res,200,{ok:true,kind});
+ }
+ if(path==='social/contest/enter'&&req.method==='POST'){
+ const {rows}=await db.query("SELECT save FROM player_backups WHERE telegram_id=$1 AND public_village",[id]);if(!rows.length)return json(res,409,{error:'Share your current village first'});
+ const region=publicVillage(rows[0].save).find(r=>r.region===cal.region&&r.unlocked);if(!region||region.buildings.length<2)return json(res,409,{error:'Build at least two decorations in this week’s theme region and update the shared village'});
+ const entry=await db.query("INSERT INTO village_contest(entry_id,owner_id,week,region,layout) VALUES($1,$2,$3,$4,$5::jsonb) ON CONFLICT(owner_id,week) DO NOTHING RETURNING entry_id",[randomUUID(),id,cal.week,cal.region,JSON.stringify(region)]);
+ return entry.rows.length?json(res,200,{ok:true}):json(res,409,{error:'One entry per week; your earlier entry is already registered'});
+ }
+ if(path==='social/contest/withdraw'&&req.method==='POST'){await db.query("UPDATE village_contest SET withdrawn=true WHERE owner_id=$1 AND week=$2",[id,cal.week]);return json(res,200,{ok:true})}
+ if((path==='social/contest/view'||path==='social/contest/vote')&&req.method==='POST'){
+ if(typeof b.entryId!=='string'||!/^[a-f0-9-]{36}$/i.test(b.entryId))return json(res,400,{error:'Invalid entry'});
+ const {rows}=await db.query("SELECT c.owner_id::text AS id,c.layout,c.created_at,p.best_level,p.display_name,p.show_display_name FROM village_contest c JOIN players p ON p.telegram_id=c.owner_id JOIN player_backups b ON b.telegram_id=c.owner_id AND b.public_village WHERE c.entry_id=$1 AND c.week=$2 AND NOT c.withdrawn",[b.entryId,cal.week]);
+ if(!rows.length)return json(res,404,{error:'Entry unavailable'});const r=rows[0];
+ if(path.endsWith('/view'))return json(res,200,{name:playerLabel(r),level:r.best_level,updatedAt:r.created_at,regions:[r.layout],contest:true});
+ if(r.id===id)return json(res,400,{error:'Cannot vote for your own village'});
+ const v=await db.query("INSERT INTO village_events(actor_id,target_id,kind,period) VALUES($1,$2,'vote',$3) ON CONFLICT DO NOTHING RETURNING created_at",[id,r.id,cal.week]);
+ return v.rows.length?json(res,200,{ok:true}):json(res,409,{error:'Your weekly vote is already used'});
+ }
+ return json(res,405,{error:'Method not allowed'})
+}
 async function social(req,res,db,user,path){
  const body=req.body||{};
+ if(['social/overview','social/like','social/gift','social/contest/enter','social/contest/withdraw','social/contest/view','social/contest/vote'].includes(path))return await interaction(req,res,db,user,path);
  if(path==='backup'&&req.method==='GET'){
   const {rows}=await db.query('SELECT revision,save,updated_at,public_village FROM player_backups WHERE telegram_id=$1',[user.id]);
   return json(res,200,rows[0]?{revision:rows[0].revision,save:rows[0].save,updatedAt:rows[0].updated_at,publicVillage:rows[0].public_village}:{revision:0,save:null,publicVillage:false});
@@ -142,7 +187,12 @@ async function social(req,res,db,user,path){
  if(path==='social/visit'&&req.method==='POST'){
   if(typeof body.friendId!=='string'||!/^\d{1,16}$/.test(body.friendId)||body.friendId===user.id)return json(res,400,{error:'Invalid friend'});
   const {rows}=await db.query(`SELECT b.save,b.updated_at,p.best_level,p.display_name,p.show_display_name FROM player_backups b JOIN players p USING(telegram_id) WHERE b.telegram_id=$2 AND b.public_village=true AND EXISTS(SELECT 1 FROM player_referrals r WHERE (r.inviter_id=$1 AND r.invitee_id=$2) OR (r.inviter_id=$2 AND r.invitee_id=$1))`,[user.id,body.friendId]);
-  return rows.length?json(res,200,{name:playerLabel({...rows[0],id:body.friendId}),level:rows[0].best_level,updatedAt:rows[0].updated_at,regions:publicVillage(rows[0].save)}):json(res,404,{error:'Village not shared or not a friend'});
+  if(!rows.length)return json(res,404,{error:'Village not shared or not a friend'});
+  await ensureInteractions(db);
+  const cal=eventCalendar();
+  await db.query("INSERT INTO village_events(actor_id,target_id,kind,period) VALUES($1,$2,'visit',$3) ON CONFLICT(actor_id,target_id,kind,period) DO UPDATE SET created_at=now()",[user.id,body.friendId,cal.day]);
+  const state=await db.query("SELECT EXISTS(SELECT 1 FROM village_events WHERE actor_id=$1 AND target_id=$2 AND kind='like') AS liked,EXISTS(SELECT 1 FROM village_events WHERE actor_id=$1 AND target_id=$2 AND kind='gift' AND period=$3) AS gifted",[user.id,body.friendId,cal.day]);
+  return json(res,200,{name:playerLabel({...rows[0],id:body.friendId}),level:rows[0].best_level,updatedAt:rows[0].updated_at,regions:publicVillage(rows[0].save),...state.rows[0]});
  }
  return json(res,405,{error:'Method not allowed'});
 }
@@ -160,7 +210,7 @@ async function handler(req,res) {
   try {
     if (path==='admin/stats' && req.method==='GET') return await adminStats(req,res);
     if (path==='webhook' && req.method==='POST') return await handleWebhook(req,res);
-    if (!['profile','profile/name','leaderboard','start-level','progress','backup','social/friends','social/publish','social/visit'].includes(path)) return json(res,404,{error:'Not found'});
+    if (!['profile','profile/name','leaderboard','start-level','progress','backup','social/friends','social/publish','social/visit','social/overview','social/like','social/gift','social/contest/enter','social/contest/withdraw','social/contest/view','social/contest/vote'].includes(path)) return json(res,404,{error:'Not found'});
     const header=req.headers.authorization||'';
     const checked=checkInitData(header.startsWith('tma ')?header.slice(4):'',process.env.TELEGRAM_BOT_TOKEN);
     if(!checked.user){console.warn('Telegram authentication rejected:',checked.code);return json(res,checked.code==='BOT_NOT_CONFIGURED'?503:401,{error:'Valid Telegram Mini App sign-in required',code:checked.code});}
@@ -235,3 +285,5 @@ module.exports.validBackup=validBackup;module.exports.publicVillage=publicVillag
 module.exports.checkInitData=checkInitData;
 
 module.exports.displayName=displayName;module.exports.playerLabel=playerLabel;
+
+module.exports.eventCalendar=eventCalendar;

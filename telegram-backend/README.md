@@ -48,3 +48,6 @@ Apply sql/002_social.sql after 001_init.sql before enabling V3.1. Backups are ex
 
 ## Leaderboard names
 Migration sql/003_player_names.sql adds only two nullable fields. It is also applied idempotently at the first authenticated request if missing (requires schema owner role). Signed Telegram display names are synchronized; public display is opt-in and can be disabled. Existing scores are unchanged.
+
+## V3.4 community activities
+Apply sql/004_community.sql (also idempotently initialized on first community request). One like per linked pair, one postcard per linked pair per Singapore day, deduplicated daily visit, and one vote per account per Singapore week. Weekly theme rotates garden/forest/island/snow; public festival entry is an explicit frozen region snapshot, requires at least two buildings, and can be withdrawn. No resource balances or private saves are returned. Postcards are cosmetic inbox collectibles only. Rankings are popularity/votes, not an objective assessment of beauty. Real two-account acceptance and production database access still need to be checked.

@@ -48,7 +48,7 @@ const defs='<defs>'+
  '<pattern id="sb-paper" patternUnits="userSpaceOnUse" width="19" height="19"><circle cx="3" cy="4" r=".7" fill="#fffbd1" opacity=".3"/><circle cx="13" cy="13" r=".8" fill="#346e43" opacity=".12"/></pattern>'+
  '</defs>';
 function flower(x,y,s,c){
- let petals='';for(let i=0;i<5;i++){const a=i*Math.PI*2/5;petals+='<ellipse cx="'+n(Math.sin(a)*4.7)+'" cy="'+n(-13+Math.cos(a)*4.7)+'" rx="4.1" ry="5.6" transform="rotate('+(-i*72)+' '+n(Math.sin(a)*4.7)+' '+n(-13+Math.cos(a)*4.7)+')" fill="'+c+'" stroke="#fff4cc" stroke-width=".55"/>';}
+ let petals='';for(let i=0;i<5+guestCount;i++){const a=i*Math.PI*2/5;petals+='<ellipse cx="'+n(Math.sin(a)*4.7)+'" cy="'+n(-13+Math.cos(a)*4.7)+'" rx="4.1" ry="5.6" transform="rotate('+(-i*72)+' '+n(Math.sin(a)*4.7)+' '+n(-13+Math.cos(a)*4.7)+')" fill="'+c+'" stroke="#fff4cc" stroke-width=".55"/>';}
  return group(x,y,s,'<path d="M0 0Q-1 -7 0 -13M0 -4Q-7 -9 -9 -4M0 -7Q7 -12 9 -7" fill="none" stroke="#4b8b43" stroke-width="1.9" stroke-linecap="round"/>'+petals+'<circle cy="-13" r="3" fill="#ffd576" stroke="#e6a74f" stroke-width=".6"/>');
 }
 function flowerbed(x,y,s,count=14){
@@ -300,12 +300,14 @@ function antMarkup(job){
  cargo+'<g class="sb-ant-antennae"><path d="M12 -7Q15 -16 20 -16M15 -5Q23 -12 26 -8" stroke="#68412e" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="20" cy="-16" r="1.5" fill="#9f6d4b"/><circle cx="26" cy="-8" r="1.5" fill="#9f6d4b"/></g>'+
  '<ellipse cx="14" cy="-4" rx="3.4" ry="3.8" fill="#fff8dc"/><circle cx="15" cy="-3.7" r="1.8" fill="#3c2f29"/><circle cx="15.5" cy="-4.6" r=".6" fill="#fff"/><path d="M13 3Q16 5 18 2" stroke="#52352a" stroke-width="1" fill="none"/></g></g>';
 }
+let guestCount=0;
+function setGuests(count){const next=Math.max(0,Math.min(3,Math.trunc(Number(count)||0)));if(next===guestCount)return;guestCount=next;generation++;const layer=svg.querySelector('#village-residents');if(layer){layer.replaceChildren();residents()}}
 function residents(){
  const NS='http://www.w3.org/2000/svg',layer=svg.querySelector('#village-residents');
  const motion=[];
  for(let i=0;i<5;i++){
   const route=document.createElementNS(NS,'path');route.setAttribute('d',loops[i%loops.length]);route.setAttribute('fill','none');route.setAttribute('stroke','none');layer.appendChild(route);
-  const el=document.createElementNS(NS,'g');el.setAttribute('class','resident village-ant');el.setAttribute('pointer-events','none');el.innerHTML=antMarkup(i%3);layer.appendChild(el);
+  const el=document.createElementNS(NS,'g');el.setAttribute('class','resident village-ant');el.setAttribute('pointer-events','none');el.innerHTML=antMarkup(i%3)+(i>=5?'<g transform="translate(0 -24)"><circle r="9" fill="#fff3ce" stroke="#b89b63"/><text text-anchor="middle" y="3" font-size="10" fill="#a05f4a">♥</text></g>':'');layer.appendChild(el);
   const len=route.getTotalLength(),phase=(i*.271)%1;
   motion.push({route,len,el,heading:el.querySelector('.sb-ant-heading'),body:el.querySelector('.sb-ant-body'),legs:[...el.querySelectorAll('.sb-ant-leg')],antennae:el.querySelector('.sb-ant-antennae'),distance:len*phase,speed:23+i*1.7,scale:0.84+(i%3)*.035});
  }
@@ -331,5 +333,5 @@ function residents(){
  requestAnimationFrame(step);
 }
 scene();residents();
-window.AntVillageScene=Object.freeze({render,setNight,onSelect,version:'storybook-v1'});
+window.AntVillageScene=Object.freeze({render,setNight,onSelect,setGuests,version:'storybook-v1'});
 })();
