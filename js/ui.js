@@ -106,7 +106,7 @@ function recordHit(c,blast=false){const now=performance.now();if(now-comboAt>950
 }
 function drawSpecialMarkers(){
  const n=G.n,s=G.special;fx.save();fx.textAlign='center';fx.textBaseline='middle';fx.font='bold '+Math.max(9,Math.min(17,220/n))+'px system-ui';
- for(let i=0;i<G.total;i++){if(G.eaten[i])continue;const ice=iceLocked(G.eaten,s.ice,n,i),boss=!!s.boss[i],gem=i===s.gem;if(!ice&&!boss&&!gem)continue;const [x,y]=proj(i%n+.5,Math.floor(i/n)+.5,ZTOP),r=Math.max(4,Math.min(13,130/n));if(ice||boss){fx.fillStyle=ice?'rgba(165,229,255,.64)':'rgba(127,38,131,.42)';fx.strokeStyle=ice?'#e7faff':'#ffcbec';fx.lineWidth=1.5;fx.beginPath();fx.arc(x,y,r,0,Math.PI*2);fx.fill();fx.stroke()}fx.fillStyle='#fff';fx.fillText(ice?'❄':gem?'💎':'✦',x,y)}fx.restore();
+ for(const i of s.markers){if(G.eaten[i])continue;const ice=iceLocked(G.eaten,s.ice,n,i),boss=!!s.boss[i],gem=i===s.gem;if(!ice&&!boss&&!gem)continue;const [x,y]=proj(i%n+.5,Math.floor(i/n)+.5,ZTOP),r=Math.max(4,Math.min(13,130/n));if(ice||boss){fx.fillStyle=ice?'rgba(165,229,255,.64)':'rgba(127,38,131,.42)';fx.strokeStyle=ice?'#e7faff':'#ffcbec';fx.lineWidth=1.5;fx.beginPath();fx.arc(x,y,r,0,Math.PI*2);fx.fill();fx.stroke()}fx.fillStyle='#fff';fx.fillText(ice?'❄':gem?'💎':'✦',x,y)}fx.restore();
 }
 function drawFX(dt,now){
  fx.setTransform(DPR,0,0,DPR,0,0);fx.clearRect(0,0,VW,VH);
@@ -203,8 +203,8 @@ function newLevel(lv,daily=null){
 }
 function onWin(){
  if(dailyMode){const m=G.mastery(),best=window.AntCanvasProfile?.saveDaily(dailyMode,m.stars);window.AntPolish?.onWin(G,LV);const stars=$('#ant-win-stars');if(stars)stars.textContent='★'.repeat(m.stars)+'☆'.repeat(3-m.stars);$('#winSub').textContent='Daily challenge · '+dailyMode;$('#winMastery').textContent=(best?'New daily best · ':'')+m.stars+' / 3 stars';$('#winReward').textContent='Daily medal saved locally · no main-level rewards';$('#win').classList.add('on');window.AntSFX?.play('win');return;}
- const gem=G.special.gem>=0&&G.eaten[G.special.gem]&&window.AntCanvasProfile?.saveGem(LV);
  const firstCollect=window.AntCanvasProfile?window.AntCanvasProfile.complete(LV):false;
+ const gem=G.special.gem>=0&&G.eaten[G.special.gem]&&window.AntCanvasProfile?.contains(LV)&&window.AntCanvasProfile?.saveGem(LV);
  const reward=firstCollect&&window.AntVillage?window.AntVillage.award(LV,window.AntCanvasProfile.rarity(LV)):null;
  if(window.AntTelegram) window.AntTelegram.onLevelComplete(LV);
  if(window.AntPolish) window.AntPolish.onWin(G,LV);

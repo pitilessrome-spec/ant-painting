@@ -26,7 +26,7 @@ function specialCells(lv,n){
  const ice=new Uint8Array(n*n),boss=new Uint8Array(n*n);
  if(lv>=4&&lv%6===4)for(let y=1;y<n-1;y++)for(let x=0;x<n;x++)if((x*7+y*11+lv%19)%19===0)ice[y*n+x]=1;
  if(lv>=10&&lv%10===0){const mid=Math.floor(n/2);for(let y=mid-1;y<mid+2;y++)for(let x=mid-2;x<mid+2;x++)if(x>=0&&x<n&&y>=0&&y<n)boss[y*n+x]=1}
- return {ice,boss,gem:lv>=5?Math.floor(n/3)*n+Math.floor(n/2):-1,power:lv>=7&&lv%6===1?'bomb':lv>=8&&lv%6===2?'wild':null};
+ const gem=lv>=5?Math.floor(n/3)*n+Math.floor(n/2):-1,markers=[];for(let i=0;i<n*n;i++)if(ice[i]||boss[i]||i===gem)markers.push(i);return {ice,boss,gem,markers,power:lv>=7&&lv%6===1?'bomb':lv>=8&&lv%6===2?'wild':null};
 }
 function iceLocked(eaten,ice,n,i){return !!ice?.[i]&&i+n<eaten.length&&!eaten[i+n]}
 function dailyLevel(day){const d=Date.parse(day+'T00:00:00Z');return Number.isFinite(d)?3+(Math.floor(d/86400000)%30+30)%30:3;}
