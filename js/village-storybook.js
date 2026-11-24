@@ -44,19 +44,19 @@ const WALKABLE={"garden":[[[306,205],[320,224],[330,239],[317,251],[303,263]],[[
 function walkingRoutes(id){return WALKABLE[id].map(points=>points.map((p,i)=>(i?'L':'M')+p[0]+' '+p[1]).join(' '))}
 let lastRender=null;
 function artPath(id){return 'assets/maps/v36/'+id+'.webp'}
-const artError={},artImages={};
+const artError={},artImages={};let presentation=0;
 function artState(state){svg.dataset.mapState=state;svg.setAttribute('aria-busy',String(state==='loading'));const panel=svg.closest('#world-panel');if(panel)panel.dataset.mapState=state;const status=panel?.querySelector('.map-load-status'),retry=panel?.querySelector('.map-retry');if(status)status.textContent=state==='error'?'Map could not load. Your progress is safe.':'Preparing your world…';if(retry)retry.hidden=state!=='error'}
 function requestArt(id){if(artReady[id]||artPending[id]||artError[id])return;if(typeof Image==='undefined'){artError[id]=true;artState('error');return}
  const im=new Image();artPending[id]=im;let settled=false;
  const finish=ok=>{if(settled)return;settled=true;clearTimeout(timer);delete artPending[id];if(ok){artImages[id]=im;artReady[id]=true;delete artError[id]}else artError[id]=true;
-  if(region===id){if(ok&&lastRender){generation++;configureRegion(id);scene();render(...lastRender);const layer=svg.querySelector('#village-residents');if(layer){layer.replaceChildren();generation++;residents()}}else if(!ok)artState('error')}
+  if(region===id){if(ok&&lastRender){generation++;configureRegion(id);scene();render(...lastRender);residents()}else if(!ok)artState('error')}
  };
  const timer=setTimeout(()=>finish(false),12000);
  im.onload=()=>{if(typeof im.decode==='function')im.decode().then(()=>finish(true),()=>finish(false));else finish(true)};
  im.onerror=()=>finish(false);im.src=artPath(id);
 }
 function retryArt(){if(artReady[region]){delete artReady[region];delete artImages[region]}delete artError[region];generation++;scene()}
-function loadingScene(){svg.dataset.painted='false';svg.innerHTML='<rect width="960" height="720" fill="#e4efd0"/>';artState(artError[region]?'error':'loading');requestArt(region)}
+function loadingScene(){presentation++;svg.dataset.painted='false';svg.innerHTML='<rect width="960" height="720" fill="#e4efd0"/>';artState(artError[region]?'error':'loading');requestArt(region)}
 
 function paintedScene(){
  const a=PAINTED[region],ids=[0,1,2,3,5,6,7,8];
@@ -65,7 +65,7 @@ function paintedScene(){
  let sparks='';for(let i=0;i<15;i++){const x=50+(i*117)%860,y=65+(i*83)%560;sparks+='<circle cx="'+x+'" cy="'+y+'" r="12" fill="url(#sb-light)" opacity=".7"/>'}
  let hot='';if(svg.dataset.readonly!=='true')for(const [x,y,name] of a.hot){const w=Math.max(80,name.length*8+22);hot+=group(x*9.6,y*7.2,1,'<g class="painted-activity" data-activity="1" role="button" tabindex="0" aria-label="'+name+'"><rect x="'+(-w/2)+'" y="-15" width="'+w+'" height="30" rx="15" fill="#fff5d9" stroke="#bb9257" stroke-width="2"/><text text-anchor="middle" y="5" font-size="13" font-weight="bold" fill="#6d4c2a">✦ '+name+'</text></g>')}
  svg.dataset.painted='true';
- svg.innerHTML=defs+'<image href="'+artPath(region)+'" width="960" height="720" preserveAspectRatio="none"/>'+(region==='snow'?'':'<g class="sb-night-shade" pointer-events="none"><rect width="960" height="720" fill="#182e63" opacity=".33"/></g>')+'<g class="is-night-only" pointer-events="none">'+sparks+'</g><g id="village-residents"></g><g id="village-buildings"></g><g id="village-combo-effects"></g>'+hot;
+ svg.innerHTML=defs+'<image id="sb-map-image" width="960" height="720" preserveAspectRatio="none"/>'+(region==='snow'?'':'<g class="sb-night-shade" pointer-events="none"><rect width="960" height="720" fill="#182e63" opacity=".33"/></g>')+'<g class="is-night-only" pointer-events="none">'+sparks+'</g><g id="village-residents"></g><g id="village-buildings"></g><g id="village-combo-effects"></g>'+hot;
 }
 function paintedPlot(p,st,selected,readOnly){
  const id=st.placements[p.id],lv=Math.max(1,Math.min(3,Number(st.upgrades[p.id])||1)),name=VISIT_NAMES[id]||'Build site '+p.ordinal;
@@ -182,7 +182,10 @@ function lily(x,y,s){
  return group(x,y,s,'<ellipse rx="25" ry="10" fill="#7cbd57" stroke="#bde27a" stroke-width="1.4"/><path d="M0 0L23 -5L25 1Z" fill="#79c9dc"/><path d="M-4 -1Q-8 -17 0 -19Q10 -15 4 -4Q19 -15 19 -4Q12 6 2 4Q-8 7 -17 -2Q-16 -13 -4 -1Z" fill="#fff0d4" stroke="#edb7a6" stroke-width="1.3"/><circle cy="-4" r="3.6" fill="#ffd27f"/>');
 }
 function scene(){
- seed=73191;if(!artReady[region]){loadingScene();return;}paintedScene();artState('ready');
+ seed=73191;if(!artReady[region]){loadingScene();return;}
+ const token=++presentation,id=region;artState('loading');paintedScene();const image=svg.querySelector('#sb-map-image');let finished=false;
+ const finish=ok=>{if(finished)return;finished=true;clearTimeout(timer);if(token!==presentation||region!==id)return;if(ok){artState('ready')}else{delete artReady[id];delete artImages[id];artError[id]=true;generation++;loadingScene()}};
+ const timer=setTimeout(()=>finish(false),12000);image.addEventListener('load',()=>finish(true),{once:true});image.addEventListener('error',()=>finish(false),{once:true});image.setAttribute('href',artPath(id));
 }
 // Legacy vector artwork retained only for source reference; never used by live scene().
 function legacyScene(){
