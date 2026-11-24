@@ -35,6 +35,7 @@
         "<button type='button' class='ah-secondary' data-home-action='village'>🌿 World</button>",
         "<button type='button' class='ah-secondary' data-home-action='how'>❔ Help</button>",
       "</div>",
+      "<button type='button' class='ah-secondary' style='width:100%;margin-top:5px' data-home-action='raid'>⚔ RAID · WORLD BOSS</button>",
       "<p class='ah-footer' id='ah-status' aria-live='polite'>PUZZLE · COLONY · WORLD &nbsp; | &nbsp; V5.1.4 RC</p>",
     "</div>",
     "<div class='ah-how' id='ah-how' hidden role='dialog' aria-label='How to play ANT CANVAS'>",
@@ -144,6 +145,7 @@
     else if (action === 'guide') { navigate('guide.html','guide'); }
     else if (action === 'back') { document.getElementById('ah-how').hidden = true; }
     else if (action === 'share') share();
+    else if (action === 'raid') navigate('raid.html','raid');
     else if (action === 'gallery') navigate('collection.html','gallery');
     else if (action === 'village') navigate('village.html?v=world-v504','world');
     else if (action === 'mode' && window.AntWorkshop){window.AntWorkshop.toggle();updateHome();}
@@ -158,7 +160,7 @@
   window.AntHome = Object.freeze({
     show: show,
     start: start,
-    afterBoot: function () { updateHome(); if (window.Ads && typeof Ads.gameplay === 'function') Ads.gameplay(false); },
+    afterBoot: function () { updateHome();const invite=window.Telegram?.WebApp?.initDataUnsafe?.start_param;if(/^raid_[0-9a-f]{12}$/.test(invite||'')){const key='ant_raid_invite_'+invite;try{if(!sessionStorage.getItem(key)){sessionStorage.setItem(key,'1');navigate('raid.html?invite='+invite.slice(5),'raid');}}catch(_){}} if (window.Ads && typeof Ads.gameplay === 'function') Ads.gameplay(false); },
     get isOpen() { return open; }
   });
 })();
