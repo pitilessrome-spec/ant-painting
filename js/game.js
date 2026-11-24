@@ -128,7 +128,7 @@ class Game {
     this.difficulty=prm;this.hintsUsed=0;this.reshufflesUsed=0;this.revivesUsed=0;
     const N = this.n * this.n;
     this.total = N; this.left = N;
-    this.eaten = new Uint8Array(N);this.special=specialCells(lv,this.n);this.skills={bomb:0,wild:0,frost:0};this.skillDelivered=new Uint8Array(N);this.skillsUsed=0;this.daily=o.daily||null;
+    this.eaten = new Uint8Array(N);this.special=specialCells(lv,this.n);this.skills={bomb:0,wild:0,frost:0};this.skillOrder=[];this.skillDelivered=new Uint8Array(N);this.skillsUsed=0;this.daily=o.daily||null;
     this.cap = o.cap || prm.cap; this.slots = new Array(this.cap).fill(null);
     this.cols = [[], [], [], []]; this.ants = []; this.ev = [];
     this.state = 'play'; this.speed = o.speed || 1; this._R = null; this.stalled = false;
@@ -193,7 +193,7 @@ class Game {
   }
   deliverSkill(i){
     const mode=this.special.skillAt[i];if(!mode||!this.eaten[i]||this.skillDelivered[i])return false;
-    this.skillDelivered[i]=1;this.skills[mode]++;this.ev.push({t:'skillLoot',mode,count:this.skills[mode]});return true;
+    this.skillDelivered[i]=1;if(!this.skillOrder.includes(mode))this.skillOrder.push(mode);this.skills[mode]++;this.ev.push({t:'skillLoot',mode,count:this.skills[mode]});return true;
   }
   powerReady(mode){return ['bomb','wild','frost'].includes(mode)&&this.skills[mode]>0&&this.state==='play'&&this.left>0&&(mode!=='frost'||this.special.markers.some(i=>!this.eaten[i]&&iceLocked(this.eaten,this.special.ice,this.n,i)))}
   bombTargets(){if(!this.powerReady('bomb'))return [];const dist=this.R().dist,n=this.n;return Array.from({length:this.total},(_,i)=>i).filter(i=>!this.eaten[i]&&!cellLocked(this.eaten,this.special,n,i)&&expoAt(dist,n,i%n,Math.floor(i/n)))}
@@ -367,14 +367,14 @@ class Game {
   mastery(){const rate=this.dispatches?this.directDispatches/this.dispatches:0;const tactical=!!this.special.kind||this.challenge.id==='precision',efficiency=this.dispatches?this.cleanDispatches/this.dispatches:0;const clean=this.hintsUsed===0&&this.reshufflesUsed===0&&this.revivesUsed===0&&this.cap===4;return {rate,efficiency:this.dispatches?this.cleanDispatches/this.dispatches:0,peakWaiting:this.peakWaiting,chain:this.bestSmartChain,dispatches:this.dispatches,stars:this.state==='win'?(clean&&rate>=.85&&(!tactical||efficiency>=.85)?3:rate>=.65?2:1):0,clean};}
   snapshot() {
     return {
-      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,cleanDispatches:this.cleanDispatches,peakWaiting:this.peakWaiting,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,skills:{...this.skills},skillDelivered:this.skillDelivered.slice(),skillsUsed:this.skillsUsed,ice:this.special.ice.slice(),
+      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,cleanDispatches:this.cleanDispatches,peakWaiting:this.peakWaiting,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,skills:{...this.skills},skillOrder:this.skillOrder.slice(),skillDelivered:this.skillDelivered.slice(),skillsUsed:this.skillsUsed,ice:this.special.ice.slice(),
       cols: this.cols.map(col => col.map(b => ({ ...b }))),
       slots: this.slots.map(s => s ? { ...s, q: [] } : null)
     };
   }
   restore(sn) {
     this.eaten = sn.eaten; this.left = sn.left; this.cols = sn.cols; this.slots = sn.slots;
-    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.cleanDispatches=sn.cleanDispatches||0;this.peakWaiting=sn.peakWaiting||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;this.skills={...sn.skills};this.skillDelivered=sn.skillDelivered.slice();this.skillsUsed=sn.skillsUsed||0;this.special.ice=sn.ice.slice();
+    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.cleanDispatches=sn.cleanDispatches||0;this.peakWaiting=sn.peakWaiting||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;this.skills={...sn.skills};this.skillOrder=(sn.skillOrder||[]).slice();this.skillDelivered=sn.skillDelivered.slice();this.skillsUsed=sn.skillsUsed||0;this.special.ice=sn.ice.slice();
     this._R = null; this.ants = []; this.ev = []; this.stalled = false; this.state = 'play';
   }
 }
