@@ -187,7 +187,7 @@ class Game {
     if(!this.powerReady())return false;
     const mode=this.special.power,n=this.n,first=target===null?this.target(-1):target;if(first<0||mode==='bomb'&&!this.bombTargets().includes(first))return false;
     const hits=[],limit=mode==='bomb'?5:6;
-    for(let k=0;k<limit;k++){let i=-1;if(mode==='wild'||k===0)i=this.target(-1);else{
+    for(let k=0;k<limit;k++){let i=-1;if(k===0)i=first;else if(mode==='wild')i=this.target(-1);else{
       const dist=this.R().dist,fx=first%n,fy=Math.floor(first/n);
       for(let j=0;j<this.total;j++){const x=j%n,y=Math.floor(j/n);if(Math.abs(x-fx)+Math.abs(y-fy)<=1&&!this.eaten[j]&&!cellLocked(this.eaten,this.special,n,j)&&expoAt(dist,n,x,y)){i=j;break}}
     }if(i<0)break;this.eatCell(i);hits.push({i,c:this.role[i]})}
@@ -344,7 +344,7 @@ class Game {
     }
     return this.left <= 0;
   }
-  mastery(){const rate=this.dispatches?this.directDispatches/this.dispatches:0;const clean=this.hintsUsed===0&&this.reshufflesUsed===0&&this.revivesUsed===0&&this.cap===4&&!this.powerUsed;return {rate,efficiency:this.dispatches?this.cleanDispatches/this.dispatches:0,peakWaiting:this.peakWaiting,chain:this.bestSmartChain,dispatches:this.dispatches,stars:this.state==='win'?(clean&&rate>=.85?3:rate>=.65?2:1):0,clean};}
+  mastery(){const rate=this.dispatches?this.directDispatches/this.dispatches:0;const tactical=!!this.special.kind||this.challenge.id==='precision',efficiency=this.dispatches?this.cleanDispatches/this.dispatches:0;const clean=this.hintsUsed===0&&this.reshufflesUsed===0&&this.revivesUsed===0&&this.cap===4&&!this.powerUsed;return {rate,efficiency:this.dispatches?this.cleanDispatches/this.dispatches:0,peakWaiting:this.peakWaiting,chain:this.bestSmartChain,dispatches:this.dispatches,stars:this.state==='win'?(clean&&rate>=.85&&(!tactical||efficiency>=.85)?3:rate>=.65?2:1):0,clean};}
   snapshot() {
     return {
       eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,cleanDispatches:this.cleanDispatches,peakWaiting:this.peakWaiting,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,powerCharge:this.powerCharge,powerUsed:this.powerUsed,
