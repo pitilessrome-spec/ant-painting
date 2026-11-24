@@ -27,10 +27,10 @@
  function render(game){
   const text=hud.querySelector('.blast-text'),meter=hud.querySelector('.blast-fill');
   hud.setAttribute('aria-pressed',enabled?'true':'false');
-  const remaining=game&&game.blastRemaining||0,charge=game&&game.blastCharge||0;
+  const remaining=game&&game.blastRemaining||0,charge=game&&game.blastCharge||0,threshold=game?.challenge?.charge||42;
   if(!enabled){text.textContent='🐜 CLASSIC';meter.style.width='0%'}
   else if(remaining){text.textContent='✨ COLOR BLAST';meter.style.width='100%'}
-  else{text.textContent='🌈 '+charge+'/42';meter.style.width=(Math.min(100,charge/42*100))+'%'}
+  else{text.textContent='🌈 '+charge+'/'+threshold;meter.style.width=(Math.min(100,charge/threshold*100))+'%'}
   hud.classList.toggle('ready',!!(enabled&&remaining));
   const hm=document.getElementById('ah-mode');
   if(hm)hm.textContent=enabled?'ON':'OFF';
