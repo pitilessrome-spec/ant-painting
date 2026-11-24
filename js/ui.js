@@ -99,8 +99,8 @@ function drawAnt(a,now){
 function blastParticles(i,c){burst(i,c,true)}
 let comboCount=0,comboAt=-10000,comboTimer=0;const comboEl=document.createElement('div');comboEl.id='ant-combo';comboEl.setAttribute('aria-hidden','true');comboEl.hidden=true;stage.appendChild(comboEl);
 function clearCombo(){comboCount=0;comboAt=-10000;comboTimer=0;comboEl.hidden=true;comboEl.classList.remove('pop')}
-function recordHit(c,blast=false){const now=performance.now();comboCount=now-comboAt<=950?comboCount+1:1;comboAt=now;comboTimer=950;
- if(comboCount>=3){comboEl.hidden=false;comboEl.textContent=(comboCount>=25?'RAINBOW! ':comboCount>=15?'AMAZING! ':comboCount>=8?'GREAT! ':'')+'COMBO ×'+comboCount;comboEl.style.setProperty('--combo-color',G.pal[c]||'#ffd65a');if(comboCount===3||comboCount%5===0){comboEl.classList.remove('pop');void comboEl.offsetWidth;comboEl.classList.add('pop');window.AntSFX?.play('combo',comboCount)}}
+function recordHit(c,blast=false){const now=performance.now();if(now-comboAt>950)clearCombo();comboCount++;comboAt=now;comboTimer=950;
+ if(comboCount>=3){comboEl.hidden=false;comboEl.textContent=(comboCount>=25?'RAINBOW! ':comboCount>=15?'AMAZING! ':comboCount>=8?'GREAT! ':'')+'COMBO ×'+comboCount;comboEl.dataset.tier=comboCount>=25?'rainbow':comboCount>=15?'amazing':comboCount>=8?'great':'normal';comboEl.style.setProperty('--combo-color',G.pal[c]||'#ffd65a');if(comboCount===3||comboCount%5===0){comboEl.classList.remove('pop');void comboEl.offsetWidth;comboEl.classList.add('pop');window.AntSFX?.play('combo',comboCount)}}
  window.AntSFX?.play(blast?'impact':'hit',comboCount);
 }
 function drawFX(dt,now){
