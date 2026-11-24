@@ -3,12 +3,8 @@
   pointer-events:none;
   filter:drop-shadow(0px 3px 2px rgba(33,68,57,.23));
 }
-#village-world .village-ant .ant-leg{
-  transform-box:view-box;
-  transform-origin:0 0;
-  animation:ant-step-a .43s cubic-bezier(.35,0,.65,1) infinite;
-}
-#village-world .village-ant .ant-step-b{animation-name:ant-step-b}
+/* Six legs use SVG animateTransform from their own hip joints, including in Telegram WebView. */
+#village-world .village-ant .ant-leg{stroke-linecap:round}
 #village-world .village-ant .ant-bob{
   animation:ant-bob .43s ease-in-out infinite;
   transform-box:fill-box;
