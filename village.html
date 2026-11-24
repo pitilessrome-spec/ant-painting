@@ -7,7 +7,7 @@
 <meta name="description" content="Build a cozy village for your tiny ants. Unlock magical buildings, open milestone chests, and discover hidden treasures.">
 <title>My Ant Village · ANT CANVAS</title>
 <link rel="stylesheet" href="css/village-world.css?v=village-world-v2">
-<link rel="stylesheet" href="css/village-storybook.css?v=world-v36">
+<link rel="stylesheet" href="css/village-storybook.css?v=world-v37">
 </head>
 <body>
 <header class="topbar">
@@ -37,7 +37,7 @@
    <div class="world-story" id="world-story" aria-live="polite">Tap a glowing plot to start building your little world.</div>
   </div>
   <div class="side"><section class="panel" id="region-activities"><h2 id="regional-title">Region adventures</h2><div id="regional-content"></div><div id="regional-collection"></div><p class="sub" id="regional-message" aria-live="polite"></p></section><p class="notice" id="guest-ants-note">🐜 Friends can visit your shared village</p>
-   <section class="panel">
+   <section class="panel" id="build-panel">
     <h2>🛠️ Decoration Workshop</h2>
     <p class="sub">1. Choose a plot. 2. Choose a building below. 3. Tap Build or Replace to confirm. Existing buildings can be upgraded or removed for a full material refund.</p>
     <div class="build-detail" id="build-detail"><b>Choose a building plot</b>Use your collected materials to create something wonderful.</div>
@@ -88,6 +88,7 @@
  </div>
  <p class="notice">Your village saves locally in this browser. Existing buildings and materials are preserved during this update. Chest contents follow a fair, deterministic cosmetic sequence; there are no payments or chance-based purchases. Cross-device Telegram saving requires the connected backend.</p>
 </main>
+<nav class="world-nav" aria-label="Game navigation"><a href="./">🎮<span>Play</span></a><button type="button" data-world-tab="world" aria-current="page">🌿<span>World</span></button><button type="button" data-world-tab="build">🔨<span>Build</span></button><button type="button" data-world-tab="tasks">📋<span>Tasks</span></button><button type="button" data-world-tab="collection">🏆<span>Collection</span></button></nav>
 <div id="reveal-modal" hidden role="dialog" aria-modal="true" aria-labelledby="reveal-title">
  <div class="modal-card">
   <span class="big" id="reveal-emoji">✨</span>
@@ -97,9 +98,9 @@
  </div>
 </div>
 <script src="js/village.js?v=world-v36"></script>
-<script src="js/village-storybook.js?v=world-v36"></script>
+<script src="js/village-storybook.js?v=world-v37"></script>
 <script src="js/region-activities.js?v=world-v36"></script>
 <script src="js/village-page.js?v=world-v36"></script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="js/village-guests.js?v=community-v34"></script>
-</body></html>
+<script>(function(){const nav=document.querySelector('.world-nav'),main=document.querySelector('main');const groups={world:['.region-panel','#world-panel','#region-activities','#guest-ants-note'],build:['#build-panel'],tasks:['.life-panel','.expedition-panel'],collection:['.treasure-panel','.relic-panel','.lower-grid']};const all=Object.values(groups).flatMap(a=>a.map(s=>document.querySelector(s))).filter(Boolean);let active='world';const mq=matchMedia('(max-width: 700px)');function show(tab,scroll=true){active=tab;const mobile=mq.matches,chosen=groups[tab].map(s=>document.querySelector(s));all.forEach(el=>{el.hidden=mobile&&!chosen.includes(el)});main.dataset.tab=mobile?tab:'desktop';nav.querySelectorAll('[data-world-tab]').forEach(b=>{if(b.dataset.worldTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});if(scroll&&mobile)window.scrollTo(0,0)}nav.addEventListener('click',e=>{const b=e.target.closest('[data-world-tab]');if(b)show(b.dataset.worldTab)});document.querySelector('#village-world').addEventListener('click',e=>{if(mq.matches&&e.target.closest('[data-plot]'))show('build',false)},true);document.querySelector('#village-world').addEventListener('keydown',e=>{if(mq.matches&&['Enter',' '].includes(e.key)&&e.target.closest('[data-plot]'))show('build',false)},true);if(mq.addEventListener)mq.addEventListener('change',()=>show(active,false));else mq.addListener(()=>show(active,false));show('world',false)})();</script></body></html>
