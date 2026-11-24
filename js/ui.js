@@ -42,6 +42,7 @@ function buildBoard(){
  if(!R3||!G)return;
  if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();mesh=null}
  const n=G.n;CW=3.2/n;
+ const battle=!!G.battle,zoom=battle?.72:1,half=VH/VW*2/zoom,offset=battle?.66:0;cam.left=-2/zoom;cam.right=2/zoom;cam.top=half+offset;cam.bottom=-half+offset;cam.updateProjectionMatrix();cam.updateMatrixWorld();
  const d=CW*.75,bev=CW*.1,hs=CW*.44-bev;
  const sh=new THREE.Shape();rrPath(sh,-hs,-hs,hs*2,hs*2,Math.max(.002,CW*.16));
  const geo=new THREE.ExtrudeGeometry(sh,{depth:d,bevelEnabled:true,bevelThickness:bev,bevelSize:bev*.9,bevelSegments:2,curveSegments:4});
@@ -150,6 +151,10 @@ function handleEv(){
  for(const e of G.ev){
   if(e.t==='eat'){if(G.special.skillAt[e.i])skillGoneVisual.add(e.i);anims.set(e.i,0);burst(e.i,e.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);if(window.AntMystery)window.AntMystery.reveal(e.i);recordHit(e.c)}
   else if(e.t==='shot'){window.AntSFX?.play('launch');if(window.AntBlastFX)window.AntBlastFX.fire(e.i,e.c);else PROJECTILES.push({i:e.i,c:e.c,age:0})}
+  else if(e.t==='bossHit'){window.AntBossFX?.strike(e.amount,e.mode,e.c);}
+  else if(e.t==='bossCounter'){window.AntBossFX?.hit(e.name,e.phase,false);window.AntSFX?.play('impact');toast(({ 'Web Guardian':'WEB: one slot slowed', 'Iron Beetle':'ARMOR: bonus damage blocked', 'Frost Sentinel':'FROST: ants slowed', 'Rainbow King':'PRISM: weak color changed'})[e.name]);}
+  else if(e.t==='bossDefeated'){window.AntBossFX?.hit(G.special.kind,4,true);window.AntSFX?.play('reward');toast('BOSS DEFEATED · Finish the painting!');}
+  else if(e.t==='bossSkill'){window.AntSFX?.play(e.mode==='super'?'super':e.mode==='lightning'?'lightning':'blast');}
   else if(e.t==='skillLoot'){toast((SKILL_ICON[e.mode]+' '+SKILL_LABEL[e.mode])+' +1 · delivered to nest!');window.AntSFX?.play('reward');renderUI();const btn=$('#skill-'+e.mode);btn.classList.remove('skill-pop');void btn.offsetWidth;btn.classList.add('skill-pop')}
   else if(e.t==='skillRescue'){toast('Slots blocked! Use a collected skill to open a route.');}
   else if(e.t==='power'){if(['lightning','wind','key','super'].includes(e.mode)){window.AntSFX?.play(e.mode);if(!REDUCED_FX&&skillFx.length<6)skillFx.push({mode:e.mode,targets:e.targets||[],age:0})}toast((SKILL_ICON[e.mode]+' '+SKILL_LABEL[e.mode])+' · '+e.count+(e.mode==='wind'?' slots released':e.mode==='key'?' locks opened':' blocks!')+(e.lost?' · '+e.lost+' skill'+(e.lost===1?'':'s')+' destroyed!':''));}
@@ -168,7 +173,7 @@ function renderUI(){
  if(!G)return;
  $('#lv').textContent=dailyMode?'Daily':'Level '+LV;document.querySelector('[data-act="prev"]').disabled=!!dailyMode;document.querySelector('[data-act="next"]').disabled=!!dailyMode;document.querySelector('[data-act="nextLv"]').textContent=dailyMode?'Return to main level →':'Next level →';
  $('#pv').textContent=G.visualPct()+'%';
- const tip=$('#tip'),m=G.mastery(),ch=G.challenge;const bag=$('#skill-bag'),boss=G.bossHealth(),special=$('#special-note');bag.hidden=G.skillOrder.length===0;for(const mode of SKILL_TYPES){const btn=$('#skill-'+mode),seen=G.skillOrder.includes(mode);btn.hidden=!seen;btn.style.order=seen?G.skillOrder.indexOf(mode):99;btn.disabled=!G.powerReady(mode);const count=G.skills[mode],icon=SKILL_ICON[mode],label=SKILL_LABEL[mode];const display=icon+' ×'+count;if(btn.textContent!==display)btn.textContent=display;btn.setAttribute('aria-label',label+' ×'+count);btn.setAttribute('aria-pressed',String(mode===bombAim))}special.textContent=boss.total?(({'Web Guardian':'🕷','Iron Beetle':'🪲','Frost Sentinel':'❄','Rainbow King':'🌈'}[boss.name]||'✦')+' '+boss.name+' · Phase '+(boss.phase||3)+' · HP '+boss.remaining+'/'+boss.total+' · '+(window.AntBossFX?.themes[boss.name]?.hint||'Clear guards')):G.special.ice.some((v,i)=>v&&iceLocked(G.eaten,G.special.ice,G.n,i))?'❄️ Clear below ice to thaw':G.special.gem>=0?'💎 Gem · '+(G.eaten[G.special.gem]?'found':'find and clear')+(dailyMode?' · Daily':''):'';special.hidden=!special.textContent;const bossHud=$('#boss-hp');bossHud.hidden=!boss.total;bossHud.firstElementChild.style.width=(boss.total?boss.remaining/boss.total*100:0)+'%';const board=$('#board');if(bombAim&&!G.powerReady(bombAim))bombAim=false;board.dataset.bombAim=bombAim?'1':'0';if(boss.total&&lastBossHP>=0&&boss.remaining<lastBossHP){if(boss.remaining===0||boss.phase!==lastBossPhase){bossHud.classList.remove('boss-pulse');void bossHud.offsetWidth;bossHud.classList.add('boss-pulse');window.AntSFX?.play(boss.remaining===0?'reward':'impact');window.AntBossFX?.hit(boss.name,boss.phase,boss.remaining===0);toast(boss.remaining===0?'BOSS DEFEATED!':'SHIELD BROKEN · '+boss.name)}}lastBossHP=boss.total?boss.remaining:-1;lastBossPhase=boss.phase;const plan=$('#plan-toggle');plan.hidden=LV<6;plan.textContent=planning?'Cancel plan':'Plan move';plan.setAttribute('aria-pressed',String(planning));const planNote=$('#plan-note');planNote.hidden=!planning&&!bombAim;planNote.textContent=bombAim?SKILL_LABEL[bombAim]+' · Choose target · destroys skill blocks!':inspectText||'Inspect a top box, then tap again to dispatch';const msg=LV<3?'Tap a box to load a slot · Eat the grid from the bottom up':(ch.id==='rainbow'?'🌈 Rainbow Rush':ch.id==='precision'?'🧠 Precision Puzzle':ch.id==='sprint'?'⚡ Ant Sprint':'🐜 Classic')+' · Smart '+Math.round(m.rate*100)+'% · Streak '+G.smartChain;tip.hidden=false;if(tip.textContent!==msg)tip.textContent=msg;tip.dataset.challenge=ch.id;
+ const tip=$('#tip'),m=G.mastery(),ch=G.challenge;const bag=$('#skill-bag'),boss=G.battleHealth(),special=$('#special-note');bag.hidden=G.skillOrder.length===0;for(const mode of SKILL_TYPES){const btn=$('#skill-'+mode),seen=G.skillOrder.includes(mode);btn.hidden=!seen;btn.style.order=seen?G.skillOrder.indexOf(mode):99;btn.disabled=!G.powerReady(mode)&&!G.bossPowerReady(mode);const count=G.skills[mode],icon=SKILL_ICON[mode],label=SKILL_LABEL[mode];const display=icon+' ×'+count;if(btn.textContent!==display)btn.textContent=display;btn.setAttribute('aria-label',label+' ×'+count);btn.setAttribute('aria-pressed',String(mode===bombAim))}special.textContent=boss.total?boss.name+' · '+(boss.remaining?'PHASE '+boss.phase:'DEFEATED')+' · '+boss.remaining+'/'+boss.total:G.special.ice.some((v,i)=>v&&iceLocked(G.eaten,G.special.ice,G.n,i))?'❄️ Clear below ice to thaw':G.special.gem>=0?'💎 Gem · '+(G.eaten[G.special.gem]?'found':'find and clear')+(dailyMode?' · Daily':''):'';special.hidden=!special.textContent;const bossHud=$('#boss-hp');bossHud.hidden=!boss.total;bossHud.firstElementChild.style.width=(boss.total?boss.remaining/boss.total*100:0)+'%';const tactic=$('#boss-tactic');tactic.hidden=!boss.total;tactic.textContent=!boss.remaining?'Finish the painting':boss.webMs>0?'WEB · slot '+(G.battle.webSlot+1)+' slowed':boss.frostMs>0?'FROST · ants slowed':boss.armor>0?'ARMOR · bonus damage blocked':'Weak color · +1 damage';tactic.style.setProperty('--weak',G.pal[boss.weak]||'#fff');tactic.classList.toggle('weak',!!boss.remaining&&!boss.webMs&&!boss.frostMs&&!boss.armor);const board=$('#board');if(bombAim&&!G.powerReady(bombAim)&&!G.bossPowerReady(bombAim))bombAim=false;board.dataset.bombAim=bombAim?'1':'0';lastBossHP=boss.total?boss.remaining:-1;lastBossPhase=boss.phase;const plan=$('#plan-toggle');plan.hidden=LV<6;plan.textContent=planning?'Cancel plan':'Plan move';plan.setAttribute('aria-pressed',String(planning));const planNote=$('#plan-note');planNote.hidden=!planning&&!bombAim;planNote.textContent=bombAim?SKILL_LABEL[bombAim]+(G.bossPowerReady(bombAim)?' · Tap BOSS or brick':' · Choose brick · destroys skill blocks!'):inspectText||'Inspect a top box, then tap again to dispatch';const msg=LV<3?'Tap a box to load a slot · Eat the grid from the bottom up':(ch.id==='rainbow'?'🌈 Rainbow Rush':ch.id==='precision'?'🧠 Precision Puzzle':ch.id==='sprint'?'⚡ Ant Sprint':'🐜 Classic')+' · Smart '+Math.round(m.rate*100)+'% · Streak '+G.smartChain;tip.hidden=false;if(tip.textContent!==msg)tip.textContent=msg;tip.dataset.challenge=ch.id;
  if(window.AntWorkshop)window.AntWorkshop.render(G);
  $('#spd').textContent=(spIdx===1&&!x3ok)?'×2 ▸ ×3':'×'+SPEEDS[spIdx];
  $('#rsh').classList.toggle('off',LV<10);
@@ -203,7 +208,7 @@ function newLevel(lv,daily=null){
  LV=Math.max(1,Math.min((window.AntCanvasProfile&&window.AntCanvasProfile.MAX_LEVEL)||999999,Math.floor(Number(lv)||1)));
  window.ANT_CANVAS_CURRENT_LEVEL=dailyMode?null:LV;
  spIdx=Math.min(spIdx,LV>=10?1:0);x3ok=false;
- G=makeGame(LV,{speed:SPEEDS[spIdx],daily:dailyMode});
+ G=makeGame(LV,{speed:SPEEDS[spIdx],daily:dailyMode});stage.classList.toggle('boss-battle',!!G.battle);
  window.ANT_CANVAS_GAME=G;
  if(window.AntBlastFX)window.AntBlastFX.reset();
  if(window.AntMystery)window.AntMystery.begin(G);
@@ -217,6 +222,7 @@ function onWin(){
  if(dailyMode){const m=G.mastery(),best=window.AntCanvasProfile?.saveDaily(dailyMode,m.stars);window.AntPolish?.onWin(G,LV);const stars=$('#ant-win-stars');if(stars)stars.textContent='★'.repeat(m.stars)+'☆'.repeat(3-m.stars);$('#winSub').textContent='Daily challenge · '+dailyMode;$('#winMastery').textContent=(best?'New daily best · ':'')+m.stars+' / 3 stars';$('#winReward').textContent='Daily medal saved locally · no main-level rewards';$('#win').classList.add('on');window.AntSFX?.play('win');return;}
  const firstCollect=window.AntCanvasProfile?window.AntCanvasProfile.complete(LV):false;
  const gem=G.special.gem>=0&&G.eaten[G.special.gem]&&window.AntCanvasProfile?.contains(LV)&&window.AntCanvasProfile?.saveGem(LV);
+ const relic=G.battle&&G.battle.hp===0&&window.AntCanvasProfile?.saveBossRelic(G.special.kind);
  const reward=firstCollect&&window.AntVillage?window.AntVillage.award(LV,window.AntCanvasProfile.rarity(LV)):null;
  if(window.AntTelegram) window.AntTelegram.onLevelComplete(LV);
  if(window.AntPolish) window.AntPolish.onWin(G,LV);
@@ -224,13 +230,13 @@ function onWin(){
  if(window.AntMystery)window.AntMystery.complete();
  MAXLV=Math.max(MAXLV,Math.min((window.AntCanvasProfile&&window.AntCanvasProfile.MAX_LEVEL)||999999,LV+1));save();
  $('#winSub').textContent='Level '+LV+' complete · 100%'+(window.AntCanvasProfile?' · '+window.AntCanvasProfile.rarity(LV).symbol+' '+window.AntCanvasProfile.rarity(LV).title:'');
- const rewardEl=$('#winReward');if(rewardEl)rewardEl.textContent=reward?'🪵 +'+reward.wood+' wood  🌸 +'+reward.petals+' petals'+(reward.chest?'  🎁 BONUS CHEST!':''):'🖼️ Painting already collected';if(gem&&rewardEl)rewardEl.textContent+=' · 💎 Secret gem collected';
+ const rewardEl=$('#winReward');if(rewardEl)rewardEl.textContent=reward?'🪵 +'+reward.wood+' wood  🌸 +'+reward.petals+' petals'+(reward.chest?'  🎁 BONUS CHEST!':''):'🖼️ Painting already collected';if(gem&&rewardEl)rewardEl.textContent+=' · 💎 Secret gem collected';if(relic&&rewardEl)rewardEl.textContent+=' · 🏆 New boss relic!';
  $('#win').classList.add('on');
  window.AntSFX?.play('win');
  for(let i=0;i<70;i++)PAR.push({x:Math.random()*VW,y:-10-Math.random()*60,vx:(Math.random()-.5)*1.2,vy:1+Math.random()*2,l:2600,c:G.pal[(Math.random()*8)|0]});
 }
 
-document.getElementById('board').addEventListener('click',e=>{if(!bombAim||!G?.powerReady(bombAim)||Ads.busy||window.AntHome?.isOpen)return;const r=e.currentTarget.getBoundingClientRect(),x=(e.clientX-r.left)*VW/r.width,y=(e.clientY-r.top)*VH/r.height;let best=-1,dist=Infinity;for(const i of G.bombTargets(bombAim)){const q=proj(i%G.n+.5,Math.floor(i/G.n)+.5,ZTOP),d=Math.hypot(q[0]-x,q[1]-y);if(d<dist){dist=d;best=i}}if(best>=0&&dist<Math.max(12,180/G.n)&&G.usePower(bombAim,best)){bombAim=false;window.AntSFX?.play('blast');renderUI();e.stopPropagation()}});
+document.getElementById('board').addEventListener('click',e=>{if(!bombAim||!G||( !G.powerReady(bombAim)&&!G.bossPowerReady(bombAim))||Ads.busy||window.AntHome?.isOpen)return;const r=e.currentTarget.getBoundingClientRect(),x=(e.clientX-r.left)*VW/r.width,y=(e.clientY-r.top)*VH/r.height;if(G.bossPowerReady(bombAim)&&Math.abs(x-180)<58&&Math.abs(y-62)<40){G.attackBoss(bombAim);bombAim=false;renderUI();e.stopPropagation();return;}let best=-1,dist=Infinity;for(const i of G.bombTargets(bombAim)){const q=proj(i%G.n+.5,Math.floor(i/G.n)+.5,ZTOP),d=Math.hypot(q[0]-x,q[1]-y);if(d<dist){dist=d;best=i}}if(best>=0&&dist<Math.max(12,180/G.n)&&G.usePower(bombAim,best)){bombAim=false;window.AntSFX?.play('blast');renderUI();e.stopPropagation()}});
 stage.addEventListener('click',e=>{
  if(!G||adT>0||Ads.busy||(window.AntHome&&window.AntHome.isOpen))return;
  const el=e.target.closest('[data-col],[data-act]');if(!el||el.disabled)return;window.AntSFX?.unlock();
@@ -245,7 +251,7 @@ stage.addEventListener('click',e=>{
  }
  const a=el.dataset.act;
  if(a==='plan'){planning=!planning;bombAim=false;inspectCol=-1;inspectText='';renderUI();return;}
- if(a.startsWith('skill-')){const mode=a.slice(6);if(['bomb','lightning','super'].includes(mode)&&G.powerReady(mode)){bombAim=bombAim===mode?false:mode;planning=false;inspectCol=-1;inspectText='';renderUI()}else if(G.usePower(mode)){bombAim=false;planning=false;inspectCol=-1;inspectText='';window.AntSFX?.play('blast');renderUI()}return;}
+ if(a.startsWith('skill-')){const mode=a.slice(6);if(['bomb','lightning','super'].includes(mode)&&(G.powerReady(mode)||G.bossPowerReady(mode))){bombAim=bombAim===mode?false:mode;planning=false;inspectCol=-1;inspectText='';renderUI()}else if((['frost','wind'].includes(mode)&&G.bossPowerReady(mode)?G.attackBoss(mode):G.usePower(mode))){bombAim=false;planning=false;inspectCol=-1;inspectText='';window.AntSFX?.play('blast');renderUI()}return;}
  if(a==='unlock'){if(dailyMode)return;
    if(G.cap!==4||G.state!=='play')return;
    const game=G;

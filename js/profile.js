@@ -90,10 +90,13 @@
   function dailyBest(day){return Number(collection.daily?.[day])||0}
   function saveGem(lv){if(!Number.isSafeInteger(lv)||lv<5||collection.gems?.[lv])return false;const old=collection.gems;collection.gems={...(old||{}),[lv]:true};const k=Object.keys(collection.gems);if(k.length>2000)delete collection.gems[k[0]];if(!write(COLLECTION_KEY,collection)){collection.gems=old;return false}return true}
   function saveDaily(day,stars){if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!Number.isInteger(stars)||stars<1||stars>3||(collection.daily?.[day]||0)>=stars)return false;const old=collection.daily;collection.daily={...(old||{}),[day]:stars};for(const key of Object.keys(collection.daily).sort().slice(0,-31))delete collection.daily[key];if(!write(COLLECTION_KEY,collection)){collection.daily=old;return false}return true}
+  const BOSS_RELICS=['Web Guardian','Iron Beetle','Frost Sentinel','Rainbow King'];
+  function bossRelics(){return BOSS_RELICS.filter(n=>collection.bossRelics?.[n]===true)}
+  function saveBossRelic(name){if(!BOSS_RELICS.includes(name)||collection.bossRelics?.[name])return false;const old=collection.bossRelics;collection.bossRelics={...(old||{}),[name]:true};if(!write(COLLECTION_KEY,collection)){collection.bossRelics=old;return false}return true}
   function count(){return highest()+collection.extras.length}
   function rarityTotal(){return collection.rareCount}
   function displayCode(){return profile.seed===0?'CLASSIC':('ANT-'+profile.seed.toString(16).toUpperCase().padStart(8,'0'))}
   global.AntCanvasProfile=Object.freeze({
-    seed:profile.seed,legacy:!!profile.legacy,rarity,contains,complete,highest,count,rarityTotal,displayCode,levelSeed,MAX_LEVEL,mastery,saveMastery,saveGem,saveDaily,hasGem,gemCount,dailyBest
+    seed:profile.seed,legacy:!!profile.legacy,rarity,contains,complete,highest,count,rarityTotal,displayCode,levelSeed,MAX_LEVEL,mastery,saveMastery,saveGem,saveDaily,hasGem,gemCount,dailyBest,bossRelics,saveBossRelic
   });
 })(typeof window!=='undefined'?window:globalThis);

@@ -18,7 +18,7 @@ function makeArt(lv,unit){
 function updateStats(){
   $('col-total').textContent=P.count().toLocaleString();
   $('col-gems').textContent=(P.gemCount?.()||0).toLocaleString();$('col-daily').textContent=(P.dailyBest?.(new Date().toISOString().slice(0,10))||0)+'/3';
-  $('col-series').textContent=P.displayCode();
+  $('col-series').textContent=P.displayCode();const relics=P.bossRelics?.()||[];$('col-boss').textContent=relics.length+'/4';$('col-boss-list').textContent=['Web Guardian','Iron Beetle','Frost Sentinel','Rainbow King'].map((n,i)=>(relics.includes(n)?['🕷','🪲','❄','🌈'][i]:'🔒')+' '+n).join(' · ');
   const rare=P.rarityTotal();
   $('col-rare').textContent=rare===null?'—':rare.toLocaleString();
 }
