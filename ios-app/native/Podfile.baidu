@@ -1,0 +1,5 @@
+platform :ios, '15.0'
+project 'App.xcodeproj'
+target 'App' do
+  pod 'BaiduMobAdSDK', '10.051'
+end
