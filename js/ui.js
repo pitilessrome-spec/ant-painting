@@ -105,7 +105,7 @@ function recordHit(c,blast=false){const now=performance.now();if(now-comboAt>950
  window.AntSFX?.play(blast?'impact':'hit',comboCount);
 }
 let planning=false,bombAim=false,inspectCol=-1,inspectText='',inspectGame=null,lastBossPhase=-1,lastBossHP=-1;
-const SKILL_ICON={bomb:'💣',wild:'🌈',frost:'❄',lightning:'⚡',wind:'🌀',key:'🔑',super:'🌟'},SKILL_LABEL={bomb:'Bomb',wild:'Wild ant',frost:'Icebreaker',lightning:'Lightning',wind:'Whirlwind',key:'Treasure key',super:'Super blast'};const skillGoneVisual=new Set();
+const SKILL_ICON={bomb:'💣',wild:'🌈',frost:'❄',lightning:'⚡',wind:'🌀',key:'🔑',super:'🌟'},SKILL_LABEL={bomb:'Bomb',wild:'Wild ant',frost:'Icebreaker',lightning:'Lightning',wind:'Whirlwind',key:'Treasure key',super:'Super blast'};const skillGoneVisual=new Set();let skillFx=[];
 function drawSpecialMarkers(){
  const n=G.n,s=G.special;fx.save();fx.textAlign='center';fx.textBaseline='middle';fx.font='bold '+Math.max(9,Math.min(17,220/n))+'px system-ui';
  for(const i of s.markers){const loot=s.skillAt[i],isLoot=!!loot&&!skillGoneVisual.has(i);if(G.eaten[i]&&!isLoot)continue;
@@ -119,6 +119,7 @@ function drawFX(dt,now){
  fx.setTransform(DPR,0,0,DPR,0,0);fx.clearRect(0,0,VW,VH);
  if(!G)return;
  drawSpecialMarkers();
+ for(const a of skillFx){a.age+=dt;const t=Math.min(1,a.age/650);fx.save();fx.globalAlpha=(1-t)*.88;fx.lineCap='round';fx.lineJoin='round';const points=a.targets.map(i=>proj(i%G.n+.5,Math.floor(i/G.n)+.5,ZTOP));if(a.mode==='lightning'&&points.length){fx.strokeStyle='#b8efff';fx.lineWidth=4;fx.beginPath();fx.moveTo(...points[0]);for(let k=1;k<points.length;k++){const [x,y]=points[k],[u,v]=points[k-1];fx.lineTo((x+u)/2+Math.sin(k*9+a.age*.04)*7,(y+v)/2-5);fx.lineTo(x,y)}fx.stroke();fx.strokeStyle='#fff';fx.lineWidth=1.5;fx.stroke()}else if(a.mode==='super'&&points.length){const [x,y]=points[0];for(let k=0;k<3;k++){fx.strokeStyle=['#ffc45a','#ff90cb','#9cf7ff'][k];fx.lineWidth=4*(1-t)+1;fx.beginPath();fx.arc(x,y,5+(24+k*13)*t,0,Math.PI*2);fx.stroke()}}else if(a.mode==='wind'){for(let k=0;k<3;k++){fx.strokeStyle='#b4f4e6';fx.lineWidth=2;fx.beginPath();fx.ellipse(VW/2,VH-20,15+t*100,5+t*14,k*.2,0,Math.PI*1.65);fx.stroke()}}else if(a.mode==='key'){const [x,y]=proj(G.n/2,G.n/3+.5,ZTOP);fx.strokeStyle='#ffdf7f';fx.lineWidth=3;fx.beginPath();fx.arc(x,y,4+t*35,0,Math.PI*2);fx.stroke();fx.fillStyle='#fff5a0';fx.font='bold 20px system-ui';fx.textAlign='center';fx.fillText('🔑',x,y-10-t*15)}fx.restore()}skillFx=skillFx.filter(a=>a.age<650);
  if(comboTimer>0){comboTimer-=dt;if(comboTimer<=0)clearCombo()}
  for(const p of PAR){p.x+=p.vx*dt/16;p.y+=p.vy*dt/16;p.vy+=.12*dt/16;p.l-=dt}
  PAR=PAR.filter(p=>p.l>0);
@@ -150,7 +151,7 @@ function handleEv(){
   else if(e.t==='shot'){window.AntSFX?.play('launch');if(window.AntBlastFX)window.AntBlastFX.fire(e.i,e.c);else PROJECTILES.push({i:e.i,c:e.c,age:0})}
   else if(e.t==='skillLoot'){toast((SKILL_ICON[e.mode]+' '+SKILL_LABEL[e.mode])+' +1 · delivered to nest!');window.AntSFX?.play('reward');renderUI();const btn=$('#skill-'+e.mode);btn.classList.remove('skill-pop');void btn.offsetWidth;btn.classList.add('skill-pop')}
   else if(e.t==='skillRescue'){toast('Slots blocked! Use a collected skill to open a route.');}
-  else if(e.t==='power'){toast((SKILL_ICON[e.mode]+' '+SKILL_LABEL[e.mode])+' · '+e.count+(e.mode==='wind'?' slots released':e.mode==='key'?' locks opened':' blocks!')+(e.lost?' · '+e.lost+' skill'+(e.lost===1?'':'s')+' destroyed!':''));}
+  else if(e.t==='power'){if(['lightning','wind','key','super'].includes(e.mode)){window.AntSFX?.play(e.mode);if(!REDUCED_FX&&skillFx.length<6)skillFx.push({mode:e.mode,targets:e.targets||[],age:0})}toast((SKILL_ICON[e.mode]+' '+SKILL_LABEL[e.mode])+' · '+e.count+(e.mode==='wind'?' slots released':e.mode==='key'?' locks opened':' blocks!')+(e.lost?' · '+e.lost+' skill'+(e.lost===1?'':'s')+' destroyed!':''));}
   else if(e.t==='blastReady'){if(window.AntBlastFX)window.AntBlastFX.ready();else toast('🌈 Color Blast!');window.AntSFX?.play('blast')}
   else if(e.t==='claim'&&mesh){mesh.setColorAt(e.i,CLR.set(mix(G.pal[e.c],'#ffffff',.35)));mesh.instanceColor.needsUpdate=true;boardDirty=true}
   else if(e.t==='reshuffle')toast('No moves left, boxes reshuffled');
@@ -196,7 +197,7 @@ function renderUI(){
 
 /* ---------- Levels and flow ---------- */
 function newLevel(lv,daily=null){
- planning=false;bombAim=false;inspectCol=-1;inspectText='';inspectGame=null;lastBossHP=-1;lastBossPhase=-1;skillGoneVisual.clear();
+ planning=false;bombAim=false;inspectCol=-1;inspectText='';inspectGame=null;lastBossHP=-1;lastBossPhase=-1;skillGoneVisual.clear();skillFx=[];
  if(daily&&!dailyMode)normalLevel=LV;dailyMode=daily;if(!daily)normalLevel=null;
  LV=Math.max(1,Math.min((window.AntCanvasProfile&&window.AntCanvasProfile.MAX_LEVEL)||999999,Math.floor(Number(lv)||1)));
  window.ANT_CANVAS_CURRENT_LEVEL=dailyMode?null:LV;

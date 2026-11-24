@@ -218,7 +218,7 @@ class Game {
     if(!hits.length)return false;this.skills[mode]--;this.skillsUsed++;this.rebuild();
     let lost=0;
     for(const hit of hits){if(destructive){if(this.special.skillAt[hit.idx]){this.skillDestroyed[hit.idx]=1;lost++;}this.spawnVisual(hit,'blast');this.ev.push({t:'shot',i:hit.idx,c:hit.c});}else{this.spawnVisual(hit);if(!this.special.skillAt[hit.idx])this.ev.push({t:'eat',i:hit.idx,c:hit.c});}}
-    this.ev.push({t:'power',mode,count:hits.length,lost});return true;
+    this.ev.push({t:'power',mode,count:hits.length,lost,targets:hits.map(h=>h.idx)});return true;
   }
   // Logic: boxes in slots eat whatever they can, in slot order, until nothing more can be eaten. Depends only on cells, never on time
   cascade() {
