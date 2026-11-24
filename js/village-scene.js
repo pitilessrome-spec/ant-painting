@@ -15,8 +15,8 @@ function tree(x,y,s){
 function ant(path,start,color,job=0){
  // Six independently alternating articulated legs, antennae and three body segments.
  // SVG animateMotion follows the curved road, including heading when returning home.
- const upper=(x,phase)=>'<g transform="translate('+x+' -3)"><g class="ant-leg '+(phase?'ant-step-b':'ant-step-a')+'"><path d="M0 0L-2 -8L'+(x<0?-8:7)+' -12" fill="none" stroke="#4b344d" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+(x<0?-8:7)+'" cy="-12" r="1.8" fill="#60475c"/></g></g>';
- const lower=(x,phase)=>'<g transform="translate('+x+' 4)"><g class="ant-leg '+(phase?'ant-step-b':'ant-step-a')+'"><path d="M0 0L-3 9L'+(x<0?-10:8)+' 13" fill="none" stroke="#47334b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+(x<0?-10:8)+'" cy="13" r="1.7" fill="#60415b"/></g></g>';
+ const upper=(x,phase)=>'<g transform="translate('+x+' -3)"><g class="ant-leg '+(phase?'ant-step-b':'ant-step-a')+'"><animateTransform attributeName="transform" type="rotate" values="'+(phase?'-22;24;-22':'22;-23;22')+'" dur=".42s" repeatCount="indefinite"/><path d="M0 0L-2 -8L'+(x<0?-8:7)+' -12" fill="none" stroke="#4b344d" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+(x<0?-8:7)+'" cy="-12" r="1.8" fill="#60475c"/></g></g>';
+ const lower=(x,phase)=>'<g transform="translate('+x+' 4)"><g class="ant-leg '+(phase?'ant-step-b':'ant-step-a')+'"><animateTransform attributeName="transform" type="rotate" values="'+(phase?'23;-22;23':'-22;23;-22')+'" dur=".42s" repeatCount="indefinite"/><path d="M0 0L-3 9L'+(x<0?-10:8)+' 13" fill="none" stroke="#47334b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+(x<0?-10:8)+'" cy="13" r="1.7" fill="#60415b"/></g></g>';
  const gear=job%3===0?
    '<g class="ant-cargo" transform="translate(-16 -10)"><path d="M0 2Q-11 -13 -19 -9Q-14 6 0 2" fill="#87d993" stroke="#3a977a" stroke-width="1.6"/><path d="M-1 2L-14 -7" stroke="#e4ffd6" stroke-width="1.5"/></g>':
    job%3===1?
