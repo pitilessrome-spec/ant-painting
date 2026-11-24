@@ -14,15 +14,19 @@ const plots=[
  {id:6,x:217,y:620},{id:7,x:435,y:622},{id:8,x:803,y:604}
 ];
 const roads=[
- 'M211 354 C277 301 347 298 423 309 C527 323 614 285 722 318 C784 337 802 395 758 450 C711 503 660 532 570 548 C459 568 350 571 262 537 C179 505 152 440 175 395 C185 375 195 365 211 354 Z',
- 'M220 356 Q180 322 157 280','M351 303 Q331 270 345 218','M723 318 Q757 295 766 260','M177 427 Q150 460 123 465',
- 'M788 389 Q817 401 828 425','M262 537 Q225 580 217 620','M435 559 Q434 591 435 622','M741 474 Q775 550 803 604'
+ 'M211 354 C267 300 345 265 414 243 C504 222 577 250 623 306 C657 350 647 412 617 468 C581 528 505 557 413 560 C307 564 225 529 187 478 C155 435 166 391 211 354 Z',
+ 'M211 354 Q177 322 157 280',
+ 'M353 269 Q333 247 345 218',
+ 'M623 306 Q682 272 766 260',
+ 'M175 433 Q145 465 123 465',
+ 'M641 410 Q683 431 720 434 Q774 437 828 425',
+ 'M249 526 Q217 579 217 620',
+ 'M435 560 Q434 591 435 622',
+ 'M828 425 Q861 513 803 604'
 ];
-const loops=[
- roads[0],
- 'M211 354 C263 319 315 304 372 307 C418 310 456 324 478 352 C498 380 498 422 479 453 C441 514 372 544 305 550 C236 545 180 489 175 436 C171 400 190 372 211 354 Z',
- 'M555 316 C627 292 684 302 722 318 C780 336 803 392 758 450 C712 504 650 533 570 548 C514 548 484 516 492 472 C505 435 543 414 558 381 C569 353 556 331 555 316 Z'
-];
+// Every resident follows the same continuous visible ring road in the forward direction.
+// Varying initial positions and walking speeds prevent a line of synchronized workers.
+const loops=[roads[0]];
 let seed=73191;
 function rnd(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
 const n=(x)=>Number(x).toFixed(1);
@@ -144,18 +148,18 @@ function scene(){
   a+=grass(n(x),n(y),n(.25+rnd()*.48));
  }
  a+=roads.map((d,i)=>road(d,i===0?32:21)).join('');
- a+=bridge(700,487,.92);
+ a+=bridge(729,435,.84);
  for(const [x,y,s] of [[68,380,.9],[893,321,.9],[55,617,.92],[922,622,.97],[306,256,.49],[635,289,.5]])a+=canopy(x,y,s);
  for(const [x,y,s] of [[78,428,.85],[290,375,.56],[600,339,.6],[882,477,.76],[312,629,.65],[74,682,1.05],[917,692,.98]])a+=bush(x,y,s);
  for(const [x,y,s] of [[54,473,.9],[255,300,.78],[375,349,.75],[580,457,.75],[776,518,.7],[125,560,.9],[324,674,.9],[857,641,.9],[33,706,1.3],[930,705,1.3]])a+=flowerbed(x,y,s);
  for(const [x,y,s] of [[74,333,.6],[633,536,.75],[730,411,.65],[580,604,.9],[291,615,.65],[870,555,.75],[96,645,1.05]])a+=rock(x,y,s);
  a+=mushroom(48,586,1.25)+mushroom(87,595,.72)+mushroom(909,675,1.35)+mushroom(866,690,.7);
- a+=lantern(260,419,.75)+lantern(618,393,.7)+lantern(634,482,.75)+lantern(764,493,.75);
+ a+=lantern(260,419,.75)+lantern(612,382,.7)+lantern(671,421,.75)+lantern(788,430,.75);
  a+=cottage(475,437,1.12);
  // Framing foliage brings the viewpoint into the miniature landscape.
  a+='<g pointer-events="none" opacity=".95">'+canopy(-16,181,1.25)+canopy(958,159,1.05)+'</g>';
  a+='<g id="village-buildings"></g><g id="village-combo-effects"></g><g id="village-residents"></g><g class="sb-night-shade" pointer-events="none"><rect width="960" height="720" fill="#152d69" opacity=".29"/></g>';
- a+='<g class="is-night-only" pointer-events="none">'+[[261,365],[618,345],[634,434],[764,442]].map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="45" fill="url(#sb-light)" opacity=".68"/>').join('')+Array.from({length:22},(_,i)=>'<circle class="firefly" cx="'+(45+i*127%870)+'" cy="'+(300+i*67%370)+'" r="2.9" fill="#fff5a3"/>').join('')+'</g>';
+ a+='<g class="is-night-only" pointer-events="none">'+[[261,365],[612,328],[671,374],[788,376]].map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="45" fill="url(#sb-light)" opacity=".68"/>').join('')+Array.from({length:22},(_,i)=>'<circle class="firefly" cx="'+(45+i*127%870)+'" cy="'+(300+i*67%370)+'" r="2.9" fill="#fff5a3"/>').join('')+'</g>';
  svg.innerHTML=a;
 }
 function building(id,lv){
