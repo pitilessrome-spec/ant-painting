@@ -21,3 +21,10 @@ CREATE TABLE IF NOT EXISTS raid_clear_attempts (
 );
 CREATE INDEX IF NOT EXISTS raid_clear_speed_idx ON raid_clear_attempts(season,boss,tier,assisted,duration_ms);
 CREATE INDEX IF NOT EXISTS raid_clear_feed_idx ON raid_clear_attempts(season,completed_at);
+CREATE TABLE IF NOT EXISTS raid_inventory (
+ season TEXT NOT NULL, boss TEXT NOT NULL, tier TEXT NOT NULL, player_id BIGINT NOT NULL REFERENCES players(telegram_id),
+ item_code TEXT NOT NULL, quantity INTEGER NOT NULL CHECK(quantity>0), source_room UUID NOT NULL REFERENCES raid_rooms(id),
+ acquired_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ PRIMARY KEY(season,boss,tier,player_id,item_code)
+);
+CREATE INDEX IF NOT EXISTS raid_inventory_player_idx ON raid_inventory(player_id,season);
