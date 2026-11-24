@@ -98,6 +98,8 @@ function routesFor(region){return ROUTES.map((t,i)=>({...t,...(REGION_ROUTES[reg
 function itemAllowed(id){const it=catalog[id];return !!it&&(!it.region||it.region===state.world.active)}
 function ensureWorld(){if(!state.world||!REGIONS.some(r=>r.id===state.world.active)){state.world={active:'garden',maps:{},relics:{},expedition:null,completed:0};return true}state.world.maps=state.world.maps||{};state.world.relics=state.world.relics||{};return false}
 if(ensureWorld())write();
+// Migrate legacy elapsed production once; preserve every existing balance and plot.
+if(!state.work&&settleWork(Date.now()))write();
 function paintings(){return state.claimedHigh+state.claimedExtra.length}
 function worldPreview(now=Date.now()){const w=state.world,n=paintings(),e=w.expedition;return {active:w.active,paintings:n,regions:REGIONS.map(r=>({...r,unlocked:n>=r.unlock,plots:r.id===w.active?Object.keys(state.placements).length:Object.keys(w.maps[r.id]?.placements||{}).length})),roles:ROLES,routes:routesFor(e?e.region:w.active),expedition:e?{...e,remaining:Math.max(0,e.finish-now)}:null,relics:REGIONS.flatMap(r=>routesFor(r.id).map(t=>({id:r.id+':'+t.id,name:t.relic,region:r.name,symbol:t.symbol,found:!!w.relics[r.id+':'+t.id]}))),completed:w.completed||0}}
 function selectRegion(id){const r=REGIONS.find(x=>x.id===id),w=state.world;if(!r||paintings()<r.unlock)return {ok:false,error:'Region is locked'};if(id===w.active)return {ok:true};const before=snapshot();w.maps[w.active]={placements:state.placements,upgrades:state.upgrades};const next=w.maps[id]||{placements:{},upgrades:{}};state.placements=next.placements;state.upgrades=next.upgrades;delete w.maps[id];w.active=id;return lifeCommit(before,{region:id})}

@@ -84,3 +84,5 @@ h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(29px,4.7vw,43px);
 .worker-list{display:grid;gap:6px;margin:10px 0}.worker-list label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:800}.worker-list select{min-height:36px;max-width:65%;background:#fffaf0;color:#66573d;border:1px solid #d8d8b4;border-radius:9px;padding:4px;font:inherit}.ad-reward{border:1px solid #c8a35e!important;margin-top:7px;min-height:42px}.ad-reward:disabled{opacity:.5}#upgrade-status{margin-top:12px;font-size:12px}#upgrade-finish[hidden]{display:none!important}
 
 .global-status{min-height:18px;margin:4px 0;color:#45694a;font-size:12px;font-weight:800}#world-work-hud strong{display:block;color:#526841;margin:7px 0}#world-work-hud .btn{margin:4px 0;min-height:38px}#plot-select{display:block;width:100%;padding:9px;border:1px solid #d6d7b7;border-radius:10px;background:#fffaf0;color:#65543e;margin:5px 0 10px}
+
+#village-world .village-ant[data-worker]{pointer-events:auto;cursor:pointer}#village-world .village-ant[data-worker]:focus-visible{outline:none;filter:drop-shadow(0 0 5px #fff8b5)}

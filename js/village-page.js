@@ -161,6 +161,7 @@ function render(){
   card.append(emoji,title,desc);combos.appendChild(card);
  }
 }
+document.getElementById('village-world').addEventListener('ant-worker-select',e=>{const i=e.detail.index;if(!Number.isInteger(i)||i<0||i>=5)return;announce('Ant '+(i+1)+' · '+JOB_LABELS[V.workPreview().roles[i]]);document.getElementById('manage-workers').click();const sel=$('worker-list').querySelectorAll('select')[i];if(sel){sel.scrollIntoView({block:'center'});sel.focus({preventScroll:true})}});
 $('plot-select').addEventListener('change',e=>{selectedPlot=e.target.value===''?null:Number(e.target.value);selectedItem=null;removePending=false;render()});
 $('world-work-collect').addEventListener('click',()=>{const r=V.collectAnts();announce(r.ok?'Ants delivered '+rewardText(r):r.error);render()});
 S.onSelect(i=>{

@@ -333,8 +333,9 @@ function render(st,selected,options={}){
 function setNight(on){document.getElementById('world-panel').classList.toggle('night',!!on);return !!on;}
 function onSelect(fn){
  if(svg.dataset.readonly==='true')return;
- svg.addEventListener('click',e=>{const p=e.target.closest('[data-plot]');if(p)fn(Number(p.getAttribute('data-plot')));else if(e.target.closest('[data-activity]'))document.getElementById('region-activities')?.scrollIntoView({behavior:'smooth',block:'start'});});
- svg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const p=e.target.closest('[data-plot]');if(p){e.preventDefault();fn(Number(p.getAttribute('data-plot')));}else if(e.target.closest('[data-activity]')){e.preventDefault();document.getElementById('region-activities')?.scrollIntoView({behavior:'smooth',block:'start'})}}});
+ const manage=e=>{const worker=e.target.closest('[data-worker]');if(!worker)return false;e.preventDefault();svg.dispatchEvent(new CustomEvent('ant-worker-select',{bubbles:true,detail:{index:Number(worker.dataset.worker)}}));return true};
+ svg.addEventListener('click',e=>{if(manage(e))return;const p=e.target.closest('[data-plot]');if(p)fn(Number(p.getAttribute('data-plot')));else if(e.target.closest('[data-activity]'))document.getElementById('region-activities')?.scrollIntoView({behavior:'smooth',block:'start'});});
+ svg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){if(manage(e))return;const p=e.target.closest('[data-plot]');if(p){e.preventDefault();fn(Number(p.getAttribute('data-plot')));}else if(e.target.closest('[data-activity]')){e.preventDefault();document.getElementById('region-activities')?.scrollIntoView({behavior:'smooth',block:'start'})}}});
 }
 function antMarkup(job){
  let legs='';
@@ -358,7 +359,7 @@ function residents(){
  if(!artReady[region])return; // no workers on an unverified fallback
  for(let i=0;i<5+guestCount;i++){
   const route=document.createElementNS(NS,'path');route.setAttribute('d',loops[i%loops.length]);route.setAttribute('fill','none');route.setAttribute('stroke','none');layer.appendChild(route);
-  const el=document.createElementNS(NS,'g');el.setAttribute('class','resident village-ant');el.setAttribute('pointer-events','none');const job=currentJobs()[i]||'scout',jobIndex=({wood:2,petal:0,builder:1,scout:1})[job]??0;el.setAttribute('data-job',job);el.innerHTML=antMarkup(jobIndex)+(i>=5?'<g transform="translate(0 -24)"><circle r="9" fill="#fff3ce" stroke="#b89b63"/><text text-anchor="middle" y="3" font-size="10" fill="#a05f4a">♥</text></g>':'');layer.appendChild(el);
+  const el=document.createElementNS(NS,'g');el.setAttribute('class','resident village-ant');el.setAttribute('pointer-events','none');const job=currentJobs()[i]||'scout',jobIndex=({wood:2,petal:0,builder:1,scout:1})[job]??0;el.setAttribute('data-job',job);el.innerHTML=antMarkup(jobIndex)+(i>=5?'<g transform="translate(0 -24)"><circle r="9" fill="#fff3ce" stroke="#b89b63"/><text text-anchor="middle" y="3" font-size="10" fill="#a05f4a">♥</text></g>':'');if(i<5&&svg.dataset.readonly!=='true'){el.setAttribute('data-worker',String(i));el.setAttribute('role','button');el.setAttribute('aria-label','Manage ant '+(i+1)+' · '+job);el.setAttribute('tabindex','0');el.setAttribute('pointer-events','all');const hit=document.createElementNS(NS,'circle');hit.setAttribute('r','27');hit.setAttribute('fill','transparent');hit.setAttribute('pointer-events','all');el.insertBefore(hit,el.firstChild)}layer.appendChild(el);
   const len=route.getTotalLength(),phase=(i*.271)%1;
   motion.push({route,len,el,heading:el.querySelector('.sb-ant-heading'),body:el.querySelector('.sb-ant-body'),legs:[...el.querySelectorAll('.sb-ant-leg')],antennae:el.querySelector('.sb-ant-antennae'),cargo:el.querySelector('.sb-ant-cargo'),distance:len*phase,dir:1,pause:0,speed:10+i*1.1,scale:0.36+(i%3)*.025});
  }
