@@ -40,9 +40,9 @@ jobs:
         run: |
           xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/ant-device" CODE_SIGNING_ALLOWED=NO build
           test -d "$RUNNER_TEMP/ant-device/Build/Products/Debug-iphoneos/App.app"
-          ditto -c -k --keepParent "$RUNNER_TEMP/ant-device/Build/Products/Debug-iphoneos/App.app" "$RUNNER_TEMP/ANT-CANVAS-iOS-V0.5-unsigned.zip"
+          ditto -c -k --keepParent "$RUNNER_TEMP/ant-device/Build/Products/Debug-iphoneos/App.app" "$RUNNER_TEMP/ANT-CANVAS-iOS-V0.6-unsigned.zip"
       - uses: actions/upload-artifact@v4
         with:
-          name: ANT-CANVAS-iOS-V0.5-unsigned
-          path: ${{ runner.temp }}/ANT-CANVAS-iOS-V0.5-unsigned.zip
+          name: ANT-CANVAS-iOS-V0.6-unsigned
+          path: ${{ runner.temp }}/ANT-CANVAS-iOS-V0.6-unsigned.zip
           if-no-files-found: error

@@ -1,4 +1,4 @@
-# ANT CANVAS iOS V0.5 — independent development branch
+# ANT CANVAS iOS V0.6 — independent development branch
 
 Uses the existing puzzle, art, four maps, colony and industry assets locally with Capacitor 8. Native iOS AdMob uses the existing eight reward flows and rejects skipped/error playback; test ads by default. Telegram web production is untouched.
 
@@ -20,8 +20,10 @@ Local guest play, original economy, native share/haptics, native reward bridge, 
 StoreKit storefront country code (not physical location): CHN routes exclusively to Baidu, other known storefronts to AdMob, unknown disables ads. No GPS or automatic cross-region fallback. Trusted coarse network country may be added after privacy review. Baidu test IDs are configured. The native bridge source and pinned CocoaPods integration are included. Use a fresh generated iOS project and ANT_BAIDU_NATIVE=1 npm run ios:sync to build the dual-SDK device candidate; simulator builds intentionally omit Baidu. Native build and actual device playback remain gates. See native/BAIDU-INTEGRATION.md. Production requires approved non-test Baidu IDs.
 For Baidu-enabled device builds open ios/App/App.xcworkspace in Xcode, not the xcodeproj. Use a fresh generated ios directory when switching build flavors. The default simulator flavor remains AdMob-only. Test IDs cannot be used for a production Baidu build.
 
-V0.5 syncs web V5.0.4 sound/combos and includes CocoaPods xcconfig integration with Capacitor SPM. The SDK build must still pass before physical device acceptance.
+V0.6 syncs web V5.0.4 sound/combos and includes CocoaPods xcconfig integration with Capacitor SPM. The SDK build must still pass before physical device acceptance.
 
-V0.5 adds the rotating Rainbow Rush, Precision Puzzle and Ant Sprint challenges and local earned mastery stars, with the existing native dual-ad-SDK build path. No material or advertisement rewards are issued for stars.
+V0.6 adds the rotating Rainbow Rush, Precision Puzzle and Ant Sprint challenges and local earned mastery stars, with the existing native dual-ad-SDK build path. No material or advertisement rewards are issued for stars.
 
-V0.5 synchronizes deployed web V5.1.0 puzzle code: collectible skill bricks, destructive manual bombs, tactical inspection, phased boss shields, gem gallery and local daily challenges. Native ads remain test mode by default. StoreKit storefront is not physical location. Signed real-device acceptance and release review remain pending.
+V0.6 synchronizes deployed web V5.1.0 puzzle code: collectible skill bricks, destructive manual bombs, tactical inspection, phased boss shields, gem gallery and local daily challenges. Native ads remain test mode by default. StoreKit storefront is not physical location. Signed real-device acceptance and release review remain pending.
+
+V0.6 syncs web V5.1.1 (seven collectible skills), expands native regression tests and generates an original opaque 1024px ant mosaic icon and static native launch screen using macOS CoreGraphics. This artwork is a candidate, not yet visually approved. Sign-in, Game Center, cloud saves, physical-device testing and signing remain separate gates.

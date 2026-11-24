@@ -7,8 +7,9 @@ const built=JSON.parse(readFileSync('www/native-build.json','utf8'));if(built.ad
 function set(key,type,value){try{execFileSync('/usr/libexec/PlistBuddy',['-c','Set :'+key+' '+value,p],{stdio:'pipe'})}catch(_){execFileSync('/usr/libexec/PlistBuddy',['-c','Add :'+key+' '+type+' '+value,p],{stdio:'inherit'})}}
 set('GADApplicationIdentifier','string',conf.appId);
 set('CFBundleDisplayName','string','ANT CANVAS');
-set('CFBundleShortVersionString','string','0.5.0');
-set('CFBundleVersion','string','5');
+execFileSync('swift',['scripts/make-brand.swift'],{stdio:'inherit'});
+set('CFBundleShortVersionString','string','0.6.0');
+set('CFBundleVersion','string','6');
 if(JSON.stringify(built.baidu)!==JSON.stringify(baiduConfig()))throw Error('Build and Baidu configuration mismatch');
 const appDelegate='ios/App/App/AppDelegate.swift',story='ios/App/App/Base.lproj/Main.storyboard';
 const marker='// BEGIN ANT REGION PLUGIN';

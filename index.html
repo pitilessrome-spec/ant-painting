@@ -84,7 +84,7 @@ html,body,#stage{touch-action:manipulation;-webkit-tap-highlight-color:transpare
 #special-note{position:absolute;top:93px;left:12px;right:12px;text-align:center;font:850 11px system-ui;color:#fff6d2;text-shadow:0 1px 3px #242650;pointer-events:none;z-index:43}#special-power{position:absolute;left:12px;top:341px;z-index:43;border:1px solid #fff9;border-radius:12px;background:linear-gradient(135deg,#f2bd66,#a96bd2);color:#fff;font:900 11px system-ui;padding:6px 9px;height:32px;box-shadow:0 3px 8px #3d386955}#special-power:disabled{opacity:.6}
 #boss-hp{position:absolute;z-index:43;top:110px;left:95px;right:95px;height:6px;border-radius:6px;background:#2e214e80;overflow:hidden;pointer-events:none}#boss-hp i{display:block;height:100%;background:linear-gradient(90deg,#ffb677,#ee598e);transition:width .2s}#plan-toggle{position:absolute;z-index:43;left:13px;top:47px;border-radius:15px;border:1px solid white;background:#fffde8;color:#55457c;font:850 10px system-ui;padding:6px 9px}#plan-toggle[aria-pressed=true]{background:#59458c;color:white}#plan-note{position:absolute;z-index:44;left:10px;right:10px;top:120px;text-align:center;color:white;font:850 12px system-ui;background:#302653dc;border-radius:9px;padding:5px 4px;pointer-events:none}
 @media(prefers-reduced-motion:no-preference){#boss-hp.boss-pulse{animation:boss-pulse .45s ease-out}@keyframes boss-pulse{0%{box-shadow:0 0 14px 5px #ffe5a0;transform:scale(1.08)}100%{box-shadow:none;transform:scale(1)}}}
-#skill-bag{position:absolute;z-index:43;top:341px;left:12px;right:auto;height:30px;display:flex;gap:5px;align-items:center;pointer-events:none}#skill-bag[hidden],#skill-bag button[hidden],#tip[hidden]{display:none}#skill-bag button{pointer-events:auto;min-width:51px;height:30px;border:1px solid #fff9;border-radius:12px;background:linear-gradient(140deg,#9b6ed6,#e29f7b);color:white;font:900 13px system-ui;box-shadow:0 2px 5px #41306055;padding:3px 7px;white-space:nowrap}#skill-bag button:disabled{opacity:.6;background:#6c6888}#skill-bag button[aria-pressed=true]{outline:2px solid #ffdc61;background:#a55363}@media(prefers-reduced-motion:no-preference){#skill-bag button.skill-pop{animation:skill-pop .4s ease-out}@keyframes skill-pop{0%{transform:scale(.65);opacity:.5}65%{transform:scale(1.17)}100%{transform:scale(1)}}}
+#skill-bag{position:absolute;z-index:43;top:341px;left:8px;right:8px;height:30px;display:flex;gap:3px;align-items:center;pointer-events:none}#skill-bag[hidden],#skill-bag button[hidden],#tip[hidden]{display:none}#skill-bag button{pointer-events:auto;min-width:44px;height:30px;border:1px solid #fff9;border-radius:12px;background:linear-gradient(140deg,#9b6ed6,#e29f7b);color:white;font:900 13px system-ui;box-shadow:0 2px 5px #41306055;padding:3px 3px;white-space:nowrap}#skill-bag button:disabled{opacity:.6;background:#6c6888}#skill-bag button[aria-pressed=true]{outline:2px solid #ffdc61;background:#a55363}@media(prefers-reduced-motion:no-preference){#skill-bag button.skill-pop{animation:skill-pop .4s ease-out}@keyframes skill-pop{0%{transform:scale(.65);opacity:.5}65%{transform:scale(1.17)}100%{transform:scale(1)}}}
 </style>
 <link rel="stylesheet" href="css/home.css?v=world-v501">
 <link rel="stylesheet" href="css/polish.css?v=ant-v3">
@@ -112,7 +112,7 @@ html,body,#stage{touch-action:manipulation;-webkit-tap-highlight-color:transpare
  </div>
  <div id="slots" class="a"></div>
  <div id="toast" class="a"></div>
- <div id="special-note" hidden aria-live="polite"></div><div id="boss-hp" hidden><i></i></div><button id="plan-toggle" data-act="plan" type="button" hidden>Plan move</button><div id="plan-note" hidden></div><div id="skill-bag" hidden aria-label="Collected skills"><button id="skill-bomb" data-act="skill-bomb" type="button" hidden>💣 Bomb ×0</button><button id="skill-wild" data-act="skill-wild" type="button" hidden>🌈 Wild ×0</button><button id="skill-frost" data-act="skill-frost" type="button" hidden>❄ Break ice ×0</button></div><div id="tip" class="a">Tap a box to load a slot · Eat the grid from the bottom up · Hint shows the next box</div>
+ <div id="special-note" hidden aria-live="polite"></div><div id="boss-hp" hidden><i></i></div><button id="plan-toggle" data-act="plan" type="button" hidden>Plan move</button><div id="plan-note" hidden></div><div id="skill-bag" hidden aria-label="Collected skills"><button id="skill-bomb" data-act="skill-bomb" type="button" hidden>💣 Bomb ×0</button><button id="skill-wild" data-act="skill-wild" type="button" hidden>🌈 Wild ×0</button><button id="skill-frost" data-act="skill-frost" type="button" hidden>❄ ×0</button><button id="skill-lightning" data-act="skill-lightning" type="button" hidden>⚡ ×0</button><button id="skill-wind" data-act="skill-wind" type="button" hidden>🌀 ×0</button><button id="skill-key" data-act="skill-key" type="button" hidden>🔑 ×0</button><button id="skill-super" data-act="skill-super" type="button" hidden>🌟 ×0</button></div><div id="tip" class="a">Tap a box to load a slot · Eat the grid from the bottom up · Hint shows the next box</div>
  <div id="tok" class="a"></div>
  <div id="tools" class="a">
   <button class="btn" data-act="speed">Speed <span id="spd">×1</span></button>
@@ -131,16 +131,16 @@ html,body,#stage{touch-action:manipulation;-webkit-tap-highlight-color:transpare
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 <script src="js/ads.js?v=report-v32"></script>
 <script src="js/telegram.js?v=world-v36"></script>
-<script src="js/profile.js?v=arcade-v510"></script>
+<script src="js/profile.js?v=arcade-v511"></script>
 <script src="js/village.js?v=world-v504"></script>
 <script src="js/art.js?v=ant-v3"></script>
-<script src="js/workshop.js?v=arcade-v510"></script>
+<script src="js/workshop.js?v=arcade-v511"></script>
 <script src="js/mystery.js?v=ant-v4"></script>
-<script src="js/sfx.js?v=world-v504"></script>
+<script src="js/sfx.js?v=arcade-v511"></script>
 <script src="js/blast-fx.js?v=world-v504"></script>
-<script src="js/game.js?v=arcade-v510"></script>
-<script src="js/home.js?v=arcade-v510"></script>
+<script src="js/game.js?v=arcade-v511"></script>
+<script src="js/home.js?v=arcade-v511"></script>
 <script src="js/polish.js?v=ant-v4"></script>
-<script src="js/touch-input.js?v=arcade-v510"></script>
-<script src="js/ui.js?v=arcade-v510"></script>
+<script src="js/touch-input.js?v=arcade-v511"></script>
+<script src="js/ui.js?v=arcade-v511"></script>
 </body></html>
