@@ -58,11 +58,38 @@ body{background:radial-gradient(120% 70% at 50% 8%,#f6fcff 0%,#c6e6fb 42%,#7aaee
 
 .ad-slot{display:flex!important;flex-direction:column;justify-content:center;align-items:center;gap:0;border:2px solid #ffe1a0!important;background:linear-gradient(160deg,#fff6d4,#fbd6a2)!important;color:#79552e!important;font-size:20px!important;box-shadow:0 3px 0 #b38d61!important;animation:none!important;cursor:pointer}
 .ad-slot small{font-size:8px;line-height:1.1;font-weight:1000;white-space:nowrap;letter-spacing:.5px}
+/* Telegram Mini App first-paint shield: no unscaled puzzle UI or empty blue page. */
+#stage{visibility:hidden}
+html.ant-ready #stage{visibility:visible}
+#ant-boot{position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(ellipse 90% 58% at 50% 28%,#534ac8 0%,transparent 74%),linear-gradient(165deg,#1a2256,#172e69 55%,#0b2246);color:#fff;transition:opacity .28s ease;isolation:isolate;padding:24px env(safe-area-inset-right) 24px env(safe-area-inset-left)}
+html.ant-ready #ant-boot{opacity:0;pointer-events:none}
+#ant-boot .ab-content{display:flex;flex-direction:column;align-items:center;text-align:center;gap:13px;max-width:330px;width:100%;transform:translateY(-20px)}
+#ant-boot .ab-mark{display:grid;place-items:center;width:74px;height:74px;border-radius:23px;background:linear-gradient(145deg,#ffe39e,#fa9d60);box-shadow:0 8px 0 #b36148,0 18px 30px #061a557b;font-size:37px}
+#ant-boot .ab-title{font-size:30px;line-height:1.05;font-weight:1000;letter-spacing:-.7px;text-shadow:0 3px 2px #0c1f4d}
+#ant-boot .ab-tag{font-size:13px;font-weight:800;color:#ffeb9b;letter-spacing:1.6px}
+#ant-boot .ab-track{width:190px;height:7px;background:#ffffff27;border:1px solid #ffffff3a;border-radius:10px;margin:17px 0 0;overflow:hidden}
+#ant-boot .ab-progress{display:block;width:42%;height:100%;border-radius:10px;background:linear-gradient(90deg,#fff39d,#ffbd77);animation:ab-load 1.25s ease-in-out infinite alternate}
+#ant-boot .ab-status{font-size:12px;color:#d2ddff;letter-spacing:.3px}
+#ant-boot .ab-retry{display:none;background:#fff2b4;border:none;border-radius:15px;padding:10px 17px;color:#483c6c;font-size:13px;font-weight:900}
+#ant-boot.ab-slow .ab-retry{display:block}
+@keyframes ab-load{from{transform:translateX(-110%)}to{transform:translateX(360%)}}
+@media(prefers-reduced-motion:reduce){#ant-boot .ab-progress{animation:none}}
 </style>
 <link rel="stylesheet" href="css/home.css?v=home-v1">
 <link rel="stylesheet" href="css/polish.css?v=ant-v3">
 </head>
 <body>
+<div id="ant-boot" aria-live="polite">
+ <div class="ab-content">
+  <span class="ab-mark" aria-hidden="true">🐜</span>
+  <strong class="ab-title">ANT CANVAS</strong>
+  <span class="ab-tag">LITTLE ANTS · BIG ART</span>
+  <div class="ab-track" role="progressbar" aria-label="Loading your ant adventure"><span class="ab-progress"></span></div>
+  <span class="ab-status">Getting your little adventure ready…</span>
+  <button type="button" class="ab-retry" onclick="location.reload()">↻ Retry loading</button>
+ </div>
+</div>
+<script>setTimeout(function(){var b=document.getElementById('ant-boot');if(b&&!document.documentElement.classList.contains('ant-ready')){b.classList.add('ab-slow');b.querySelector('.ab-status').textContent='The game is taking longer than usual to load.'}},12000)</script>
 <div id="stage">
  <div id="top" class="a">
   <button id="snd" data-act="snd">♪</button>
