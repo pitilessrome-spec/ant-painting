@@ -1,5 +1,6 @@
 'use strict';
 const {randomBytes,createHash}=require('node:crypto');
+const A=require('./ant-evolution');
 const SEASON='S0',BOSSES=Object.freeze({spider:'深渊蛛后',beetle:'黄金甲虫帝王',frost:'永冬冰霜领主',prism:'七彩混沌魔神'});
 const TIERS=Object.freeze({small:{cap:2,recommended:2,base:1450,per:140,turns:64,interval:60000,deadline:480000},medium:{cap:3,recommended:3,base:2450,per:180,turns:68,interval:50000,deadline:540000},world:{cap:8,recommended:5,base:3900,per:250,turns:70,interval:40000,deadline:600000}});
 const WARDS={small:1,medium:2,world:3}, COMBO_MS=5500;
@@ -8,7 +9,7 @@ const valid=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 const alias=id=>'Ant '+createHash('sha256').update(String(id)).digest('hex').slice(0,8);
 function rng(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=Math.imul(a^a>>>15,1|a);t^=t+Math.imul(t^t>>>7,61|t);return ((t^t>>>14)>>>0)/4294967296}}
 function board(seed,round){const r=rng((seed+Math.imul(round,2654435761))>>>0);return Array.from({length:8},()=>Array.from({length:8},()=>({c:Math.floor(r()*4),skill:r()<.06?(r()<.55?'bomb':'lightning'):null})))}
-function createPlayer(seed=randomBytes(4).readUInt32LE()){return {power:100,seed,round:0,board:board(seed,0),skills:{bomb:0,lightning:0},seq:0,lastAt:0,damage:0,cleared:0,turns:0,combos:0,blocked:-1,slow:0}}
+function createPlayer(seed=randomBytes(4).readUInt32LE()){return {power:100,ant:A.stats('worker',1),seed,round:0,board:board(seed,0),skills:{bomb:0,lightning:0},seq:0,lastAt:0,damage:0,cleared:0,turns:0,combos:0,blocked:-1,slow:0}}
 function createRoom(tier,boss,owner,now=Date.now()){if(!valid(TIERS,tier)||!valid(BOSSES,boss))fail('Unknown raid',400);return {season:SEASON,tier,boss,owner,status:'lobby',players:{[owner]:createPlayer()},createdAt:now,startedAt:null,finishedAt:null,maxHP:0,hp:0,phase:1,weak:0,armor:0,regenerated:0,rage:0,nextRageAt:null,retaliations:0,ward:0,combo:null,teamCombos:0,assisted:false}}
 function join(s,id){if(valid(s.players,id))return false;if(s.status!=='lobby')fail('Raid already started');if(Object.keys(s.players).length>=TIERS[s.tier].cap)fail('Team is full');s.players[id]=createPlayer();return true}
 function leave(s,id){if(s.status!=='lobby')fail('Cannot leave active raid');if(!valid(s.players,id))fail('Not a member',403);delete s.players[id];if(id===s.owner){s.owner=Object.keys(s.players)[0]||null;if(!s.owner)s.status='cancelled'}return true}
@@ -16,7 +17,7 @@ function start(s,id,now=Date.now()){if(s.owner!==id)fail('Only leader can start'
 function expired(s,now){return s.status==='active'&&now-s.startedAt>=TIERS[s.tier].deadline}
 function expose(p){return [...new Set(p.board.filter(a=>a.length).map(a=>a[0].c))]}
 function counter(s,timed=false){if(timed)s.rage++;else s.phase++;s.retaliations++;s.ward=WARDS[s.tier]+Math.min(2,Math.floor(s.rage/2));s.combo=null;s.weak=(s.weak+1)%4;const tier=['small','medium','world'].indexOf(s.tier),n=2+tier*2+(s.phase===3?2:0)+Math.min(12,s.rage*2);
- for(const p of Object.values(s.players)){const r=rng(p.seed^Math.imul(s.retaliations,7789));for(let i=0;i<n;i++){const col=p.board[i%8];if(col.length<16){col.unshift({c:Math.floor(r()*4),skill:null});s.regenerated++}}if(s.boss==='spider')p.blocked=expose(p)[0]??-1;else if(s.boss==='frost')p.slow=Math.min(5,2+s.rage)}
+ for(const p of Object.values(s.players)){const r=rng(p.seed^Math.imul(s.retaliations,7789));for(let i=0;i<n;i++){const col=p.board[i%8];if(col.length<16){col.unshift({c:Math.floor(r()*4),skill:null});s.regenerated++}}if(s.boss==='spider')p.blocked=(p.ant?.resist||0)>=2?-1:expose(p)[0]??-1;else if(s.boss==='frost')p.slow=Math.max(0,Math.min(5,2+s.rage)-(p.ant?.resist||0))}
  if(s.boss==='beetle')s.armor=Math.max(s.armor,12+8*tier+Math.min(36,s.rage*4));s.hp+=Math.min(s.maxHP-s.hp,Math.floor(s.maxHP*(timed?Math.min(.06,.012+s.rage*.004):.025)));
 }
 function advance(s,now){if(s.status!=='active')return false;if(expired(s,now)){s.status='failed';s.finishedAt=s.startedAt+TIERS[s.tier].deadline;return true}let changed=false;const t=TIERS[s.tier];while(now>=s.nextRageAt){counter(s,true);s.nextRageAt+=Math.max(15000,t.interval-s.rage*4000);changed=true}return changed}
@@ -27,8 +28,8 @@ function act(s,id,input,now=Date.now()){const p=s.players[id];if(!valid(s.player
  let hit=0,cleared=0,comboBroken=false;const wardBefore=s.ward;
  if(input.kind==='color'){const color=input.color;if(!Number.isInteger(color)||color<0||color>3||!expose(p).includes(color))fail('Choose exposed color',400);if(p.blocked===color&&expose(p).length>1)fail('Web blocked color; choose another');
   // Select reachable bottom bricks of that color, never an arbitrary client damage amount.
-  const limit=Math.max(2,(p.slow>0?4:7)-Math.floor(s.rage/3));while(cleared<limit){const col=p.board.find(a=>a[0]?.c===color);if(!col)break;const tile=col.shift();cleared++;if(tile.skill)p.skills[tile.skill]++}
-  hit=cleared*(color===s.weak?5:3)+Math.max(0,cleared-2)*2;if(s.armor>0){s.armor--;hit=cleared*3}
+  const limit=Math.max(2,(p.slow>0?4:7)+(p.ant?.carry||0)-Math.floor(s.rage/3));while(cleared<limit){const col=p.board.find(a=>a[0]?.c===color);if(!col)break;const tile=col.shift();cleared++;if(tile.skill)p.skills[tile.skill]++}
+  hit=cleared*(color===s.weak?5:3)+Math.max(0,cleared-2)*2;if(s.armor>0){s.armor=Math.max(0,s.armor-1-(p.ant?.pierce||0));hit=cleared*3}
   p.blocked=-1;p.slow=Math.max(0,p.slow-1);p.cleared+=cleared;
   if(s.ward>0&&cleared>=2){const q=s.combo,validCombo=q&&q.until>=now;if(validCombo&&color===(s.weak+1)%4&&(q.player!==id||Object.keys(s.players).length===1)){s.ward--;s.combo=null;s.teamCombos++;p.combos++;comboBroken=true;}else if(color===s.weak){s.combo={player:id,until:now+COMBO_MS};}}
  }else if(input.kind==='skill'){const k=input.skill;if(!['bomb','lightning'].includes(k)||p.skills[k]<=0)fail('Skill not earned',400);p.skills[k]--;hit=k==='bomb'?24:32;if(s.armor){s.armor=0;hit+=10}p.blocked=-1;p.slow=Math.max(0,p.slow-1);
@@ -39,7 +40,8 @@ function act(s,id,input,now=Date.now()){const p=s.players[id];if(!valid(s.player
  if(Object.values(s.players).every(q=>q.turns>=TIERS[s.tier].turns)){s.status='failed';s.finishedAt=now}}
  return {damage:applied,cleared,comboBroken}
 }
-function view(s,id){if(!valid(s.players,id))fail('Not a member',403);const p=s.players[id];return {season:s.season,tier:s.tier,boss:s.boss,bossName:BOSSES[s.boss],status:s.status,leader:s.owner===id,cap:TIERS[s.tier].cap,recommended:TIERS[s.tier].recommended,hp:s.hp,maxHP:s.maxHP,phase:s.phase,weak:s.weak,armor:s.armor,regenerated:s.regenerated,ward:s.ward,teamCombos:s.teamCombos,combo:s.combo&&s.combo.until>=Date.now()?{open:true,self:s.combo.player===id,until:s.combo.until,finishColor:(s.weak+1)%4}:null,rage:s.rage,retaliations:s.retaliations,nextRageAt:s.nextRageAt,deadlineAt:s.startedAt===null?null:s.startedAt+TIERS[s.tier].deadline,startedAt:s.startedAt,finishedAt:s.finishedAt,assisted:s.assisted,rankedEligible:s.rankedEligible??null,team:Object.entries(s.players).map(([k,v])=>({name:alias(k),self:k===id,damage:v.damage,turns:v.turns,combos:v.combos})),me:{board:p.board,skills:p.skills,seq:p.seq,turns:p.turns,turnLimit:TIERS[s.tier].turns,power:p.power,blocked:p.blocked,slow:p.slow,available:expose(p)}}}
+function view(s,id){if(!valid(s.players,id))fail('Not a member',403);const p=s.players[id];return {season:s.season,tier:s.tier,boss:s.boss,bossName:BOSSES[s.boss],status:s.status,leader:s.owner===id,cap:TIERS[s.tier].cap,recommended:TIERS[s.tier].recommended,hp:s.hp,maxHP:s.maxHP,phase:s.phase,weak:s.weak,armor:s.armor,regenerated:s.regenerated,ward:s.ward,teamCombos:s.teamCombos,combo:s.combo&&s.combo.until>=Date.now()?{open:true,self:s.combo.player===id,until:s.combo.until,finishColor:(s.weak+1)%4}:null,rage:s.rage,retaliations:s.retaliations,nextRageAt:s.nextRageAt,deadlineAt:s.startedAt===null?null:s.startedAt+TIERS[s.tier].deadline,startedAt:s.startedAt,finishedAt:s.finishedAt,assisted:s.assisted,rankedEligible:s.rankedEligible??null,team:Object.entries(s.players).map(([k,v])=>({name:alias(k),self:k===id,damage:v.damage,turns:v.turns,combos:v.combos,ant:v.ant||A.stats('worker',1)})),me:{board:p.board,skills:p.skills,seq:p.seq,turns:p.turns,turnLimit:TIERS[s.tier].turns,power:p.power,ant:p.ant||A.stats('worker',1),blocked:p.blocked,slow:p.slow,available:expose(p)}}}
 function roster(s){return createHash('sha256').update(Object.keys(s.players).sort().join(',')).digest('hex')}
+function equip(s,id,ant){if(s.status!=='lobby'||!valid(s.players,id))fail('Equip only in your lobby');s.players[id].ant=A.stats(ant.species,ant.level);s.players[id].power=s.players[id].ant.power;return true}
 function eligible(s){const ps=Object.values(s.players);return ps.length===1||ps.every(p=>p.turns>=3&&(p.damage>=Math.max(1,Math.floor(s.maxHP*.008))||p.combos>=2))}
-module.exports={eligible,WARDS,COMBO_MS,SEASON,BOSSES,TIERS,createRoom,join,leave,start,act,view,roster,alias,expired,advance};
+module.exports={equip,eligible,WARDS,COMBO_MS,SEASON,BOSSES,TIERS,createRoom,join,leave,start,act,view,roster,alias,expired,advance};

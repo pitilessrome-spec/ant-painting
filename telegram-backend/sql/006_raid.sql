@@ -30,3 +30,15 @@ CREATE TABLE IF NOT EXISTS raid_inventory (
 CREATE INDEX IF NOT EXISTS raid_inventory_player_idx ON raid_inventory(player_id,season);
 
 CREATE INDEX IF NOT EXISTS raid_rooms_members_idx ON raid_rooms USING gin ((state->'players'));
+
+CREATE TABLE IF NOT EXISTS raid_ant_species (
+ player_id BIGINT NOT NULL REFERENCES players(telegram_id), species TEXT NOT NULL,
+ level INTEGER NOT NULL CHECK(level BETWEEN 1 AND 5), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ PRIMARY KEY(player_id,species)
+);
+CREATE TABLE IF NOT EXISTS raid_ant_core_spends (
+ player_id BIGINT NOT NULL REFERENCES players(telegram_id), season TEXT NOT NULL,
+ request_id UUID NOT NULL, species TEXT NOT NULL, resulting_level INTEGER NOT NULL,
+ cost INTEGER NOT NULL CHECK(cost>0), spent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ PRIMARY KEY(player_id,request_id)
+);
