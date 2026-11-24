@@ -1,5 +1,5 @@
 export function nativeHTML(html,page){
- let s=html.replace(/<script\s+src="https:\/\/(?:telegram\.org|sad\.adsgram\.ai)\/[^"]+"\s*><\/script>/g,'').replace(/<script\s+src="js\/(?:telegram|village-guests)\.js[^"]*"\s*><\/script>/g,'');
+ let s=html.replace(/<!--[\s\S]*?-->/g,'').replace(/<script\s+src="https:\/\/(?:telegram\.org|sad\.adsgram\.ai)\/[^"]+"\s*><\/script>/g,'').replace(/<script\s+src="js\/(?:telegram|village-guests)\.js[^"]*"\s*><\/script>/g,'');
  const script='<script src="js/native-runtime.js"></script>';
  // Classic IIFE must execute before Ads.init and before the main UI.
  if(/<script\s+src="js\/ads\.js/.test(s))s=s.replace(/<script\s+src="js\/ads\.js/,script+'\n<script src="js/ads.js');else s=s.replace('</body>',script+'</body>');

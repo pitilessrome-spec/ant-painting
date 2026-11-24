@@ -2,7 +2,7 @@
 
 Uses the existing puzzle, art, four maps, colony and industry assets locally with Capacitor 8. Native iOS AdMob uses the existing eight reward flows and rejects skipped/error playback; test ads by default. Telegram web production is untouched.
 
-## Build (Mac with supported Xcode, Node 22+)
+## Build (Mac with Xcode 26+ (iOS 26 SDK or later), Node 22+)
 1. In this directory run `npm install`.
 2. Run `npm test` and `npm run ios:add` (first time only).
 3. Run `npm run ios:sync`, then `npm run ios:open`.

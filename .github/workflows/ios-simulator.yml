@@ -1,0 +1,37 @@
+name: ANT CANVAS iOS simulator build
+on:
+  push:
+    branches: ['ios/ant-canvas-v01']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulator:
+    runs-on: macos-26
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ios-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Xcode
+        run: xcodebuild -version
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Test adapters
+        run: npm test
+      - name: Generate native iOS project
+        run: npm run ios:add && npm run ios:sync
+      - name: Build unsigned simulator app
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/ant-canvas-build" CODE_SIGNING_ALLOWED=NO build
+          test -d "$RUNNER_TEMP/ant-canvas-build/Build/Products/Debug-iphonesimulator/App.app"
+          ditto -c -k --keepParent "$RUNNER_TEMP/ant-canvas-build/Build/Products/Debug-iphonesimulator/App.app" "$RUNNER_TEMP/ANT-CANVAS-iOS-V0.1-simulator.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ANT-CANVAS-iOS-V0.1-simulator
+          path: ${{ runner.temp }}/ANT-CANVAS-iOS-V0.1-simulator.zip
+          if-no-files-found: error
