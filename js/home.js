@@ -35,7 +35,7 @@
         "<button type='button' class='ah-secondary' data-home-action='village'>🌿 World</button>",
         "<button type='button' class='ah-secondary' data-home-action='how'>❔ Help</button>",
       "</div>",
-      "<p class='ah-footer' id='ah-status' aria-live='polite'>PUZZLE · COLONY · WORLD &nbsp; | &nbsp; V5.0.3 RC</p>",
+      "<p class='ah-footer' id='ah-status' aria-live='polite'>PUZZLE · COLONY · WORLD &nbsp; | &nbsp; V5.0.4 RC</p>",
     "</div>",
     "<div class='ah-how' id='ah-how' hidden role='dialog' aria-label='How to play ANT CANVAS'>",
       "<div class='ah-how-card'>",
@@ -98,7 +98,7 @@
     if(window.AntWorkshop)window.AntWorkshop.render(window.ANT_CANVAS_GAME||null);
   }
   function show() {
-    navigating=false;clearTimeout(navTimer);document.getElementById('ah-status').textContent='PUZZLE · COLONY · WORLD | V5.0.3 RC';
+    navigating=false;clearTimeout(navTimer);document.getElementById('ah-status').textContent='PUZZLE · COLONY · WORLD | V5.0.4 RC';
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     updateHome();
     root.hidden = false;
@@ -110,6 +110,7 @@
     if (window.Ads && typeof Ads.gameplay === 'function') Ads.gameplay(false);
   }
   function start() {
+    window.AntSFX?.unlock();
     navigating=false;clearTimeout(navTimer);
     document.getElementById('ah-how').hidden = true;
     if (!open) return;
@@ -143,13 +144,13 @@
     else if (action === 'back') { document.getElementById('ah-how').hidden = true; }
     else if (action === 'share') share();
     else if (action === 'gallery') navigate('collection.html','gallery');
-    else if (action === 'village') navigate('village.html?v=world-v503','world');
+    else if (action === 'village') navigate('village.html?v=world-v504','world');
     else if (action === 'mode' && window.AntWorkshop){window.AntWorkshop.toggle();updateHome();}
     else if (action === 'sound' && typeof SND !== 'undefined') {
       SND = SND ? 0 : 1;
       if (typeof save === 'function') save();
       updateHome();
-      if (SND && typeof beep === 'function') beep(620, .12, .035);
+      window.AntSFX?.setEnabled(!!SND);
     }
   });
   nav.addEventListener('click', function () { show(); });
