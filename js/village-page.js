@@ -11,6 +11,7 @@ function revealBuild(){const el=$('build-detail');if(el.getBoundingClientRect().
 function announce(message){
  $('village-message').textContent=message;
  $('world-story').textContent=message;
+ $('global-status').textContent=message;
 }
 function showCollectible(title,emoji,desc){
  $('reveal-title').textContent=title;
@@ -28,10 +29,11 @@ const JOB_LABELS={wood:'🪵 Wood gatherer',petal:'🌸 Gardener',builder:'🔨 
 function renderWorkers(w=V.workPreview()){
  const list=$('worker-list');if(!list)return;
  $('worker-rate').textContent='🪵 '+w.woodRate+'/h · 🌸 '+w.petalRate+'/h · '+w.builders+' builders · '+w.scouts+' scouts';
+ $('world-work-rate').textContent='🪵 '+w.woodRate+'/h · 🌸 '+w.petalRate+'/h · '+w.builders+' builders · '+w.scouts+' scouts';
  if(!list.children.length)for(let i=0;i<5;i++){const row=document.createElement('label'),name=document.createElement('span'),sel=document.createElement('select');name.textContent='🐜 Ant '+(i+1);sel.setAttribute('aria-label','Ant '+(i+1)+' job');for(const [id,label] of Object.entries(JOB_LABELS)){const opt=document.createElement('option');opt.value=id;opt.textContent=label;sel.append(opt)}sel.onchange=()=>{const r=V.assignWorker(i,sel.value);announce(r.ok?'Ant '+(i+1)+' assigned: '+JOB_LABELS[sel.value]:r.error);render()};row.append(name,sel);list.append(row)}
  [...list.querySelectorAll('select')].forEach((el,i)=>{if(document.activeElement!==el)el.value=w.roles[i]});
 }
-function renderRewards(){const q=V.upgradePreview();$('upgrade-status').textContent=q?V.catalog[q.item].name+' · '+q.region+' · '+(q.remaining?Math.ceil(q.remaining/1000)+'s left':'Ready to complete'):'No upgrade underway';$('upgrade-finish').hidden=!q;$('upgrade-finish').disabled=!q||q.remaining>0;for(const kind of ['gather','daily','chest','upgrade','expedition']){const b=$('ad-'+kind);b.disabled=!V.adTicket(kind)||typeof Ads==='undefined'||Ads.busy;}}
+function renderRewards(){const w=V.workPreview();$('world-work-stock').textContent=rewardText(w);$('world-work-collect').disabled=!w.valid||(!w.wood&&!w.petals);const q=V.upgradePreview();$('upgrade-status').textContent=q?V.catalog[q.item].name+' · '+q.region+' · '+(q.remaining?Math.ceil(q.remaining/1000)+'s left':'Ready to complete'):'No upgrade underway';$('upgrade-finish').hidden=!q;$('upgrade-finish').disabled=!q||q.remaining>0;for(const kind of ['gather','daily','chest','upgrade','expedition']){const b=$('ad-'+kind);b.disabled=!V.adTicket(kind)||typeof Ads==='undefined'||Ads.busy;}}
 function showAdReward(kind){const ticket=V.adTicket(kind);if(!ticket)return announce('Reward not available or daily limit reached');if(typeof Ads==='undefined')return announce('Ad unavailable · free options remain');if(!Ads.ready)Ads.init();Ads.rewardedSlot(()=>{const r=V.applyAdReward(ticket);announce(r.ok?(kind==='upgrade'?'Upgrade completed!':kind==='expedition'?'Expedition time reduced by 50%':rewardText(r)):r.error);if(r.ok&&r.souvenir)showCollectible('A secret treasure!',r.souvenir.symbol,r.souvenir.name+' · '+rewardText(r));render();renderRewards()},()=>{announce('Ad skipped or unavailable · no reward granted');renderRewards()});renderRewards()}
 function renderLife(){
  const p=V.lifePreview(),collect=$('life-collect'),sign=$('life-sign');
@@ -80,6 +82,7 @@ function render(){
  $('chests').textContent=V.unopenedChests().toLocaleString();
  $('placed').textContent=V.count()+' / 8';
  S.render(st,selectedPlot);
+ const plotSelect=$('plot-select');plotSelect.replaceChildren();const none=document.createElement('option');none.value='';none.textContent='Select a plot';plotSelect.append(none);for(const i of [0,1,2,3,5,6,7,8]){const o=document.createElement('option');o.value=String(i);o.textContent='Plot '+([0,1,2,3,5,6,7,8].indexOf(i)+1)+' · '+(st.placements[i]?catalog[st.placements[i]].name:'Empty');plotSelect.append(o)}plotSelect.value=selectedPlot===null?'':String(selectedPlot);
  renderLife();renderWorld();window.AntRegionActivities?.render(true);
  const existing=selectedPlot===null?null:st.placements[selectedPlot];
  const refund=existing?V.refundCost(selectedPlot):null;
@@ -158,6 +161,8 @@ function render(){
   card.append(emoji,title,desc);combos.appendChild(card);
  }
 }
+$('plot-select').addEventListener('change',e=>{selectedPlot=e.target.value===''?null:Number(e.target.value);selectedItem=null;removePending=false;render()});
+$('world-work-collect').addEventListener('click',()=>{const r=V.collectAnts();announce(r.ok?'Ants delivered '+rewardText(r):r.error);render()});
 S.onSelect(i=>{
  selectedPlot=i;selectedItem=null;removePending=false;
  const st=V.snapshot();

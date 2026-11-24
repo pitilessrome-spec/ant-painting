@@ -374,7 +374,7 @@ function residents(){
    const angle=Math.atan2(q.y-p.y,q.x-p.x)*180/Math.PI;
    m.el.setAttribute('transform','translate('+n(p.x)+' '+n(p.y)+') scale('+m.scale+')');
    m.heading.setAttribute('transform','rotate('+n(angle)+')');
-   // Empty outbound, cargo on return; endpoints are work/delivery stops, not economy grants.
+   // Visual work represents the assigned colony job. Production is calculated by the saved elapsed-time ledger, not animation frames.
    m.cargo.setAttribute('opacity',m.dir<0&&m.el.dataset.job!=='scout'?'1':'0');
    const still=reduced||m.pause>0,gait=m.distance/6*2*Math.PI;
    m.body.setAttribute('transform','translate(0 '+n(still?0:Math.sin(gait*2)*.75)+')');

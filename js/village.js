@@ -51,12 +51,12 @@ function workLedger(now){
  let w=state.work?JSON.parse(JSON.stringify(state.work)):{roles:DEFAULT_JOBS.slice(),last:state.life.lastGather,stored:0,wood:0,petal:0,batch:0};
  if(!Array.isArray(w.roles)||w.roles.length!==5||w.roles.some(r=>!JOBS.includes(r)))w.roles=DEFAULT_JOBS.slice();
  const rate=workRates(w.roles),valid=Number.isFinite(now)&&now>=w.last&&dayNumber(now)>=state.life.day;
- if(valid){const dt=Math.min(Math.max(0,MAX_HOURS*HOUR-w.stored),now-w.last);w.stored+=dt;w.wood+=dt*(state.work?rate.wood:4);w.petal+=dt*(state.work?rate.petal:2);w.last=now}
+ if(valid){const dt=(!state.work||rate.wood||rate.petal)?Math.min(Math.max(0,MAX_HOURS*HOUR-w.stored),now-w.last):0;w.stored+=dt;w.wood+=dt*(state.work?rate.wood:4);w.petal+=dt*(state.work?rate.petal:2);w.last=now}
  return {w,rate,valid};
 }
 function workPreview(now=Date.now()){const {w,rate,valid}=workLedger(now);return {roles:w.roles.slice(),wood:Math.floor(w.wood/UNIT),petals:Math.floor(w.petal/UNIT),woodRate:rate.wood/4,petalRate:rate.petal/4,builders:rate.builders,scouts:rate.scouts,storedHours:w.stored/HOUR,batch:w.batch,valid,nextMs:Math.min(rate.wood?(UNIT-w.wood%UNIT)/rate.wood:Infinity,rate.petal?(UNIT-w.petal%UNIT)/rate.petal:Infinity)}}
 function settleWork(now=Date.now()){const x=workLedger(now);if(!x.valid)return false;state.work=x.w;return true}
-function assignWorker(index,job,now=Date.now()){if(!Number.isInteger(index)||index<0||index>=5||!JOBS.includes(job))return {ok:false,error:'Invalid worker assignment'};const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};state.work.roles[index]=job;return lifeCommit(before,{roles:state.work.roles.slice()})}
+function assignWorker(index,job,now=Date.now()){if(!Number.isInteger(index)||index<0||index>=5||!JOBS.includes(job))return {ok:false,error:'Invalid worker assignment'};const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};if(state.work.stored>=MAX_HOURS*HOUR&&state.work.wood<UNIT&&state.work.petal<UNIT)state.work.stored=0;state.work.roles[index]=job;return lifeCommit(before,{roles:state.work.roles.slice()})}
 function lifePreview(now=Date.now()){
  const l=state.life,day=dayNumber(now),valid=day>=l.day;
  const work=workPreview(now),hours=Math.min(MAX_HOURS,Math.floor(work.storedHours));
@@ -65,7 +65,8 @@ function lifePreview(now=Date.now()){
  return {hours,wood:work.wood,petals:work.petals,nextMs:work.nextMs,maxHours:MAX_HOURS,valid:valid&&work.valid,streak,signClaimed:l.lastSign===day,signReward:SIGN_REWARDS[streak-1],tasks,work};
 }
 function lifeCommit(before,result){if(!write()){state=before;return {ok:false,error:'Could not save; no materials changed'}}return Object.assign({ok:true},result)}
-function collectAnts(now=Date.now(),multiplier=1,expectedBatch=null){
+function collectAnts(now=Date.now()){return collectBatch(now,1,null)}
+function collectBatch(now,multiplier,expectedBatch){
  const p=lifePreview(now);if(!p.valid||(!p.wood&&!p.petals)||expectedBatch!==null&&p.work.batch!==expectedBatch)return {ok:false,error:'No materials ready or collection changed'};
  const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};lifeDay(now);
  const w=state.work;w.wood-=p.wood*UNIT;w.petal-=p.petals*UNIT;w.stored=0;w.batch++;state.life.lastGather=now;state.life.gather++;
@@ -142,7 +143,7 @@ function upgrade(slot,now=Date.now()){
  if(state.wood<cost.wood||state.petals<cost.petals)return {ok:false,error:'Collect more materials to upgrade'};
  const before=snapshot();if(!settleWork(now))return {ok:false,error:'Invalid device time'};
  const level=getLevel(index);state.wood-=cost.wood;state.petals-=cost.petals;
- state.world.upgrade={region:state.world.active,slot:index,item,level,start:now,finish:now+Math.ceil(level*120000/Math.max(1,workPreview(now).builders)),wood:cost.wood,petals:cost.petals};
+ state.world.upgrade={region:state.world.active,slot:index,item,level,start:now,finish:now+Math.ceil(level*240000/(1+workPreview(now).builders)),wood:cost.wood,petals:cost.petals};
  return lifeCommit(before,{queued:true,upgrade:upgradePreview(now)});
 }
 function finishUpgrade(now=Date.now(),expected=null){
@@ -154,7 +155,8 @@ function finishUpgrade(now=Date.now(),expected=null){
  return lifeCommit(before,{item:q.item,level:q.level+1,combos});
 }
 function unopenedChests(){return Math.max(0,state.chests-state.openedChest)}
-function openChest(multiplier=1,expected=null){
+function openChest(){return openChestBatch(1,null)}
+function openChestBatch(multiplier,expected){
  if(expected!==null&&state.openedChest!==expected)return {ok:false,error:'Chest changed'};
  const before=snapshot();
  if(unopenedChests()===0)return {ok:false,error:'Clear more paintings. Every fifth level brings a chest!'};
@@ -299,8 +301,8 @@ function applyAdReward(ticket,now=Date.now()){
  const t=ticket&&adTicket(ticket.kind,now);if(!t||t.day!==ticket.day||t.target!==ticket.target)return {ok:false,error:'Reward expired or already collected'};
  const before=snapshot(),usage=adUsage(now);state.adUsage=usage;usage.counts[t.kind]=(usage.counts[t.kind]||0)+1;
  let result;
- if(t.kind==='gather')result=collectAnts(now,2,t.target);
- else if(t.kind==='chest')result=openChest(2,t.target);
+ if(t.kind==='gather')result=collectBatch(now,2,t.target);
+ else if(t.kind==='chest')result=openChestBatch(2,t.target);
  else if(t.kind==='daily'){state.wood+=2;state.petals+=1;result=lifeCommit(before,{wood:2,petals:1})}
  else if(t.kind==='upgrade'){state.world.upgrade.finish=now;result=finishUpgrade(now,t.target)}
  else if(t.kind==='expedition'){const e=state.world.expedition;e.finish=now+Math.ceil((e.finish-now)/2);e.adBoosted=true;result=lifeCommit(before,{remaining:e.finish-now})}
