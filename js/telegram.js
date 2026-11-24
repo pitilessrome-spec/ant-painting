@@ -61,6 +61,7 @@
         <h3 style="font-size:14px;text-align:left;margin:15px 0 5px">🏆 Global leaderboard</h3>
         <ol id="tg-ranks"><li>Waiting for Telegram game service</li></ol>
         <button class="tgbtn" id="tg-invite" type="button">Invite friends</button>
+        <button class="tgbtn secondary" id="tg-cloud" type="button">☁️ Friends &amp; Cloud</button>
         <button class="tgbtn secondary" id="tg-online-start" type="button" hidden>Play verified level</button>
         <button class="tgbtn secondary" id="tg-refresh" type="button">Refresh rankings</button>
         <button class="tgbtn secondary" id="tg-close" type="button">Continue playing</button>
@@ -72,6 +73,7 @@
     $('#tg-profile-btn').addEventListener('click', openPanel);
     $('#tg-share-btn').addEventListener('click', share);
     $('#tg-invite').addEventListener('click', share);
+    $('#tg-cloud').addEventListener('click',()=>{location.href='social.html?v=ops-v31'});
     $('#tg-refresh').addEventListener('click', fetchRanks);
     $('#tg-online-start').addEventListener('click', () => { closePanel(); if (typeof window.newLevel === 'function') window.newLevel(bestOnline + 1); });
     $('#tg-close').addEventListener('click', closePanel);

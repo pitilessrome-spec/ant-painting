@@ -26,7 +26,8 @@ function verifyInitData(raw, token) {
     const userRaw=fields.find(([k])=>k==='user');
     const user=JSON.parse(userRaw&&userRaw[1]);
     if (!user || !Number.isSafeInteger(user.id) || user.id<=0) return null;
-    return {id:String(user.id)};
+    const start=fields.find(([k])=>k==='start_param');
+    return {id:String(user.id),...(start?{startParam:start[1]}:{})};
   } catch (_) { return null; }
 }
 function connection() {
@@ -97,6 +98,48 @@ async function adminStats(req,res){
  (SELECT count(*)::int FROM y JOIN t USING(telegram_id)) AS returned_today`);
  const m=rows[0];return json(res,200,{metrics:m,timezone:'Asia/Singapore',asOf:new Date().toISOString(),retention:m.yesterday_active?m.returned_today/m.yesterday_active:null,adImpressions:null,adRevenue:null});
 }
+// Private backup is user-supplied cosmetic progress, never a trusted score.
+const SAVE_KEYS=new Set(['mbh3','ant_canvas_profile_v1','ant_canvas_collection_v1','ant_canvas_village_v1']);
+const REGION_IDS=['garden','forest','island','snow'],PLOT_IDS=['0','1','2','3','5','6','7','8'],ITEM_IDS=['flower','mushroom','lantern','fountain','butterfly','castle'];
+function validBackup(data){
+ if(!data||typeof data!=='object'||Array.isArray(data))return false;
+ const keys=Object.keys(data);if(!keys.length||keys.some(k=>!SAVE_KEYS.has(k)))return false;
+ try{return Buffer.byteLength(JSON.stringify(data),'utf8')<=180000&&keys.every(k=>data[k]&&typeof data[k]==='object'&&!Array.isArray(data[k])&&(k==='mbh3'||data[k].v===1))}catch(_){return false}
+}
+function publicVillage(save){
+ const v=save&&save.ant_canvas_village_v1;if(!v)return [];
+ const w=v.world||{},active=REGION_IDS.includes(w.active)?w.active:'garden';
+ return REGION_IDS.map(id=>{const m=id===active?v:(w.maps&&w.maps[id])||{};return {region:id,buildings:PLOT_IDS.filter(k=>ITEM_IDS.includes(m.placements&&m.placements[k])).map(k=>({plot:Number(k),item:m.placements[k],level:Math.max(1,Math.min(3,Math.trunc(Number(m.upgrades&&m.upgrades[k])||1)))}))}})
+}
+function referralId(param,self){const m=typeof param==='string'&&/^ref_([1-9][0-9]{0,15})$/.exec(param);return m&&m[1]!==self?m[1]:null}
+async function social(req,res,db,user,path){
+ const body=req.body||{};
+ if(path==='backup'&&req.method==='GET'){
+  const {rows}=await db.query('SELECT revision,save,updated_at FROM player_backups WHERE telegram_id=$1',[user.id]);
+  return json(res,200,rows[0]?{revision:rows[0].revision,save:rows[0].save,updatedAt:rows[0].updated_at}:{revision:0,save:null});
+ }
+ if(path==='backup'&&req.method==='POST'){
+  if(!validBackup(body.save)||!Number.isSafeInteger(body.revision)||body.revision<0||body.revision>2147483646)return json(res,400,{error:'Invalid backup'});
+  const q=body.revision===0?await db.query('INSERT INTO player_backups(telegram_id,revision,save) VALUES($1,1,$2::jsonb) ON CONFLICT DO NOTHING RETURNING revision,updated_at',[user.id,JSON.stringify(body.save)]):await db.query('UPDATE player_backups SET revision=revision+1,save=$2::jsonb,updated_at=now() WHERE telegram_id=$1 AND revision=$3 RETURNING revision,updated_at',[user.id,JSON.stringify(body.save),body.revision]);
+  return q.rows.length?json(res,200,{revision:q.rows[0].revision,updatedAt:q.rows[0].updated_at}):json(res,409,{error:'Cloud save changed. Reload and compare before overwriting.'});
+ }
+ if(path==='social/friends'&&req.method==='GET'){
+  const {rows}=await db.query(`SELECT p.telegram_id::text AS id,p.best_level,b.public_village FROM player_referrals r JOIN players p ON p.telegram_id=CASE WHEN r.inviter_id=$1 THEN r.invitee_id ELSE r.inviter_id END LEFT JOIN player_backups b ON b.telegram_id=p.telegram_id WHERE r.inviter_id=$1 OR r.invitee_id=$1 ORDER BY p.best_level DESC LIMIT 100`,[user.id]);
+  const counts=await db.query('SELECT count(*)::int AS invited,count(*) FILTER(WHERE p.best_level>=5)::int AS qualified FROM player_referrals r JOIN players p ON p.telegram_id=r.invitee_id WHERE r.inviter_id=$1',[user.id]);
+  return json(res,200,{friends:rows.map(r=>({id:r.id,name:alias(r.id),level:r.best_level,publicVillage:!!r.public_village})),...counts.rows[0]});
+ }
+ if(path==='social/publish'&&req.method==='POST'){
+  if(typeof body.enabled!=='boolean')return json(res,400,{error:'Invalid sharing setting'});
+  const {rows}=await db.query('UPDATE player_backups SET public_village=$2 WHERE telegram_id=$1 RETURNING public_village',[user.id,body.enabled]);
+  return rows.length?json(res,200,{enabled:rows[0].public_village}):json(res,409,{error:'Create a cloud backup first'});
+ }
+ if(path==='social/visit'&&req.method==='POST'){
+  if(typeof body.friendId!=='string'||!/^\d{1,16}$/.test(body.friendId)||body.friendId===user.id)return json(res,400,{error:'Invalid friend'});
+  const {rows}=await db.query(`SELECT b.save,p.best_level FROM player_backups b JOIN players p USING(telegram_id) WHERE b.telegram_id=$2 AND b.public_village=true AND EXISTS(SELECT 1 FROM player_referrals r WHERE (r.inviter_id=$1 AND r.invitee_id=$2) OR (r.inviter_id=$2 AND r.invitee_id=$1))`,[user.id,body.friendId]);
+  return rows.length?json(res,200,{name:alias(body.friendId),level:rows[0].best_level,regions:publicVillage(rows[0].save)}):json(res,404,{error:'Village not shared or not a friend'});
+ }
+ return json(res,405,{error:'Method not allowed'});
+}
 async function handler(req,res) {
   res.setHeader('Access-Control-Allow-Origin',CORS_ORIGIN);
   res.setHeader('Vary','Origin');
@@ -111,12 +154,16 @@ async function handler(req,res) {
   try {
     if (path==='admin/stats' && req.method==='GET') return await adminStats(req,res);
     if (path==='webhook' && req.method==='POST') return await handleWebhook(req,res);
-    if (!['profile','leaderboard','start-level','progress'].includes(path)) return json(res,404,{error:'Not found'});
+    if (!['profile','leaderboard','start-level','progress','backup','social/friends','social/publish','social/visit'].includes(path)) return json(res,404,{error:'Not found'});
     const header=req.headers.authorization||'';
     const user=verifyInitData(header.startsWith('tma ')?header.slice(4):'',process.env.TELEGRAM_BOT_TOKEN);
     if (!user) return json(res,401,{error:'Valid Telegram Mini App sign-in required'});
     const db=connection();
-    await db.query('INSERT INTO players(telegram_id) VALUES($1) ON CONFLICT DO NOTHING',[user.id]);
+    const inviter=referralId(user.startParam,user.id);
+    if(inviter){
+      await db.query(`WITH fresh AS (INSERT INTO players(telegram_id) VALUES($1) ON CONFLICT DO NOTHING RETURNING telegram_id) INSERT INTO player_referrals(invitee_id,inviter_id) SELECT fresh.telegram_id,p.telegram_id FROM fresh JOIN players p ON p.telegram_id=$2 ON CONFLICT DO NOTHING`,[user.id,inviter]);
+    }else await db.query('INSERT INTO players(telegram_id) VALUES($1) ON CONFLICT DO NOTHING',[user.id]);
+    if(path==='backup'||path.startsWith('social/'))return await social(req,res,db,user,path);
     if (path==='profile' && req.method==='GET') {
       const {rows}=await db.query('SELECT best_level FROM players WHERE telegram_id=$1',[user.id]);
       return json(res,200,{playerId:user.id,bestLevel:rows[0].best_level||0});
@@ -168,3 +215,5 @@ module.exports=handler;
 module.exports.verifyInitData=verifyInitData;
 
 module.exports.adminAuthorized=adminAuthorized;
+
+module.exports.validBackup=validBackup;module.exports.publicVillage=publicVillage;module.exports.referralId=referralId;
