@@ -81,3 +81,7 @@
 @media(prefers-reduced-motion:reduce){#ant-home *,#ant-home *:before,#ant-home *:after{animation:none!important;transition:none!important}}
 
 #ant-home .ah-secondary-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}#ant-home .ah-secondary{padding:10px 3px;min-height:44px;font-size:12px;touch-action:manipulation}
+
+/* iOS WebView: stable hit targets; decorative layers never intercept taps. */
+#ant-home:before,#ant-home:after,#ant-home .ah-hero,#ant-home .ah-footer{pointer-events:none}#ant-home button,#ant-home .ah-secondary-row{touch-action:none;-webkit-touch-callout:none}#ant-home .ah-start{flex-shrink:0}#ant-home .ah-secondary-row{flex-shrink:0}#ant-home .ah-secondary{min-height:44px;line-height:1.1}#ant-home .ah-head button{min-height:32px}
+@media(pointer:coarse){#ant-home .ah-pixel{animation:none!important}#ant-home .ah-ant,#ant-home .ah-shiny{filter:none;animation:none!important}#ant-home .ah-how{backdrop-filter:none;-webkit-backdrop-filter:none}}

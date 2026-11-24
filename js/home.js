@@ -5,7 +5,7 @@
   const toolbar = document.getElementById('top');
   if (!stage || !toolbar) return;
   let open = true;
-  let hideTimer = null;
+  let hideTimer = null,navTimer=null,navigating=false;
   const root = document.createElement('section');
   root.id = 'ant-home';
   root.setAttribute('aria-label', 'ANT CANVAS start screen');
@@ -35,7 +35,7 @@
         "<button type='button' class='ah-secondary' data-home-action='village'>🌿 World</button>",
         "<button type='button' class='ah-secondary' data-home-action='how'>❔ Help</button>",
       "</div>",
-      "<p class='ah-footer'>PUZZLE · COLONY · WORLD &nbsp; | &nbsp; V5.0 RC</p>",
+      "<p class='ah-footer' id='ah-status' aria-live='polite'>PUZZLE · COLONY · WORLD &nbsp; | &nbsp; V5.0.1 RC</p>",
     "</div>",
     "<div class='ah-how' id='ah-how' hidden role='dialog' aria-label='How to play ANT CANVAS'>",
       "<div class='ah-how-card'>",
@@ -98,6 +98,7 @@
     if(window.AntWorkshop)window.AntWorkshop.render(window.ANT_CANVAS_GAME||null);
   }
   function show() {
+    navigating=false;clearTimeout(navTimer);document.getElementById('ah-status').textContent='PUZZLE · COLONY · WORLD | V5.0.1 RC';
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     updateHome();
     root.hidden = false;
@@ -109,6 +110,7 @@
     if (window.Ads && typeof Ads.gameplay === 'function') Ads.gameplay(false);
   }
   function start() {
+    navigating=false;clearTimeout(navTimer);
     document.getElementById('ah-how').hidden = true;
     if (!open) return;
     open = false;
@@ -129,18 +131,19 @@
     window.open('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(label), '_blank', 'noopener,noreferrer');
   }
 
+  function navigate(url,label){if(navigating)return;navigating=true;const status=document.getElementById('ah-status');status.textContent='Opening '+label+'…';navTimer=setTimeout(()=>{navigating=false;status.textContent='Still here? Tap again to retry.'},5000);try{window.location.assign(url)}catch(_){clearTimeout(navTimer);navigating=false;status.textContent='Could not open. Tap to retry.'}}
   root.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
   root.addEventListener('click', function (e) {
     const control = e.target.closest('[data-home-action]');
     if (!control) return;
-    const action = control.getAttribute('data-home-action');
+    e.stopPropagation();const action = control.getAttribute('data-home-action');
     if (action === 'play') start();
     else if (action === 'how') { document.getElementById('ah-how').hidden = false; }
-    else if (action === 'guide') { window.location.href='guide.html'; }
+    else if (action === 'guide') { navigate('guide.html','guide'); }
     else if (action === 'back') { document.getElementById('ah-how').hidden = true; }
     else if (action === 'share') share();
-    else if (action === 'gallery') window.location.href='collection.html';
-    else if (action === 'village') window.location.href='village.html?v=world-v50';
+    else if (action === 'gallery') navigate('collection.html','gallery');
+    else if (action === 'village') navigate('village.html?v=world-v501','world');
     else if (action === 'mode' && window.AntWorkshop){window.AntWorkshop.toggle();updateHome();}
     else if (action === 'sound' && typeof SND !== 'undefined') {
       SND = SND ? 0 : 1;

@@ -3,7 +3,7 @@ const $=s=>document.querySelector(s);
 const VW=360,VH=318,SPEEDS=[1,2,3];
 const stage=$('#stage'),glc=$('#gl'),fxc=$('#fx'),fx=fxc.getContext('2d');
 let S=1,DPR=1,G=null,LV=1,MAXLV=1,spIdx=0,x3ok=false,unlocks=2,reshuf=false,hintT=0,adT=0,adCb=null,SND=1,shown='',lastUI=0,PAR=[],anims=new Map(),shakeCol=-1,shakeUntil=0,toastH=0,PROJECTILES=[];
-let R3=null,scene=null,cam=null,mesh=null,DM=null,VEC=null,CLR=null,CW=.1,ZC=0,ZTOP=0,AC=null;
+let R3=null,scene=null,cam=null,mesh=null,DM=null,VEC=null,CLR=null,CW=.1,ZC=0,ZTOP=0,AC=null,boardDirty=true,lastSlotsHTML=null,lastTokensHTML=null;const MOBILE_GPU=!!(window.matchMedia&&window.matchMedia('(pointer: coarse)').matches);
 let st={};try{st=JSON.parse(localStorage.getItem('mbh3'))||{}}catch(e){}
 MAXLV=st.maxLv||1;SND=st.snd===undefined?1:st.snd;
 
@@ -21,14 +21,14 @@ function tokStyle(role){const base=G.pal[role];const r=parseInt(base.slice(1,3),
 /* ---------- 3D tray and cells (three.js orthographic camera, angled view) ---------- */
 function init3D(){
  if(typeof THREE==='undefined')return;
- R3=new THREE.WebGLRenderer({canvas:glc,antialias:true,alpha:true});
+ R3=new THREE.WebGLRenderer({canvas:glc,antialias:!MOBILE_GPU,alpha:true,powerPreference:MOBILE_GPU?'low-power':'default'});
  R3.shadowMap.enabled=true;R3.shadowMap.type=THREE.PCFSoftShadowMap;R3.shadowMap.autoUpdate=false;
  scene=new THREE.Scene();
  cam=new THREE.OrthographicCamera(-2,2,VH/VW*2,-VH/VW*2,.1,60);
  cam.position.set(0,4.2,8.6);cam.lookAt(0,-.2,0);cam.updateMatrixWorld();
  scene.add(new THREE.HemisphereLight(0xffffff,0x9cc4ec,.95));
  const dl=new THREE.DirectionalLight(0xffffff,.75);dl.position.set(-2.5,5,4);dl.castShadow=true;
- dl.shadow.mapSize.set(1024,1024);
+ dl.shadow.mapSize.set(MOBILE_GPU?512:1024,MOBILE_GPU?512:1024);
  Object.assign(dl.shadow.camera,{left:-2.8,right:2.8,top:2.8,bottom:-2.8,near:.5,far:20});
  dl.shadow.camera.updateProjectionMatrix();dl.shadow.bias=-.0008;scene.add(dl);
  const sh=new THREE.Shape();rrPath(sh,-1.74,-1.74,3.48,3.48,.32);
@@ -52,21 +52,22 @@ function buildBoard(){
  for(let i=0;i<n*n;i++){setInst(i,1,0);mesh.setColorAt(i,C.set(G.pal[G.role[i]]))}
  mesh.instanceMatrix.needsUpdate=true;mesh.instanceColor.needsUpdate=true;
  scene.add(mesh);
- if(R3)R3.shadowMap.needsUpdate=true;
+ if(R3)R3.shadowMap.needsUpdate=true;boardDirty=true;
 }
 function setInst(i,sc,lift){const n=G.n,x=i%n,y=(i-x)/n;DM.position.set((x+.5-n/2)*CW,-(y+.5-n/2)*CW,ZC+lift);DM.scale.set(sc,sc,sc);DM.updateMatrix();mesh.setMatrixAt(i,DM.matrix)}
 function proj(gx,gy,z){if(!cam||!G)return[VW/2,VH/2];const n=G.n;VEC.set((gx-n/2)*CW,-(gy-n/2)*CW,z).project(cam);return[(VEC.x+1)/2*VW,(1-VEC.y)/2*VH]}
 function placeHole(){const n=G.n,p=proj(n/2,n+.9,0),h=$('#hole');h.style.left=(p[0]-24)+'px';h.style.top=(p[1]-7)+'px';h.style.width='48px';h.style.height='14px'}
 function draw3D(dt){
  if(!R3||!mesh)return;
+ if(!boardDirty&&!anims.size)return;
  if(anims.size){for(const [i,t0] of anims){const t=t0+dt,k=Math.min(1,t/300),e=1-Math.pow(1-k,3);setInst(i,Math.max(0,1-e),e*.22);if(k>=1)anims.delete(i);else anims.set(i,t)}
   mesh.instanceMatrix.needsUpdate=true;R3.shadowMap.needsUpdate=true}
- R3.render(scene,cam);
+ R3.render(scene,cam);boardDirty=false;
 }
 function fit(){
  S=Math.min(innerWidth/VW,innerHeight/640);
  stage.style.transform='translate(-50%,-50%) scale('+S+')';
- DPR=Math.min(3,(devicePixelRatio||1)*S);
+ DPR=Math.min(MOBILE_GPU?1.6:3,(devicePixelRatio||1)*S);boardDirty=true;
  if(R3){R3.setPixelRatio(DPR);R3.setSize(VW,VH,false)}
  fxc.width=Math.round(VW*DPR);fxc.height=Math.round(VH*DPR);
 }
@@ -126,7 +127,7 @@ function handleEv(){
   if(e.t==='eat'){anims.set(e.i,0);burst(e.i,e.c);G.visualDone=Math.min(G.total,(G.visualDone||0)+1);if(window.AntMystery)window.AntMystery.reveal(e.i);beep(560+Math.random()*420,.07,.035)}
   else if(e.t==='shot'){if(window.AntBlastFX)window.AntBlastFX.fire(e.i,e.c);else PROJECTILES.push({i:e.i,c:e.c,age:0})}
   else if(e.t==='blastReady'){if(window.AntBlastFX)window.AntBlastFX.ready();else toast('🌈 Color Blast!');beep(990,.17,.07)}
-  else if(e.t==='claim'&&mesh){mesh.setColorAt(e.i,CLR.set(mix(G.pal[e.c],'#ffffff',.35)));mesh.instanceColor.needsUpdate=true}
+  else if(e.t==='claim'&&mesh){mesh.setColorAt(e.i,CLR.set(mix(G.pal[e.c],'#ffffff',.35)));mesh.instanceColor.needsUpdate=true;boardDirty=true}
   else if(e.t==='reshuffle')toast('No moves left, boxes reshuffled');
   else if(e.t==='stall')toast('No box can move right now. Think about what to load next');
  }
@@ -134,6 +135,8 @@ function handleEv(){
 }
 
 /* ---------- UI (HTML) ---------- */
+// Preserve interactive elements while counters change, particularly the fifth-slot ad button.
+function patchControls(root,html,key){const t=document.createElement('template');t.innerHTML=html;const old=new Map(Array.from(root.children,(el,i)=>[key(el,i),el]));let pos=0;for(const fresh of t.content.children){const k=key(fresh,pos),existing=old.get(k);let el=fresh.cloneNode(true);if(existing&&existing.tagName===fresh.tagName){el=existing;old.delete(k);for(const a of [...el.attributes])if(!fresh.hasAttribute(a.name))el.removeAttribute(a.name);for(const a of fresh.attributes)if(el.getAttribute(a.name)!==a.value)el.setAttribute(a.name,a.value);if(el.innerHTML!==fresh.innerHTML)el.innerHTML=fresh.innerHTML}else if(existing){existing.remove();old.delete(k)}if(root.children[pos]!==el)root.insertBefore(el,root.children[pos]||null);pos++}for(const el of old.values())el.remove()}
 function renderUI(){
  if(!G)return;
  $('#lv').textContent='Level '+LV;
@@ -145,7 +148,7 @@ function renderUI(){
  let sh='';
  for(let i=0;i<G.cap;i++){const b=G.slots[i];sh+=b?`<div class="tile tk" style="${tokStyle(b.c)}"><span>${G.slotDisplayCount(b)}</span></div>`:'<div class="tile empty"></div>'}
  if(G.cap===4)sh+='<button type="button" class="tile unlock ad-slot" data-act="unlock" aria-label="Unlock fifth slot by watching a rewarded advertisement" title="Watch a rewarded ad to unlock the fifth slot">🎬<small>AD SLOT</small></button>';
- $('#slots').innerHTML=sh;
+ if(sh!==lastSlotsHTML){patchControls($('#slots'),sh,(_,i)=>i);lastSlotsHTML=sh}
  const hc=G.state==='play'&&hintT>0?G.hint():-1;
  const hintButton=document.querySelector('[data-act="hint"]'),shuffleButton=document.querySelector('[data-act="reshuffle"]'),reviveButton=document.querySelector('[data-act="reviveAd"]');
  if(hintButton){const left=G.difficulty.hints-G.hintsUsed;hintButton.textContent=Number.isFinite(left)?'Hint '+left:'Hint';hintButton.disabled=left<=0;}
@@ -160,9 +163,9 @@ function renderUI(){
    if(play)cls.push('pl');
    if(r===0&&c===hc&&hintT>0)cls.push('hl');
    if(r===0&&c===shakeCol&&now<shakeUntil)cls.push('shk');
-   th+=`<div class="${cls.join(' ')}" data-col="${c}" style="left:${24+c*80}px;top:${[0,40,74][r]}px;width:72px;height:${[52,46,38][r]}px;opacity:${[1,.85,.5][r]};z-index:${10-r};${tokStyle(b.c)}"><span>${b.n}</span>${play?'<i class="dot"></i>':''}</div>`;
+   th+=`<div class="${cls.join(' ')}" data-col="${c}" data-row="${r}" style="left:${24+c*80}px;top:${[0,40,74][r]}px;width:72px;height:${[52,46,38][r]}px;opacity:${[1,.85,.5][r]};z-index:${10-r};${tokStyle(b.c)}"><span>${b.n}</span>${play?'<i class="dot"></i>':''}</div>`;
  }
- $('#tok').innerHTML=th;
+ if(th!==lastTokensHTML){patchControls($('#tok'),th,el=>el.dataset.col+':'+el.dataset.row);lastTokensHTML=th}
 }
 
 /* ---------- Levels and flow ---------- */
@@ -194,14 +197,15 @@ function onWin(){
  for(let i=0;i<70;i++)PAR.push({x:Math.random()*VW,y:-10-Math.random()*60,vx:(Math.random()-.5)*1.2,vy:1+Math.random()*2,l:2600,c:G.pal[(Math.random()*8)|0]});
 }
 
-stage.addEventListener('pointerdown',e=>{
- if(!G||adT>0||Ads.busy||!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
- const el=e.target.closest('[data-col],[data-act]');if(!el)return;
+stage.addEventListener('click',e=>{
+ if(!G||adT>0||Ads.busy||(window.AntHome&&window.AntHome.isOpen))return;
+ const el=e.target.closest('[data-col],[data-act]');if(!el||el.disabled)return;
  if(e.cancelable)e.preventDefault();
  if(el.dataset.col!==undefined){
    const c=+el.dataset.col,r=G.place(c);
    if(r===1){beep(520,.07,.05);renderUI();if(window.AntPolish)window.AntPolish.onPlaced(G)}
    else if(r===2)toast('All slots are full, wait a moment');
+   else if(r===0&&G.state==='play')toast('No box in this column');
    else if(r===3){toast("This color can't be eaten yet");shakeCol=c;shakeUntil=performance.now()+400;renderUI()}
    return;
  }
@@ -236,7 +240,7 @@ stage.addEventListener('pointerdown',e=>{
  else if(a==='nextLv')Ads.midgame(()=>newLevel(LV+1));
  else if(a==='retry')newLevel(LV);
  else if(a==='viewGallery'){location.href='collection.html'}
- else if(a==='viewVillage'){location.href='village.html?v=world-v36'}
+ else if(a==='viewVillage'){location.href='village.html?v=world-v501'}
  else if(a==='reviveAd'){const game=G;Ads.rewardedReviveFor(game,()=>G===game,()=>{$('#lose').classList.remove('on');shown='play';renderUI();toast('Revived! Keep going.')},reason=>{if(reason!=='ineligible')toast('Ad skipped or unavailable · retry is free');});}
  else if(a==='snd'){SND=SND?0:1;save();toast(SND?'Sound on':'Sound off')}
 });
@@ -244,6 +248,8 @@ stage.addEventListener('pointerdown',e=>{
 let last=performance.now();
 function frame(now){
  const dt=Math.min(50,now-last);last=now;
+ // The menu is opaque; do not spend GPU time drawing the hidden puzzle.
+ if(document.hidden||(window.AntHome&&window.AntHome.isOpen)){requestAnimationFrame(frame);return}
  if(adT>0){
    adT-=dt;$('#adbar').style.width=(100*Math.min(1,1-adT/1500))+'%';
    if(adT<=0){adT=0;$('#ad').classList.remove('on');const f=adCb;adCb=null;if(f)f()}
@@ -259,7 +265,7 @@ function frame(now){
      else if(shown==='lose'){$('#lose').classList.add('on');beep(180,.4,.06);renderUI()}
    }
  }
- if(now-lastUI>90){renderUI();lastUI=now}
+ if(now-lastUI>100){renderUI();lastUI=now}
  draw3D(dt);drawFX(dt,now);
  requestAnimationFrame(frame);
 }
@@ -267,7 +273,7 @@ function frame(now){
 init3D();
 Ads.init();
 if(window.AntTelegram) window.AntTelegram.init();
-if(window.Telegram&&window.Telegram.WebApp){window.Telegram.WebApp.ready();window.Telegram.WebApp.expand();}
+if(window.Telegram&&window.Telegram.WebApp){const tg=window.Telegram.WebApp;tg.ready();tg.expand();try{if(typeof tg.disableVerticalSwipes==='function')tg.disableVerticalSwipes()}catch(_){} }
 if(!R3)toast('3D view failed to load, please check your connection');
 fit();window.addEventListener('resize',fit);
 newLevel(st.lv||MAXLV);
