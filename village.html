@@ -7,7 +7,7 @@
 <meta name="description" content="Build a cozy village for your tiny ants. Unlock magical buildings, open milestone chests, and discover hidden treasures.">
 <title>My Ant Village · ANT CANVAS</title>
 <link rel="stylesheet" href="css/village-world.css?v=village-world-v2">
-<link rel="stylesheet" href="css/village-storybook.css?v=world-v37">
+<link rel="stylesheet" href="css/village-storybook.css?v=world-v38">
 </head>
 <body>
 <header class="topbar">
@@ -24,6 +24,7 @@
   <div class="stat"><span class="stat-icon">🎁</span><div><strong id="chests">0</strong><small>UNOPENED CHESTS</small></div></div>
   <div class="stat"><span class="stat-icon">🏡</span><div><strong id="placed">0 / 8</strong><small>DECORATED PLOTS</small></div></div>
  </div>
+ <p id="global-status" role="status" aria-live="polite" class="global-status">Your colony is ready.</p>
  <section class="panel region-panel"><h2>🗺️ Ant World · Explore &amp; Build</h2><p class="sub" id="region-progress"></p><div id="region-list" class="region-list"></div></section>
  <div class="main-grid">
   <div class="world-panel" id="world-panel">
@@ -36,11 +37,11 @@
    <div class="weather-layer" aria-hidden="true"></div><div id="world-weather" class="weather-label" title="Simulated in-game weather"></div>
    <div class="world-story" id="world-story" aria-live="polite">Tap a glowing plot to start building your little world.</div>
   </div>
-  <div class="side"><section class="panel" id="region-activities"><h2 id="regional-title">Region adventures</h2><div id="regional-content"></div><div id="regional-collection"></div><p class="sub" id="regional-message" aria-live="polite"></p></section><p class="notice" id="guest-ants-note">🐜 Friends can visit your shared village</p>
+  <div class="side"><section class="panel" id="world-work-hud"><h2>🐜 Working colony</h2><small>Tap an ant on the map to assign its job.</small><p id="world-work-rate" class="sub"></p><strong id="world-work-stock"></strong><button class="btn primary" id="world-work-collect" type="button" disabled>Collect materials</button><button type="button" class="btn secondary" id="manage-workers">Assign ants</button></section><section class="panel" id="region-activities"><h2 id="regional-title">Region adventures</h2><div id="regional-content"></div><div id="regional-collection"></div><p class="sub" id="regional-message" aria-live="polite"></p></section><p class="notice" id="guest-ants-note">🐜 Friends can visit your shared village</p>
    <section class="panel" id="build-panel">
     <h2>🛠️ Decoration Workshop</h2>
     <p class="sub">1. Choose a plot. 2. Choose a building below. 3. Tap Build or Replace to confirm. Existing buildings can be upgraded or removed for a full material refund.</p>
-    <div class="build-detail" id="build-detail"><b>Choose a building plot</b>Use your collected materials to create something wonderful.</div>
+    <label for="plot-select">Building plot</label><select id="plot-select"></select><div class="build-detail" id="build-detail"><b>Choose a building plot</b>Use your collected materials to create something wonderful.</div>
     <div class="btn-row">
      <button class="btn" id="build" type="button" disabled>Build decoration</button>
      <button class="btn secondary" id="upgrade" type="button" disabled>Upgrade</button>
@@ -48,19 +49,19 @@
      <button class="btn secondary" id="remove-cancel" type="button" hidden>Cancel</button>
     </div>
     <div id="village-message" role="status" aria-live="polite">Build your first Flower Garden with materials from your first painting.</div>
-    <div class="shop-grid" id="shop"></div>
+    <div class="life-stock" id="upgrade-status" aria-live="polite"></div><button class="btn primary" id="upgrade-finish" type="button" hidden>Complete upgrade (free)</button><button class="btn secondary ad-reward" id="ad-upgrade" type="button" disabled>🎬 Finish upgrade now</button><div class="shop-grid" id="shop"></div>
    </section>
    <section class="panel life-panel">
     <h2>🐜 Ant Life</h2>
-    <p class="sub">Your ants gather 1 wood per hour and 1 petal per two stored hours, even while you are away. Storage holds up to eight hours.</p>
+    <p class="sub">Assign your five ants. Gatherers produce resources while offline; buildings improve production, builders shorten upgrades, and scouts shorten expeditions. Storage holds up to eight hours.</p><div id="worker-rate" class="life-stock"></div><div id="worker-list" class="worker-list"></div>
     <div class="life-stock"><strong id="life-stock">🪵 +0 · 🌸 +0</strong><small id="life-time">Gathering...</small></div>
-    <button class="btn primary" id="life-collect" type="button" disabled>Collect materials</button>
+    <button class="btn primary" id="life-collect" type="button" disabled>Collect materials</button><button class="btn secondary ad-reward" id="ad-gather" type="button" disabled>🎬 Collect ×2</button>
     <h3 id="life-streak">7-day sign-in</h3>
     <div class="life-calendar" id="life-calendar"></div>
-    <button class="btn primary" id="life-sign" type="button" disabled>Claim daily reward</button>
+    <button class="btn primary" id="life-sign" type="button" disabled>Claim daily reward</button><button class="btn secondary ad-reward" id="ad-daily" type="button" disabled>🎬 Daily bonus · +2 wood +1 petal</button>
     <h3>📋 Daily tasks</h3><div id="life-tasks"></div><small id="life-clock-note"></small>
    </section>
-   <section class="panel expedition-panel"><h2>🧭 Ant Expeditions</h2><p class="sub">Choose a route and ant role. Scouts discover relics; builders and gardeners collect bonus materials.</p><label for="exp-route">Route</label><select id="exp-route"></select><label for="exp-role">Ant role</label><select id="exp-role"></select><div class="life-stock"><strong id="exp-status"></strong><small id="exp-count"></small></div><button class="btn primary" id="exp-start" type="button">Send ant on expedition</button><button class="btn primary" id="exp-claim" type="button" hidden disabled>Claim expedition reward</button></section>
+   <section class="panel expedition-panel"><h2>🧭 Ant Expeditions</h2><p class="sub">Choose a route and ant role. Scouts discover relics; builders and gardeners collect bonus materials.</p><label for="exp-route">Route</label><select id="exp-route"></select><label for="exp-role">Ant role</label><select id="exp-role"></select><div class="life-stock"><strong id="exp-status"></strong><small id="exp-count"></small></div><button class="btn primary" id="exp-start" type="button">Send ant on expedition</button><button class="btn primary" id="exp-claim" type="button" hidden disabled>Claim expedition reward</button><button class="btn secondary ad-reward" id="ad-expedition" type="button" disabled>🎬 Halve remaining time</button></section>
    <section class="panel treasure-panel">
     <h2>🎁 Secret Treasure Chest</h2>
     <p class="sub">Every 5 levels adds a real chest you can open for a hidden souvenir and extra materials.</p>
@@ -68,7 +69,7 @@
      <div class="chest-figure" id="chest-figure" aria-hidden="true">🧰</div>
      <div class="chest-info"><strong id="chest-head">No unopened chests</strong><p>Play, paint and return for a surprise!</p></div>
     </div>
-    <button id="chest-open" type="button" class="chest-open" disabled>Open a mystery chest ✨</button>
+    <button id="chest-open" type="button" class="chest-open" disabled>Open a mystery chest ✨</button><button class="btn secondary ad-reward" id="ad-chest" type="button" disabled>🎬 Open · double materials</button>
     <div class="treasure-result" id="treasure-result" aria-live="polite"></div>
    </section>
   </div>
@@ -97,10 +98,14 @@
   <button type="button" class="btn" id="reveal-close">Back to the village</button>
  </div>
 </div>
-<script src="js/village.js?v=world-v36"></script>
-<script src="js/village-storybook.js?v=world-v37"></script>
-<script src="js/region-activities.js?v=world-v36"></script>
-<script src="js/village-page.js?v=world-v36"></script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+<script src="js/ads.js?v=world-v38"></script>
+<script>Ads.init();</script>
+<script src="js/village.js?v=world-v38"></script>
+<script src="js/village-storybook.js?v=world-v38"></script>
+<script src="js/region-activities.js?v=world-v36"></script>
+<script src="js/village-page.js?v=world-v38"></script>
+
 <script src="js/village-guests.js?v=community-v34"></script>
-<script>(function(){const nav=document.querySelector('.world-nav'),main=document.querySelector('main');const groups={world:['.region-panel','#world-panel','#region-activities','#guest-ants-note'],build:['#build-panel'],tasks:['.life-panel','.expedition-panel'],collection:['.treasure-panel','.relic-panel','.lower-grid']};const all=Object.values(groups).flatMap(a=>a.map(s=>document.querySelector(s))).filter(Boolean);let active='world';const mq=matchMedia('(max-width: 700px)');function show(tab,scroll=true){active=tab;const mobile=mq.matches,chosen=groups[tab].map(s=>document.querySelector(s));all.forEach(el=>{el.hidden=mobile&&!chosen.includes(el)});main.dataset.tab=mobile?tab:'desktop';nav.querySelectorAll('[data-world-tab]').forEach(b=>{if(b.dataset.worldTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});if(scroll&&mobile)window.scrollTo(0,0)}nav.addEventListener('click',e=>{const b=e.target.closest('[data-world-tab]');if(b)show(b.dataset.worldTab)});document.querySelector('#village-world').addEventListener('click',e=>{if(mq.matches&&e.target.closest('[data-plot]'))show('build',false)},true);document.querySelector('#village-world').addEventListener('keydown',e=>{if(mq.matches&&['Enter',' '].includes(e.key)&&e.target.closest('[data-plot]'))show('build',false)},true);if(mq.addEventListener)mq.addEventListener('change',()=>show(active,false));else mq.addListener(()=>show(active,false));show('world',false)})();</script></body></html>
+<script>(function(){const nav=document.querySelector('.world-nav'),main=document.querySelector('main');const groups={world:['.region-panel','#world-panel','#world-work-hud','#region-activities','#guest-ants-note'],build:['#build-panel'],tasks:['.life-panel','.expedition-panel'],collection:['.treasure-panel','.relic-panel','.lower-grid']};const all=Object.values(groups).flatMap(a=>a.map(s=>document.querySelector(s))).filter(Boolean);let active='world';const mq=matchMedia('(max-width: 700px)');function show(tab,scroll=true){active=tab;const mobile=mq.matches,chosen=groups[tab].map(s=>document.querySelector(s));all.forEach(el=>{el.hidden=mobile&&!chosen.includes(el)});main.dataset.tab=mobile?tab:'desktop';nav.querySelectorAll('[data-world-tab]').forEach(b=>{if(b.dataset.worldTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});if(scroll&&mobile)window.scrollTo(0,0)}document.querySelector('#manage-workers').addEventListener('click',()=>{show('tasks');if(!mq.matches)document.querySelector('.life-panel').scrollIntoView({behavior:'smooth'})});nav.addEventListener('click',e=>{const b=e.target.closest('[data-world-tab]');if(b)show(b.dataset.worldTab)});document.querySelector('#village-world').addEventListener('click',e=>{if(mq.matches&&e.target.closest('[data-plot]'))show('build',false)},true);document.querySelector('#village-world').addEventListener('keydown',e=>{if(mq.matches&&['Enter',' '].includes(e.key)&&e.target.closest('[data-plot]'))show('build',false)},true);if(mq.addEventListener)mq.addEventListener('change',()=>show(active,false));else mq.addListener(()=>show(active,false));show('world',false)})();</script></body></html>

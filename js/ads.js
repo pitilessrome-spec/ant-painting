@@ -58,7 +58,7 @@ const Ads = {
 
   // Rewarded ad: reward only after the ad is fully watched; skipped, failed, or no ad = no reward
   rewarded(onReward, onFail) {
-    // Preserve the existing free hint, speed, reshuffle and revival rules.
+    // Preserve existing free standard boosters; premium actions use strict rewardedSlot.
     if(this.busy){if(onFail)onFail();return;}
     if(AD_CONFIG.freeStandardBoosters){if(onReward)onReward();return;}
     if (this.provider === 'adsgram') {

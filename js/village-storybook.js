@@ -320,6 +320,7 @@ function plotNode(p,st,selected,readOnly=false){
 }
 function render(st,selected,options={}){
  lastRender=[st,selected,options];
+ const jobs=currentJobs().join(',');if(jobs!==jobSignature){jobSignature=jobs;generation++;const layer=svg.querySelector('#village-residents');if(layer){layer.replaceChildren();residents()}}
  const next=st.world?.active||'garden';if(next!==region){generation++;configureRegion(next);scene();residents()}
  const b=svg.querySelector('#village-buildings');
  if(b)b.innerHTML=plots.map(p=>{seed=73191+Math.imul(p.id+1,913);return plotNode(p,st,selected,!!options.readOnly)}).join('');
@@ -332,8 +333,9 @@ function render(st,selected,options={}){
 function setNight(on){document.getElementById('world-panel').classList.toggle('night',!!on);return !!on;}
 function onSelect(fn){
  if(svg.dataset.readonly==='true')return;
- svg.addEventListener('click',e=>{const p=e.target.closest('[data-plot]');if(p)fn(Number(p.getAttribute('data-plot')));else if(e.target.closest('[data-activity]'))document.getElementById('region-activities')?.scrollIntoView({behavior:'smooth',block:'start'});});
- svg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const p=e.target.closest('[data-plot]');if(p){e.preventDefault();fn(Number(p.getAttribute('data-plot')));}else if(e.target.closest('[data-activity]')){e.preventDefault();document.getElementById('region-activities')?.scrollIntoView({behavior:'smooth',block:'start'})}}});
+ const manage=e=>{const worker=e.target.closest('[data-worker]');if(!worker)return false;e.preventDefault();svg.dispatchEvent(new CustomEvent('ant-worker-select',{bubbles:true,detail:{index:Number(worker.dataset.worker)}}));return true};
+ svg.addEventListener('click',e=>{if(manage(e))return;const p=e.target.closest('[data-plot]');if(p)fn(Number(p.getAttribute('data-plot')));else if(e.target.closest('[data-activity]'))document.getElementById('region-activities')?.scrollIntoView({behavior:'smooth',block:'start'});});
+ svg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){if(manage(e))return;const p=e.target.closest('[data-plot]');if(p){e.preventDefault();fn(Number(p.getAttribute('data-plot')));}else if(e.target.closest('[data-activity]')){e.preventDefault();document.getElementById('region-activities')?.scrollIntoView({behavior:'smooth',block:'start'})}}});
 }
 function antMarkup(job){
  let legs='';
@@ -348,7 +350,8 @@ function antMarkup(job){
  '<g class="sb-ant-cargo">'+cargo+'</g><g class="sb-ant-antennae"><path d="M12 -7Q15 -16 20 -16M15 -5Q23 -12 26 -8" stroke="#68412e" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="20" cy="-16" r="1.5" fill="#9f6d4b"/><circle cx="26" cy="-8" r="1.5" fill="#9f6d4b"/></g>'+
  '<ellipse cx="14" cy="-4" rx="3.4" ry="3.8" fill="#fff8dc"/><circle cx="15" cy="-3.7" r="1.8" fill="#3c2f29"/><circle cx="15.5" cy="-4.6" r=".6" fill="#fff"/><path d="M13 3Q16 5 18 2" stroke="#52352a" stroke-width="1" fill="none"/></g></g>';
 }
-let guestCount=0;
+let guestCount=0,jobSignature='';
+function currentJobs(){return lastRender?.[0]?.work?.roles||['wood','wood','petal','petal','builder']}
 function setGuests(count){const next=Math.max(0,Math.min(3,Math.trunc(Number(count)||0)));if(next===guestCount)return;guestCount=next;generation++;const layer=svg.querySelector('#village-residents');if(layer){layer.replaceChildren();residents()}}
 function residents(){
  const NS='http://www.w3.org/2000/svg',layer=svg.querySelector('#village-residents');
@@ -356,7 +359,7 @@ function residents(){
  if(!artReady[region])return; // no workers on an unverified fallback
  for(let i=0;i<5+guestCount;i++){
   const route=document.createElementNS(NS,'path');route.setAttribute('d',loops[i%loops.length]);route.setAttribute('fill','none');route.setAttribute('stroke','none');layer.appendChild(route);
-  const el=document.createElementNS(NS,'g');el.setAttribute('class','resident village-ant');el.setAttribute('pointer-events','none');el.innerHTML=antMarkup(i%3)+(i>=5?'<g transform="translate(0 -24)"><circle r="9" fill="#fff3ce" stroke="#b89b63"/><text text-anchor="middle" y="3" font-size="10" fill="#a05f4a">♥</text></g>':'');layer.appendChild(el);
+  const el=document.createElementNS(NS,'g');el.setAttribute('class','resident village-ant');el.setAttribute('pointer-events','none');const job=currentJobs()[i]||'scout',jobIndex=({wood:2,petal:0,builder:1,scout:1})[job]??0;el.setAttribute('data-job',job);el.innerHTML=antMarkup(jobIndex)+(i>=5?'<g transform="translate(0 -24)"><circle r="9" fill="#fff3ce" stroke="#b89b63"/><text text-anchor="middle" y="3" font-size="10" fill="#a05f4a">♥</text></g>':'');if(i<5&&svg.dataset.readonly!=='true'){el.setAttribute('data-worker',String(i));el.setAttribute('role','button');el.setAttribute('aria-label','Manage ant '+(i+1)+' · '+job);el.setAttribute('tabindex','0');el.setAttribute('pointer-events','all');const hit=document.createElementNS(NS,'circle');hit.setAttribute('r','27');hit.setAttribute('fill','transparent');hit.setAttribute('pointer-events','all');el.insertBefore(hit,el.firstChild)}layer.appendChild(el);
   const len=route.getTotalLength(),phase=(i*.271)%1;
   motion.push({route,len,el,heading:el.querySelector('.sb-ant-heading'),body:el.querySelector('.sb-ant-body'),legs:[...el.querySelectorAll('.sb-ant-leg')],antennae:el.querySelector('.sb-ant-antennae'),cargo:el.querySelector('.sb-ant-cargo'),distance:len*phase,dir:1,pause:0,speed:10+i*1.1,scale:0.36+(i%3)*.025});
  }
@@ -364,7 +367,7 @@ function residents(){
  let last=0;const run=generation;
  function step(now){
   if(run!==generation)return;
-  if(svg.dataset.readonly==='true'&&svg.closest('[hidden]')){last=0;if(!reduced)requestAnimationFrame(step);return;}
+  if(svg.closest('[hidden]')){last=0;if(!reduced)requestAnimationFrame(step);return;}
   const dt=last?Math.min(.05,(now-last)/1000):0;last=now;
   for(const m of motion){
    if(!reduced){if(m.pause>0){m.pause=Math.max(0,m.pause-dt)}else{m.distance+=m.dir*dt*m.speed;if(m.distance>=m.len||m.distance<=0){m.distance=Math.max(0,Math.min(m.len,m.distance));m.dir*=-1;m.pause=1.4;}}}
@@ -372,8 +375,8 @@ function residents(){
    const angle=Math.atan2(q.y-p.y,q.x-p.x)*180/Math.PI;
    m.el.setAttribute('transform','translate('+n(p.x)+' '+n(p.y)+') scale('+m.scale+')');
    m.heading.setAttribute('transform','rotate('+n(angle)+')');
-   // Empty outbound, cargo on return; endpoints are work/delivery stops, not economy grants.
-   m.cargo.setAttribute('opacity',m.dir<0?'1':'0');
+   // Visual work represents the assigned colony job. Production is calculated by the saved elapsed-time ledger, not animation frames.
+   m.cargo.setAttribute('opacity',m.dir<0&&m.el.dataset.job!=='scout'?'1':'0');
    const still=reduced||m.pause>0,gait=m.distance/6*2*Math.PI;
    m.body.setAttribute('transform','translate(0 '+n(still?0:Math.sin(gait*2)*.75)+')');
    m.legs.forEach((leg,j)=>leg.setAttribute('transform','rotate('+n(still?0:Math.sin(gait+(j%2)*Math.PI)*(j<3?21:-21))+')'));
@@ -384,5 +387,5 @@ function residents(){
  requestAnimationFrame(step);
 }
 scene();residents();
-window.AntVillageScene=Object.freeze({render,setNight,onSelect,setGuests,version:'world-v37-walkable'});
+window.AntVillageScene=Object.freeze({render,setNight,onSelect,setGuests,version:'world-v38-jobs'});
 })();
