@@ -7,7 +7,7 @@
 <meta name="description" content="Build a cozy village for your tiny ants. Unlock magical buildings, open milestone chests, and discover hidden treasures.">
 <title>My Ant Village · ANT CANVAS</title>
 <link rel="stylesheet" href="css/village-world.css?v=village-world-v2">
-<link rel="stylesheet" href="css/village-storybook.css?v=world-v38">
+<link rel="stylesheet" href="css/village-storybook.css?v=world-v39">
 </head>
 <body>
 <header class="topbar">
@@ -53,7 +53,7 @@
    </section>
    <section class="panel life-panel">
     <h2>🐜 Ant Life</h2>
-    <p class="sub">Assign your five ants. Gatherers produce resources while offline; buildings improve production, builders shorten upgrades, and scouts shorten expeditions. Storage holds up to eight hours.</p><div id="worker-rate" class="life-stock"></div><div id="worker-list" class="worker-list"></div>
+    <p class="sub">Assign your colony. Gatherers complete 60-second collection and delivery trips, builders and scouts gain skill from finished jobs, and warehouse upgrades extend offline storage.</p><section class="colony-hub"><h3>👑 Queen &amp; Nursery</h3><strong id="colony-pop"></strong><button id="colony-queen" class="btn secondary" type="button"></button><strong id="colony-storage"></strong><button id="colony-warehouse" class="btn secondary" type="button"></button><small id="hatch-note"></small><button id="hatch-start" class="btn primary" type="button"></button><button id="hatch-claim" class="btn primary" type="button" hidden></button><small id="colony-deliveries"></small></section><details class="colony-achievements"><summary>🏆 Colony achievements</summary><div id="colony-goals"></div></details><div id="worker-rate" class="life-stock"></div><div id="worker-list" class="worker-list"></div>
     <div class="life-stock"><strong id="life-stock">🪵 +0 · 🌸 +0</strong><small id="life-time">Gathering...</small></div>
     <button class="btn primary" id="life-collect" type="button" disabled>Collect materials</button><button class="btn secondary ad-reward" id="ad-gather" type="button" disabled>🎬 Collect ×2</button>
     <h3 id="life-streak">7-day sign-in</h3>
@@ -102,10 +102,10 @@
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 <script src="js/ads.js?v=world-v38"></script>
 <script>Ads.init();</script>
-<script src="js/village.js?v=world-v38"></script>
-<script src="js/village-storybook.js?v=world-v38"></script>
+<script src="js/village.js?v=world-v39"></script>
+<script src="js/village-storybook.js?v=world-v39"></script>
 <script src="js/region-activities.js?v=world-v36"></script>
-<script src="js/village-page.js?v=world-v38"></script>
+<script src="js/village-page.js?v=world-v39"></script>
 
 <script src="js/village-guests.js?v=community-v34"></script>
 <script>(function(){const nav=document.querySelector('.world-nav'),main=document.querySelector('main');const groups={world:['.region-panel','#world-panel','#world-work-hud','#region-activities','#guest-ants-note'],build:['#build-panel'],tasks:['.life-panel','.expedition-panel'],collection:['.treasure-panel','.relic-panel','.lower-grid']};const all=Object.values(groups).flatMap(a=>a.map(s=>document.querySelector(s))).filter(Boolean);let active='world';const mq=matchMedia('(max-width: 700px)');function show(tab,scroll=true){active=tab;const mobile=mq.matches,chosen=groups[tab].map(s=>document.querySelector(s));all.forEach(el=>{el.hidden=mobile&&!chosen.includes(el)});main.dataset.tab=mobile?tab:'desktop';nav.querySelectorAll('[data-world-tab]').forEach(b=>{if(b.dataset.worldTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});if(scroll&&mobile)window.scrollTo(0,0)}document.querySelector('#manage-workers').addEventListener('click',()=>{show('tasks');if(!mq.matches)document.querySelector('.life-panel').scrollIntoView({behavior:'smooth'})});nav.addEventListener('click',e=>{const b=e.target.closest('[data-world-tab]');if(b)show(b.dataset.worldTab)});document.querySelector('#village-world').addEventListener('click',e=>{if(mq.matches&&e.target.closest('[data-plot]'))show('build',false)},true);document.querySelector('#village-world').addEventListener('keydown',e=>{if(mq.matches&&['Enter',' '].includes(e.key)&&e.target.closest('[data-plot]'))show('build',false)},true);if(mq.addEventListener)mq.addEventListener('change',()=>show(active,false));else mq.addListener(()=>show(active,false));show('world',false)})();</script></body></html>

@@ -15,4 +15,4 @@ async function load(){backup=await api('backup');$('backup-info').textContent=ba
 const REGION_NAMES={garden:'🌿 Storybook Garden',forest:'🍄 Mushroom Forest',island:'🏝️ Coral Island',snow:'❄️ Snowlight Valley'};
 const ITEM_IDS=['flower','mushroom','lantern','fountain','butterfly','castle','grove','dock','ice'];
 let visitData=null,visitRegion='',scenePromise=null;
-function loadScene(){if(window.AntVillageScene)return Promise.resolve(window.AntVillageScene);if(!scenePromise)scenePromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='js/village-storybook.js?v=world-v38
+function loadScene(){if(window.AntVillageScene)return Promise.resolve(window.AntVillageScene);if(!scenePromise)scenePromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='js/village-storybook.js?v=world-v39
