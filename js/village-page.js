@@ -117,7 +117,7 @@ function render(){
  build.disabled=selectedPlot===null||!item||!!buildShort||!!(existing&&!replacing)||removePending;
  upgrade.disabled=!existing||!cost||!!upgradeShort||!!queued;
  if(!existing&&selectedPlot!==null&&item){
-  $('build-detail').innerHTML='<b>Plot '+(selectedPlot+1)+' · '+item.name+'</b>🪵 '+item.wood+' · 🌸 '+item.petals+' · '+(buildShort?'Need '+buildShort:'✓ Materials ready — tap Build to confirm.');
+  $('build-detail').innerHTML='<b>Plot '+([0,1,2,3,5,6,7,8].indexOf(selectedPlot)+1)+' · '+item.name+'</b>🪵 '+item.wood+' · 🌸 '+item.petals+' · '+(buildShort?'Need '+buildShort:'✓ Materials ready — tap Build to confirm.');
   build.textContent=buildShort?'Not enough materials':'Build '+item.name;
  }else if(existing&&removePending){
   $('build-detail').innerHTML='<b>Remove '+catalog[existing].name+'?</b>Return 🪵 '+refund.wood+' · 🌸 '+refund.petals+'. The plot becomes empty. Confirm or cancel.';
@@ -169,7 +169,7 @@ $('world-work-collect').addEventListener('click',()=>{const r=V.collectAnts();an
 S.onSelect(i=>{
  selectedPlot=i;selectedItem=null;removePending=false;
  const st=V.snapshot();
- announce(st.placements[i]?'Selected '+V.catalog[st.placements[i]].name+'. Upgrade, remove, or choose a replacement.':'Plot '+(i+1)+' selected. '+(selectedItem?'Confirm your selected building in the workshop.':'Choose a building in the workshop.'));
+ announce(st.placements[i]?'Selected '+V.catalog[st.placements[i]].name+'. Upgrade, remove, or choose a replacement.':'Plot '+([0,1,2,3,5,6,7,8].indexOf(i)+1)+' selected. '+(selectedItem?'Confirm your selected building in the workshop.':'Choose a building in the workshop.'));
  render();
  revealBuild();
 });

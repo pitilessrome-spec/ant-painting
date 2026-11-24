@@ -7,14 +7,14 @@
 <meta name="description" content="Build a cozy village for your tiny ants. Unlock magical buildings, open milestone chests, and discover hidden treasures.">
 <title>My Ant Village · ANT CANVAS</title>
 <link rel="stylesheet" href="css/village-world.css?v=village-world-v2">
-<link rel="stylesheet" href="css/village-storybook.css?v=world-v502">
+<link rel="stylesheet" href="css/village-storybook.css?v=world-v503">
 <style>#world-panel:not([data-map-state=ready]) #village-world{visibility:hidden}#world-panel:not([data-map-state=ready]) .world-plaque{display:none}</style>
 <script>try{var saved=JSON.parse(localStorage.getItem("ant_canvas_village_v1")||"{}");var id=saved.world&&saved.world.active;if(!["garden","forest","island","snow"].includes(id))id="garden";var preload=document.createElement("link");preload.rel="preload";preload.as="image";preload.href="assets/maps/v36/"+id+".webp";document.head.appendChild(preload)}catch(e){}</script>
 </head>
 <body>
 <header class="topbar">
  <div class="brand"><span class="brand-icon" aria-hidden="true">🐜</span><span>ANT CANVAS <span style="opacity:.55">/</span> ANT VILLAGE</span></div>
- <a class="return" href="guide.html">📖 Guide</a><a class="return" href="social.html?v=world-v502">☁️ Friends &amp; Cloud</a><a class="return" href="./">← Back to Puzzles</a>
+ <a class="return" href="guide.html">📖 Guide</a><a class="return" href="social.html?v=world-v503">☁️ Friends &amp; Cloud</a><a class="return" href="./">← Back to Puzzles</a>
 </header>
 <main>
  <div class="eyebrow">THE STORYBOOK GARDEN · ANT ART VILLAGE</div>
@@ -105,11 +105,11 @@
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 <script src="js/ads.js?v=world-v38"></script>
 <script>Ads.init();</script>
-<script src="js/village.js?v=world-v50"></script>
-<script src="js/village-storybook.js?v=world-v502"></script>
+<script src="js/village.js?v=world-v503"></script>
+<script src="js/village-storybook.js?v=world-v503"></script>
 <script src="js/region-activities.js?v=world-v50"></script>
 <script src="js/industry.js?v=world-v50"></script>
-<script src="js/village-page.js?v=world-v50"></script>
+<script src="js/village-page.js?v=world-v503"></script>
 
 <script src="js/village-guests.js?v=community-v34"></script>
 <script>(function(){const nav=document.querySelector('.world-nav'),main=document.querySelector('main');const groups={world:['.region-panel','#world-panel','#world-work-hud','#region-activities','#industry-panel','#guest-ants-note'],build:['#build-panel'],tasks:['.life-panel','.expedition-panel'],collection:['.treasure-panel','.relic-panel','.lower-grid']};const all=Object.values(groups).flatMap(a=>a.map(s=>document.querySelector(s))).filter(Boolean);let active='world';const mq=matchMedia('(max-width: 700px)');function show(tab,scroll=true){active=tab;const mobile=mq.matches,chosen=groups[tab].map(s=>document.querySelector(s));all.forEach(el=>{el.hidden=mobile&&!chosen.includes(el)});main.dataset.tab=mobile?tab:'desktop';nav.querySelectorAll('[data-world-tab]').forEach(b=>{if(b.dataset.worldTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});if(scroll&&mobile)window.scrollTo(0,0)}document.querySelector('#manage-workers').addEventListener('click',()=>{show('tasks');if(!mq.matches)document.querySelector('.life-panel').scrollIntoView({behavior:'smooth'})});nav.addEventListener('click',e=>{const b=e.target.closest('[data-world-tab]');if(b)show(b.dataset.worldTab)});document.querySelector('#village-world').addEventListener('click',e=>{if(mq.matches&&e.target.closest('[data-plot]'))show('build',false)},true);document.querySelector('#village-world').addEventListener('keydown',e=>{if(mq.matches&&['Enter',' '].includes(e.key)&&e.target.closest('[data-plot]'))show('build',false)},true);if(mq.addEventListener)mq.addEventListener('change',()=>show(active,false));else mq.addListener(()=>show(active,false));show('world',false)})();</script></body></html>
