@@ -11,7 +11,7 @@
   const active = !!(tg && tg.initData);
   let validated = false;
   let connecting=false,authNote='';
-  let playerId = '';
+  let playerId = '',playerName='',namePublic=null;
   let bestOnline = 0;
   let busy = false;
   let isPanelOpen = false;
@@ -61,6 +61,11 @@
         <div id="tg-online-note" class="tgsmall">Online ranking requires a registered Telegram bot and secure sign-in.</div>
         <h3 style="font-size:14px;text-align:left;margin:15px 0 5px">🏆 Global leaderboard</h3>
         <ol id="tg-ranks"><li>Waiting for Telegram game service</li></ol>
+        <div id="tg-name-settings" hidden style="text-align:left;background:#fff;border-radius:12px;padding:10px;margin:8px 0">
+          <p class="tgsmall" id="tg-name-note"></p>
+          <button class="tgbtn secondary" id="tg-name-show" type="button">Show my Telegram name</button>
+          <button class="tgbtn secondary" id="tg-name-hide" type="button">Use anonymous name</button>
+        </div>
         <button class="tgbtn" id="tg-invite" type="button">Invite friends</button>
         <button class="tgbtn secondary" id="tg-cloud" type="button">☁️ Friends &amp; Cloud</button>
         <button class="tgbtn secondary" id="tg-online-start" type="button" hidden>Play verified level</button>
@@ -74,6 +79,8 @@
     $('#tg-profile-btn').addEventListener('click', openPanel);
     $('#tg-share-btn').addEventListener('click', share);
     $('#tg-invite').addEventListener('click', share);
+    $('#tg-name-show').addEventListener('click',()=>setNamePreference(true));
+    $('#tg-name-hide').addEventListener('click',()=>setNamePreference(false));
     $('#tg-cloud').addEventListener('click',()=>{location.href='social.html?v=ops-v31'});
     $('#tg-refresh').addEventListener('click', () => validated ? fetchRanks() : connect());
     $('#tg-online-start').addEventListener('click', () => { closePanel(); if (typeof window.newLevel === 'function') window.newLevel(bestOnline + 1); });
@@ -108,7 +115,11 @@
     $('#tg-global-best').textContent = validated ? bestOnline : '—';
     $('#tg-online-start').hidden = !validated;
     let account = active ? (connecting?'Telegram detected · connecting securely':'Telegram detected · sign-in required') : 'Browser mode · local progress';
-    if (validated) account = 'Telegram player ' + playerId;
+    if (validated) account = playerName || 'Telegram player';
+    $('#tg-name-settings').hidden=!validated;
+    $('#tg-name-note').textContent=namePublic===true?'Your Telegram display name is visible on the leaderboard and to linked friends.':namePublic===false?'Your ranking uses an anonymous label.':'Choose how other players see you. Your Telegram name is private until you allow sharing.';
+    $('#tg-name-show').hidden=namePublic===true||!playerName;
+    $('#tg-name-hide').hidden=namePublic===false;
     $('#tg-account').textContent = account;
     $('#tg-online-note').textContent = validated
       ? 'Your verified level score is stored online. Use Friends & Cloud to back up your village.'
@@ -134,12 +145,20 @@
       const profile = await api('profile');
       validated = true;
       playerId = safeText(profile.playerId);
+      playerName=safeText(profile.displayName);namePublic=profile.namePublic??null;
       bestOnline = profile.bestLevel || 0;
       render();
       await fetchRanks();
       if (Number.isInteger(window.ANT_CANVAS_CURRENT_LEVEL)) await onLevelStart(window.ANT_CANVAS_CURRENT_LEVEL);
     } catch (e) { const notes={INIT_DATA_EXPIRED:'Telegram session expired. Close the Mini App completely and reopen it from the bot.',SIGNATURE_MISMATCH:'Telegram signature does not match the configured bot token. Contact the game administrator.',INIT_DATA_MISSING:'Open the game using its Telegram Mini App link.',INIT_DATA_INVALID:'Invalid Telegram session. Reopen the Mini App.',BOT_NOT_CONFIGURED:'Bot token is not configured on the server.',HTTP_503:'Game database or API temporarily unavailable.'};authNote=notes[e.code]||'Connection failed. Tap Refresh rankings to retry ('+(e.code||'NETWORK')+').';console.warn('ANT CANVAS sign-in failed:',e.code||'NETWORK'); }
     finally{connecting=false;render();}
+  }
+  let nameBusy=false;
+  async function setNamePreference(enabled){
+    if(!validated||nameBusy)return;nameBusy=true;$('#tg-name-show').disabled=$('#tg-name-hide').disabled=true;
+    try{const r=await api('profile/name','POST',{enabled});namePublic=r.namePublic;render();await fetchRanks();message(enabled?'Telegram name now visible':'Anonymous ranking enabled');}
+    catch(_){message('Could not change name preference. Please retry.');}
+    finally{nameBusy=false;$('#tg-name-show').disabled=$('#tg-name-hide').disabled=false;}
   }
   async function fetchRanks() {
     if (!$('#tg-ranks')) return;

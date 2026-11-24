@@ -45,3 +45,6 @@
 
 ## V3.1 cloud backup & friends
 Apply sql/002_social.sql after 001_init.sql before enabling V3.1. Backups are explicit manual copies with compare-and-swap revisions, not authoritative scores or automatic sync. The server uses signed Telegram start_param for new-account referral attribution. A verified best level of five qualifies an invite; no material reward is emitted yet. Public village layouts are opt-in and limited to referral-linked players. Private data and material balances are not returned to visitors. The frontend displays errors rather than replacing local data on failed API calls. Configure production DATABASE_URL, TELEGRAM_BOT_TOKEN and ANT_ADMIN_KEY in Vercel; verify migrations and two real Telegram users before claiming operational readiness. AdsGram revenue remains unconnected.
+
+## Leaderboard names
+Migration sql/003_player_names.sql adds only two nullable fields. It is also applied idempotently at the first authenticated request if missing (requires schema owner role). Signed Telegram display names are synchronized; public display is opt-in and can be disabled. Existing scores are unchanged.

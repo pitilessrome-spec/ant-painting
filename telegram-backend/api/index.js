@@ -6,6 +6,11 @@ const GAME_URL = 'https://pitilessrome-spec.github.io/ant-painting/';
 const CORS_ORIGIN = process.env.GAME_ORIGIN || 'https://pitilessrome-spec.github.io';
 function json(res, status, object) { res.statusCode=status; res.setHeader('Content-Type','application/json; charset=utf-8'); res.end(JSON.stringify(object)); }
 function params(raw) {const p = new URLSearchParams(raw); return [...p.entries()];}
+function displayName(user){
+ const clean=s=>typeof s==='string'?s.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'').trim():'';
+ const name=[clean(user.first_name),clean(user.last_name)].filter(Boolean).join(' ');
+ return Array.from(name||clean(user.username)).slice(0,80).join('')||null;
+}
 function checkInitData(raw,token,now=Math.floor(Date.now()/1000)){
  if(!token)return {code:'BOT_NOT_CONFIGURED'};
  if(!raw||typeof raw!=='string'||raw.length>12000)return {code:'INIT_DATA_MISSING'};
@@ -23,7 +28,7 @@ function checkInitData(raw,token,now=Math.floor(Date.now()/1000)){
  try{const userRaw=fields.find(([k])=>k==='user'),user=JSON.parse(userRaw&&userRaw[1]);
  if(!user||!Number.isSafeInteger(user.id)||user.id<=0)return {code:'INIT_DATA_INVALID'};
  const start=fields.find(([k])=>k==='start_param');
- return {user:{id:String(user.id),...(start?{startParam:start[1]}:{})}};
+ return {user:{id:String(user.id),displayName:displayName(user),...(start?{startParam:start[1]}:{})}};
  }catch(_){return {code:'INIT_DATA_INVALID'}}
 }
 function verifyInitData(raw,token){return checkInitData(raw,token).user||null;}
@@ -33,6 +38,9 @@ function connection() {
   return pool;
 }
 function alias(id) {return 'Ant #'+id.slice(-6);}
+function playerLabel(row){return row.show_display_name===true&&row.display_name?row.display_name:alias(String(row.id));}
+let namesMigration;
+async function ensureNames(db){if(!namesMigration)namesMigration=(async()=>{const {rows}=await db.query("SELECT count(*)::int AS n FROM information_schema.columns WHERE table_schema='public' AND table_name='players' AND column_name IN ('display_name','show_display_name')");if(rows[0].n!==2)await db.query('ALTER TABLE players ADD COLUMN IF NOT EXISTS display_name VARCHAR(160), ADD COLUMN IF NOT EXISTS show_display_name BOOLEAN');})().catch(e=>{namesMigration=null;throw e});return namesMigration;}
 async function bot(method, data) {
   if (!process.env.TELEGRAM_BOT_TOKEN) return;
   const response=await fetch('https://api.telegram.org/bot'+process.env.TELEGRAM_BOT_TOKEN+'/'+method,{
@@ -121,9 +129,9 @@ async function social(req,res,db,user,path){
   return q.rows.length?json(res,200,{revision:q.rows[0].revision,updatedAt:q.rows[0].updated_at}):json(res,409,{error:'Cloud save changed. Reload and compare before overwriting.'});
  }
  if(path==='social/friends'&&req.method==='GET'){
-  const {rows}=await db.query(`SELECT p.telegram_id::text AS id,p.best_level,b.public_village FROM player_referrals r JOIN players p ON p.telegram_id=CASE WHEN r.inviter_id=$1 THEN r.invitee_id ELSE r.inviter_id END LEFT JOIN player_backups b ON b.telegram_id=p.telegram_id WHERE r.inviter_id=$1 OR r.invitee_id=$1 ORDER BY p.best_level DESC LIMIT 100`,[user.id]);
+  const {rows}=await db.query(`SELECT p.telegram_id::text AS id,p.best_level,p.display_name,p.show_display_name,b.public_village FROM player_referrals r JOIN players p ON p.telegram_id=CASE WHEN r.inviter_id=$1 THEN r.invitee_id ELSE r.inviter_id END LEFT JOIN player_backups b ON b.telegram_id=p.telegram_id WHERE r.inviter_id=$1 OR r.invitee_id=$1 ORDER BY p.best_level DESC LIMIT 100`,[user.id]);
   const counts=await db.query('SELECT count(*)::int AS invited,count(*) FILTER(WHERE p.best_level>=5)::int AS qualified FROM player_referrals r JOIN players p ON p.telegram_id=r.invitee_id WHERE r.inviter_id=$1',[user.id]);
-  return json(res,200,{friends:rows.map(r=>({id:r.id,name:alias(r.id),level:r.best_level,publicVillage:!!r.public_village})),...counts.rows[0]});
+  return json(res,200,{friends:rows.map(r=>({id:r.id,name:playerLabel(r),level:r.best_level,publicVillage:!!r.public_village})),...counts.rows[0]});
  }
  if(path==='social/publish'&&req.method==='POST'){
   if(typeof body.enabled!=='boolean')return json(res,400,{error:'Invalid sharing setting'});
@@ -132,8 +140,8 @@ async function social(req,res,db,user,path){
  }
  if(path==='social/visit'&&req.method==='POST'){
   if(typeof body.friendId!=='string'||!/^\d{1,16}$/.test(body.friendId)||body.friendId===user.id)return json(res,400,{error:'Invalid friend'});
-  const {rows}=await db.query(`SELECT b.save,p.best_level FROM player_backups b JOIN players p USING(telegram_id) WHERE b.telegram_id=$2 AND b.public_village=true AND EXISTS(SELECT 1 FROM player_referrals r WHERE (r.inviter_id=$1 AND r.invitee_id=$2) OR (r.inviter_id=$2 AND r.invitee_id=$1))`,[user.id,body.friendId]);
-  return rows.length?json(res,200,{name:alias(body.friendId),level:rows[0].best_level,regions:publicVillage(rows[0].save)}):json(res,404,{error:'Village not shared or not a friend'});
+  const {rows}=await db.query(`SELECT b.save,p.best_level,p.display_name,p.show_display_name FROM player_backups b JOIN players p USING(telegram_id) WHERE b.telegram_id=$2 AND b.public_village=true AND EXISTS(SELECT 1 FROM player_referrals r WHERE (r.inviter_id=$1 AND r.invitee_id=$2) OR (r.inviter_id=$2 AND r.invitee_id=$1))`,[user.id,body.friendId]);
+  return rows.length?json(res,200,{name:playerLabel({...rows[0],id:body.friendId}),level:rows[0].best_level,regions:publicVillage(rows[0].save)}):json(res,404,{error:'Village not shared or not a friend'});
  }
  return json(res,405,{error:'Method not allowed'});
 }
@@ -151,24 +159,31 @@ async function handler(req,res) {
   try {
     if (path==='admin/stats' && req.method==='GET') return await adminStats(req,res);
     if (path==='webhook' && req.method==='POST') return await handleWebhook(req,res);
-    if (!['profile','leaderboard','start-level','progress','backup','social/friends','social/publish','social/visit'].includes(path)) return json(res,404,{error:'Not found'});
+    if (!['profile','profile/name','leaderboard','start-level','progress','backup','social/friends','social/publish','social/visit'].includes(path)) return json(res,404,{error:'Not found'});
     const header=req.headers.authorization||'';
     const checked=checkInitData(header.startsWith('tma ')?header.slice(4):'',process.env.TELEGRAM_BOT_TOKEN);
     if(!checked.user){console.warn('Telegram authentication rejected:',checked.code);return json(res,checked.code==='BOT_NOT_CONFIGURED'?503:401,{error:'Valid Telegram Mini App sign-in required',code:checked.code});}
     const user=checked.user;
     const db=connection();
+    await ensureNames(db);
     const inviter=referralId(user.startParam,user.id);
     if(inviter){
       await db.query(`WITH fresh AS (INSERT INTO players(telegram_id) VALUES($1) ON CONFLICT DO NOTHING RETURNING telegram_id) INSERT INTO player_referrals(invitee_id,inviter_id) SELECT fresh.telegram_id,p.telegram_id FROM fresh JOIN players p ON p.telegram_id=$2 ON CONFLICT DO NOTHING`,[user.id,inviter]);
     }else await db.query('INSERT INTO players(telegram_id) VALUES($1) ON CONFLICT DO NOTHING',[user.id]);
+    await db.query('UPDATE players SET display_name=$2 WHERE telegram_id=$1 AND display_name IS DISTINCT FROM $2',[user.id,user.displayName]);
     if(path==='backup'||path.startsWith('social/'))return await social(req,res,db,user,path);
     if (path==='profile' && req.method==='GET') {
-      const {rows}=await db.query('SELECT best_level FROM players WHERE telegram_id=$1',[user.id]);
-      return json(res,200,{playerId:user.id,bestLevel:rows[0].best_level||0});
+      const {rows}=await db.query('SELECT best_level,display_name,show_display_name FROM players WHERE telegram_id=$1',[user.id]);
+      return json(res,200,{playerId:user.id,bestLevel:rows[0].best_level||0,displayName:rows[0].display_name,namePublic:rows[0].show_display_name});
+    }
+    if(path==='profile/name'&&req.method==='POST'){
+      const enabled=(req.body||{}).enabled;if(typeof enabled!=='boolean')return json(res,400,{error:'Invalid name preference'});
+      await db.query('UPDATE players SET show_display_name=$2 WHERE telegram_id=$1',[user.id,enabled]);
+      return json(res,200,{namePublic:enabled});
     }
     if (path==='leaderboard' && req.method==='GET') {
-      const {rows}=await db.query('SELECT telegram_id::text AS id,best_level AS level FROM players WHERE best_level>0 ORDER BY best_level DESC, updated_at ASC LIMIT 30');
-      return json(res,200,{leaders:rows.map(r=>({name:alias(r.id),level:r.level}))});
+      const {rows}=await db.query('SELECT telegram_id::text AS id,best_level AS level,display_name,show_display_name FROM players WHERE best_level>0 ORDER BY best_level DESC, updated_at ASC LIMIT 30');
+      return json(res,200,{leaders:rows.map(r=>({name:playerLabel(r),level:r.level}))});
     }
     if (path==='start-level' && req.method==='POST') {
       const level=Number((req.body||{}).level);
@@ -217,3 +232,5 @@ module.exports.adminAuthorized=adminAuthorized;
 module.exports.validBackup=validBackup;module.exports.publicVillage=publicVillage;module.exports.referralId=referralId;
 
 module.exports.checkInitData=checkInitData;
+
+module.exports.displayName=displayName;module.exports.playerLabel=playerLabel;

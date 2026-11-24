@@ -9,7 +9,7 @@ function make(data){
 }
 test('accepts signed fresh Telegram data',()=>{
  const data={auth_date:String(Math.floor(Date.now()/1000)),user:JSON.stringify({id:12345,first_name:'Ant'})};
- assert.deepEqual(verifyInitData(make(data),token),{id:'12345'});
+ assert.deepEqual(verifyInitData(make(data),token),{id:'12345',displayName:'Ant'});
 });
 test('rejects tampered, stale, and missing token',()=>{
  const data={auth_date:String(Math.floor(Date.now()/1000)),user:JSON.stringify({id:12345})};
@@ -17,3 +17,5 @@ test('rejects tampered, stale, and missing token',()=>{
  assert.equal(verifyInitData(make({...data,auth_date:'100'}),token),null);
  assert.equal(verifyInitData(make(data),null),null);
 });
+
+test('display name is sanitized and opt-in',()=>{const {displayName,playerLabel}=require('../api/index.js');assert.equal(displayName({first_name:' 小蚂蚁 ',last_name:'旅行家'}),'小蚂蚁 旅行家');assert.equal(displayName({username:'ant_user'}),'ant_user');assert.equal(displayName({}),null);assert.equal(playerLabel({id:'1234567',display_name:'Ant',show_display_name:true}),'Ant');assert.equal(playerLabel({id:'1234567',display_name:'Ant',show_display_name:null}),'Ant #234567')});
