@@ -198,7 +198,7 @@ function plotNode(p,st,selected){
 }
 function render(st,selected){
  const b=svg.querySelector('#village-buildings');
- if(b)b.innerHTML=plots.map(p=>plotNode(p,st,selected)).join('');
+ if(b)b.innerHTML=plots.map(p=>{seed=73191+Math.imul(p.id+1,913);return plotNode(p,st,selected)}).join('');
  const fx=svg.querySelector('#village-combo-effects');
  if(fx&&window.AntVillage){
   fx.innerHTML=window.AntVillage.discoveries().active.map((c,i)=>'<g transform="translate('+(333+i*130)+' '+(359+i*12)+')" class="sb-theme"><circle r="20" fill="url(#sb-light)"/><text text-anchor="middle" y="6" font-size="20">'+c.symbol+'</text></g>').join('');
