@@ -31,7 +31,9 @@ h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(29px,4.7vw,43px);
 .world-panel.night #village-world .sb-lantern-halo{opacity:.95}
 #village-world .sb-smoke{animation:sb-smoke 3.5s ease-out infinite;transform-box:fill-box;transform-origin:center}
 #village-world .sb-water-glint{animation:sb-water 3.8s ease-in-out infinite alternate}
-#village-world .sb-windmill{transform-origin:0 0;transform-box:view-box;animation:sb-mill 12s linear infinite}
+#village-world .sb-windmill{pointer-events:none}
+#village-world .sb-flutter{transform-box:fill-box;transform-origin:center;animation:sb-flutter .28s ease-in-out infinite alternate}
+@keyframes sb-flutter{from{scale:.42 1}to{scale:1 1}}
 #village-world .sb-build-spark{animation:sb-spark 2.1s ease-in-out infinite alternate}
 #village-world .sb-plot-halo{animation:sb-spark 3s ease-in-out infinite alternate}
 #village-world .sb-fountain{stroke-dasharray:7 3;animation:sb-fountain 2s linear infinite}
