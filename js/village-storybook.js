@@ -194,6 +194,20 @@ function scene(){
 }
 function pine(x,y,k){return group(x,y,k,shadow(42,10)+'<path d="M-8 3V-90H8V3Z" fill="#796b65"/><path d="M-55 -30L0 -145L55 -30Z" fill="#466f7c" stroke="#b8dce1" stroke-width="2"/><path d="M-43 -69L0 -165L43 -69Z" fill="#537f90"/><path d="M0 -165L-25 -110L-7 -116L7 -103L28 -110Z M-40 -64L-53 -34L-19 -46L3 -37L23 -47L53 -34L40 -64L12 -55L0 -66L-15 -55Z" fill="#f0f8fa"/>')}
 function palm(x,y,k){return group(x,y,k,shadow(42,10)+'<path d="M-8 0Q15 -57 2 -112L13 -112Q31 -60 7 0Z" fill="#c19462" stroke="#98693d" stroke-width="2"/>'+[-65,-33,0,35,68].map(a=>'<g transform="translate(7 -110) rotate('+a+')"><path d="M0 0Q-42 -35 -66 2Q-35 -8 0 0Z" fill="#4d9d69" stroke="#a9dd83" stroke-width="2"/></g>').join('')+'<circle cx="5" cy="-105" r="7" fill="#9d6d45"/>')}
+function regionalDetails(forest,island,snow){
+ let a='';
+ if(forest){
+  a+='<g opacity=".7"><path d="M0 180Q145 95 275 170T590 154T960 170V210Q830 168 690 220T355 208T0 230Z" fill="#677f4e"/><path d="M0 170Q120 112 230 145M730 157Q842 106 960 155" fill="none" stroke="#456944" stroke-width="9"/></g>';
+  for(let i=0;i<36;i++){let x=12+rnd()*936,y=252+rnd()*450;if(plots.some(p=>Math.hypot(x-p.x,y-p.y)<72)||Math.hypot(x-475,y-430)<160)continue;a+=mushroom(n(x),n(y),n(.18+rnd()*.38));if(i%3===0)a+='<circle cx="'+n(x+8)+'" cy="'+n(y-18)+'" r="12" fill="url(#sb-light)" opacity=".6"/>'}
+ }else if(island){
+  a+='<g opacity=".85"><path d="M0 396Q38 375 69 400M2 430Q32 411 66 437M895 403Q930 369 960 376M902 486Q935 454 960 457" stroke="#e7ffff" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M30 523l28 -13 25 13-25 8Z" fill="#bf8150"/><path d="M56 513V478L78 507Z" fill="#fff2c2" stroke="#ddbb82" stroke-width="2"/></g>';
+  for(let i=0;i<30;i++){let x=20+rnd()*920,y=274+rnd()*430;if(plots.some(p=>Math.hypot(x-p.x,y-p.y)<74)||Math.hypot(x-475,y-430)<155)continue;a+=group(n(x),n(y),n(.4+rnd()*.45),'<path d="M0 0Q-12 -15 -7 -25Q1 -22 1 -11Q10 -28 18 -24Q23 -15 5 0Z" fill="'+['#efae9c','#f4d58b','#cf8ead'][i%3]+'"/><circle cx="0" cy="-7" r="2" fill="#fff6d5"/>')}
+ }else if(snow){
+  a+='<g class="is-night-only" opacity=".65"><path d="M30 93Q210 14 390 105T740 65T960 82" fill="none" stroke="#9ce7bd" stroke-width="20" stroke-linecap="round"/><path d="M25 103Q210 35 390 120T735 80T960 100" fill="none" stroke="#c4a4ef" stroke-width="10" stroke-linecap="round"/></g>';
+  for(let i=0;i<38;i++){let x=15+rnd()*930,y=295+rnd()*415;if(plots.some(p=>Math.hypot(x-p.x,y-p.y)<70)||Math.hypot(x-475,y-430)<150)continue;a+=group(n(x),n(y),n(.5+rnd()*.6),'<ellipse rx="15" ry="5" fill="#b5d5e1"/><path d="M-8 -1L-3 -16 3 -25 10 -10 7 0Z" fill="#aedbea" stroke="#f7feff" stroke-width="1.4"/>')}
+ }
+ return a;
+}
 function regionalScene(){
  const forest=region==='forest',island=region==='island',snow=region==='snow';
  const sky=forest?'#f3cf95':island?'#91e6e5':'#bfdaed',land=forest?'#8ea263':island?'#c9df91':'#e1eef2',far=forest?'#627b5c':island?'#6eaf9a':'#8aa9bd',pathColor=forest?'#cdb382':island?'#f9e4b4':'#d5e1df';
@@ -205,6 +219,7 @@ function regionalScene(){
  if(forest){for(let i=0;i<10;i++)a+=canopy(20+i*103,236+(i%3)*20,.65+(i%3)*.15);a+='<path d="M0 680Q210 600 360 720H0Z" fill="#7e784d"/>'}
  if(snow){a+='<ellipse cx="724" cy="555" rx="93" ry="34" fill="#9bd9e8" stroke="#f8fcff" stroke-width="9"/><path d="M672 549l40 -8 32 9 42 -10" fill="none" stroke="#d6f5fc" stroke-width="2"/>'}
  for(const [x,y,k] of [[40,365,1],[910,340,1],[65,625,.9],[905,635,1],[278,215,.6],[595,245,.6]])a+=forest?mushroom(x,y,k*2):island?palm(x,y,k):pine(x,y,k);
+ a+=regionalDetails(forest,island,snow);
  a+=roads.map((d,i)=>'<path d="'+d+'" fill="none" stroke="'+far+'" stroke-opacity=".35" stroke-width="'+(i?24:42)+'" stroke-linecap="round"/><path d="'+d+'" fill="none" stroke="'+pathColor+'" stroke-width="'+(i?17:32)+'" stroke-linecap="round"/>').join('');
  if(forest)a+=group(475,427,1.25,shadow(115,22)+mushroom(-52,-4,2)+mushroom(48,-8,2.3)+mushroom(0,0,3.4)+windowShape(0,-61,13)+'<path d="M-20 3V-34Q0 -58 20 -34V3Z" fill="#815b41" stroke="#f0c88b" stroke-width="3"/>');
  if(island)a+=group(475,427,1.2,shadow(115,24)+'<path d="M-82 4V-65H82V4Z" fill="#efbd75" stroke="#ad7a49" stroke-width="3"/><path d="M-107 -60Q0 -157 107 -60Q0 -36 -107 -60Z" fill="#d5a047" stroke="#fce6a6" stroke-width="4"/><path d="M-15 4V-40Q0 -58 15 -40V4Z" fill="#926a43"/>'+windowShape(-48,-33,12)+windowShape(48,-33,12)+palm(105,10,.65));
@@ -244,9 +259,11 @@ function building(id,lv){
  if(lv===3)a+='<g class="sb-build-spark"><path d="M-42 -86l4 8 8 4-8 4-4 8-4-8-8-4 8-4Z" fill="#fff6ad"/><path d="M42 -70l3 6 6 3-6 3-3 6-3-6-6-3 6-3Z" fill="#fff6ad"/></g>';
  return '<g transform="scale('+s+')" filter="url(#sb-shadow)">'+a+'</g>';
 }
-function plotNode(p,st,selected){
+const VISIT_NAMES=Object.freeze({flower:'Flower Garden',mushroom:'Mushroom House',lantern:'Firefly Lantern',fountain:'Rainbow Fountain',butterfly:'Butterfly Tree',castle:'Royal Ant Palace',grove:'Glow Mushroom Grove',dock:'Shell Harbor',ice:'Crystal Observatory'});
+function plotNode(p,st,selected,readOnly=false){
  const id=st.placements[p.id],lv=Number(st.upgrades[p.id])||1,chosen=selected===p.id;
- const item=id&&window.AntVillage.catalog[id],name=item?item.name:'Build here';
+ const item=id&&Object.hasOwn(VISIT_NAMES,id)?{name:VISIT_NAMES[id]}:null,name=item?item.name:'Build here';
+ if(readOnly){if(!item)return '';return group(p.x,p.y,1,building(id,Math.max(1,Math.min(3,lv)))+'<text class="plot-name" y="34">'+name+'</text>'+(lv>1?'<text class="plot-level" y="50">'+('★'.repeat(Math.max(1,Math.min(3,lv))))+'</text>':''));}
  const ring='<ellipse cy="3" rx="52" ry="18" fill="#a7d969" opacity=".5" stroke="#d6ec91" stroke-width="1.4"/><ellipse class="sb-plot-halo" cy="3" rx="49" ry="16" stroke="#fff0a5" stroke-width="'+(chosen?8:4)+'" fill="none" filter="url(#sb-glow)" opacity="'+(chosen?1:.68)+'"/><ellipse cy="3" rx="49" ry="16" stroke="#fff8c5" stroke-width="'+(chosen?3:1.8)+'" fill="none" opacity=".94"/>';
  const sign='<g filter="url(#sb-shadow)"><path d="M0 4V-40" stroke="#9c693f" stroke-width="6" stroke-linecap="round"/><rect x="-23" y="-47" width="46" height="25" rx="6" fill="url(#sb-wood)" stroke="#a06c40" stroke-width="2"/><path d="M-18 -41H18M-18 -27H18" stroke="#ffe0a7" stroke-width="1.5" opacity=".73"/><path d="M-8 -35L-1 -42L5 -36L1 -32L8 -25L4 -23L-3 -30L-7 -27L-13 -33Z" fill="#fff1c4" stroke="#a27850" stroke-width=".65"/></g>';
  return group(p.x,p.y,1,'<g class="plot-interactive'+(chosen?' selected':'')+'" data-plot="'+p.id+'" tabindex="0" role="button" aria-label="'+name+', plot '+(p.id+1)+'">'+
@@ -254,17 +271,19 @@ function plotNode(p,st,selected){
  (item?building(id,lv)+'<text class="plot-name" y="34">'+name+'</text>'+(lv>1?'<text class="plot-level" y="50">'+('★'.repeat(lv))+'</text>':''):sign)+
  '</g>');
 }
-function render(st,selected){
+function render(st,selected,options={}){
  const next=st.world?.active||'garden';if(next!==region){generation++;configureRegion(next);scene();residents()}
  const b=svg.querySelector('#village-buildings');
- if(b)b.innerHTML=plots.map(p=>{seed=73191+Math.imul(p.id+1,913);return plotNode(p,st,selected)}).join('');
+ if(b)b.innerHTML=plots.map(p=>{seed=73191+Math.imul(p.id+1,913);return plotNode(p,st,selected,!!options.readOnly)}).join('');
  const fx=svg.querySelector('#village-combo-effects');
- if(fx&&window.AntVillage){
+ if(fx&&options.readOnly)fx.innerHTML='';
+ if(fx&&!options.readOnly&&window.AntVillage){
   fx.innerHTML=window.AntVillage.discoveries().active.map((c,i)=>'<g transform="translate('+(333+i*130)+' '+(359+i*12)+')" class="sb-theme"><circle r="20" fill="url(#sb-light)"/><text text-anchor="middle" y="6" font-size="20">'+c.symbol+'</text></g>').join('');
  }
 }
 function setNight(on){document.getElementById('world-panel').classList.toggle('night',!!on);return !!on;}
 function onSelect(fn){
+ if(svg.dataset.readonly==='true')return;
  svg.addEventListener('click',e=>{const p=e.target.closest('[data-plot]');if(p)fn(Number(p.getAttribute('data-plot')));});
  svg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const p=e.target.closest('[data-plot]');if(p){e.preventDefault();fn(Number(p.getAttribute('data-plot')));}}});
 }
@@ -294,6 +313,7 @@ function residents(){
  let last=0;const run=generation;
  function step(now){
   if(run!==generation)return;
+  if(svg.dataset.readonly==='true'&&svg.closest('[hidden]')){last=0;if(!reduced)requestAnimationFrame(step);return;}
   const dt=last?Math.min(.05,(now-last)/1000):0;last=now;
   for(const m of motion){
    if(!reduced)m.distance=(m.distance+dt*m.speed)%m.len;

@@ -114,14 +114,15 @@ function validBackup(data){
 function publicVillage(save){
  const v=save&&save.ant_canvas_village_v1;if(!v)return [];
  const w=v.world||{},active=REGION_IDS.includes(w.active)?w.active:'garden';
- return REGION_IDS.map(id=>{const m=id===active?v:(w.maps&&w.maps[id])||{};return {region:id,buildings:PLOT_IDS.filter(k=>ITEM_IDS.includes(m.placements&&m.placements[k])).map(k=>({plot:Number(k),item:m.placements[k],level:Math.max(1,Math.min(3,Math.trunc(Number(m.upgrades&&m.upgrades[k])||1)))}))}})
+ const cleared=Math.max(0,Number.isSafeInteger(v.claimedHigh)?v.claimedHigh:0)+(Array.isArray(v.claimedExtra)?v.claimedExtra.length:0);
+ return REGION_IDS.map((id,i)=>{const m=id===active?v:(w.maps&&w.maps[id])||{};return {region:id,unlocked:cleared>=[0,5,15,30][i]||id===active||PLOT_IDS.some(k=>ITEM_IDS.includes(m.placements&&m.placements[k])),buildings:PLOT_IDS.filter(k=>ITEM_IDS.includes(m.placements&&m.placements[k])).map(k=>({plot:Number(k),item:m.placements[k],level:Math.max(1,Math.min(3,Math.trunc(Number(m.upgrades&&m.upgrades[k])||1)))}))}})
 }
 function referralId(param,self){const m=typeof param==='string'&&/^ref_([1-9][0-9]{0,15})$/.exec(param);return m&&m[1]!==self?m[1]:null}
 async function social(req,res,db,user,path){
  const body=req.body||{};
  if(path==='backup'&&req.method==='GET'){
-  const {rows}=await db.query('SELECT revision,save,updated_at FROM player_backups WHERE telegram_id=$1',[user.id]);
-  return json(res,200,rows[0]?{revision:rows[0].revision,save:rows[0].save,updatedAt:rows[0].updated_at}:{revision:0,save:null});
+  const {rows}=await db.query('SELECT revision,save,updated_at,public_village FROM player_backups WHERE telegram_id=$1',[user.id]);
+  return json(res,200,rows[0]?{revision:rows[0].revision,save:rows[0].save,updatedAt:rows[0].updated_at,publicVillage:rows[0].public_village}:{revision:0,save:null,publicVillage:false});
  }
  if(path==='backup'&&req.method==='POST'){
   if(!validBackup(body.save)||!Number.isSafeInteger(body.revision)||body.revision<0||body.revision>2147483646)return json(res,400,{error:'Invalid backup'});
@@ -140,8 +141,8 @@ async function social(req,res,db,user,path){
  }
  if(path==='social/visit'&&req.method==='POST'){
   if(typeof body.friendId!=='string'||!/^\d{1,16}$/.test(body.friendId)||body.friendId===user.id)return json(res,400,{error:'Invalid friend'});
-  const {rows}=await db.query(`SELECT b.save,p.best_level,p.display_name,p.show_display_name FROM player_backups b JOIN players p USING(telegram_id) WHERE b.telegram_id=$2 AND b.public_village=true AND EXISTS(SELECT 1 FROM player_referrals r WHERE (r.inviter_id=$1 AND r.invitee_id=$2) OR (r.inviter_id=$2 AND r.invitee_id=$1))`,[user.id,body.friendId]);
-  return rows.length?json(res,200,{name:playerLabel({...rows[0],id:body.friendId}),level:rows[0].best_level,regions:publicVillage(rows[0].save)}):json(res,404,{error:'Village not shared or not a friend'});
+  const {rows}=await db.query(`SELECT b.save,b.updated_at,p.best_level,p.display_name,p.show_display_name FROM player_backups b JOIN players p USING(telegram_id) WHERE b.telegram_id=$2 AND b.public_village=true AND EXISTS(SELECT 1 FROM player_referrals r WHERE (r.inviter_id=$1 AND r.invitee_id=$2) OR (r.inviter_id=$2 AND r.invitee_id=$1))`,[user.id,body.friendId]);
+  return rows.length?json(res,200,{name:playerLabel({...rows[0],id:body.friendId}),level:rows[0].best_level,updatedAt:rows[0].updated_at,regions:publicVillage(rows[0].save)}):json(res,404,{error:'Village not shared or not a friend'});
  }
  return json(res,405,{error:'Method not allowed'});
 }
