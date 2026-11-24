@@ -157,6 +157,41 @@ function trackAward(lv){
  else return false;
  return true;
 }
+
+// V3.6: regional activities, saved in the existing village record. Local cosmetic progression.
+const GARDEN_SEEDS=['Tulip','Sunflower','Cherry blossom'],FOREST_SPOTS=['Root cave','Firefly path','Secret pond'],FOREST_CLUES=['Look for bark and roots','Look for lights floating in the air','Look for a reflection in the water'],SEA_ROUTES=['Pearl shallows','Coral cave','Shipwreck bay'],SHELLS=['Pearl shell','Coral star','Golden spiral shell'];
+function newActivity(id){return id==='garden'?{plant:null,flowers:{}}:id==='forest'?{treasures:[],glow:null,grown:0}:id==='island'?{voyage:null,shells:{},trips:0}:{trip:null,ice:0,sculptures:0,auroras:0,lastAuroraDay:null}}
+function activityPreview(now=Date.now()){
+ const id=state.world.active,a=state.world.activities?.[id]||newActivity(id),night=new Date(now).getHours()<6||new Date(now).getHours()>=18;
+ return {id,data:JSON.parse(JSON.stringify(a)),night,valid:lifePreview(now).valid,day:dayNumber(now),seeds:GARDEN_SEEDS,spots:FOREST_SPOTS,clues:FOREST_CLUES,routes:SEA_ROUTES,shells:SHELLS};
+}
+function activity(action,arg,now=Date.now()){
+ const p=activityPreview(now),id=p.id; if(!p.valid||!Number.isFinite(now))return {ok:false,error:'Device date invalid'};
+ const before=snapshot();const a=p.data,fail=error=>({ok:false,error});let result='';
+ if(id==='garden'){
+  if(action==='plant'){if(a.plant||!GARDEN_SEEDS.includes(arg)||state.petals<1)return fail('Choose an affordable seed and an empty bed');state.petals--;a.plant={name:arg,water:0,ready:now+60000};result='Seed planted'}
+  else if(action==='water'){if(!a.plant||a.plant.water>=2||now<a.plant.ready)return fail('Not ready to water');a.plant.water++;a.plant.ready=now+60000;result='Watered your flower'}
+  else if(action==='harvest'){if(!a.plant||a.plant.water!==2||now<a.plant.ready)return fail('Flower is not ready');const name=a.plant.name;a.flowers[name]=(a.flowers[name]||0)+1;a.plant=null;state.petals+=3;result='Harvested '+name+' · +3 petals'}
+  else return fail('Unknown garden action');
+ }else if(id==='forest'){
+  if(action==='search'){const i=a.treasures.length;if(i>=3||arg!==FOREST_SPOTS[i])return fail(i>=3?'All treasures collected':'Look at the clue again');a.treasures.push(arg);result='Discovered '+arg}
+  else if(action==='glow-plant'){if(a.glow||a.treasures.length<1||state.petals<1)return fail('Discover treasure first and collect a petal');state.petals--;a.glow=now+300000;result='Glowing spore planted'}
+  else if(action==='glow-harvest'){if(!a.glow||now<a.glow)return fail('Glowplant still growing');a.glow=null;a.grown++;result='Glowplant collected'}
+  else return fail('Unknown forest action');
+ }else if(id==='island'){
+  if(action==='sail'){const i=SEA_ROUTES.indexOf(arg);if(i<0||a.voyage)return fail('Finish your current voyage');a.voyage={index:i,route:arg,ready:now+[120000,300000,600000][i]};result='Your ant has sailed'}
+  else if(action==='dock'){if(!a.voyage||now<a.voyage.ready)return fail('Voyage still underway');const k=SHELLS[a.voyage.index];a.shells[k]=(a.shells[k]||0)+1;a.trips++;a.voyage=null;result='Collected '+k}
+  else return fail('Unknown island action');
+ }else if(id==='snow'){
+  if(action==='snow-start'){if(a.trip)return fail('Finish your expedition first');a.trip=now+300000;result='Expedition started'}
+  else if(action==='snow-claim'){if(!a.trip||now<a.trip)return fail('Expedition still underway');a.trip=null;a.ice+=2;result='Found two ice crystals'}
+  else if(action==='sculpt'){if(a.ice<2)return fail('Two ice crystals required');a.ice-=2;a.sculptures++;result='Sculpture added to your collection'}
+  else if(action==='aurora'){if(!p.night||a.lastAuroraDay===p.day)return fail('Collect once per local night');a.lastAuroraDay=p.day;a.auroras++;result='Aurora collected'}
+  else return fail('Unknown snow action');
+ }else return fail('Unknown region');
+ state.world.activities=state.world.activities||{};state.world.activities[id]=a;return lifeCommit(before,{message:result});
+}
+
 function snapshot(){return JSON.parse(JSON.stringify(state))}
 function award(lv,rarity){
  if(!Number.isSafeInteger(lv)||lv<1||alreadyAwarded(lv))return null;
@@ -215,5 +250,5 @@ function replace(slot,item,expectedItem){if(typeof item!=='string')return {ok:fa
 function count(){return Object.keys(state.placements).length}
 function milestones(){const w=state.world;return REGIONS.map(r=>{const map=r.id===w.active?state:w.maps[r.id]||{},n=Object.keys(map.placements||{}).length,lv=Object.values(map.upgrades||{}).filter(x=>x>=2).length,relics=routesFor(r.id).filter(t=>w.relics[r.id+':'+t.id]).length;return {id:r.id,name:r.name,unlocked:paintings()>=r.unlock,plots:n,upgraded:lv,relics,claimed:!!w.milestones?.[r.id],ready:n>=4&&lv>=2&&relics>=3}})}
 function claimMilestone(id){const t=milestones().find(x=>x.id===id);if(!t||!t.unlocked||!t.ready||t.claimed)return {ok:false,error:'Region milestone is not ready'};const before=snapshot();state.world.milestones=state.world.milestones||{};state.world.milestones[id]=true;state.wood+=10;state.petals+=5;state.chests++;return lifeCommit(before,{wood:10,petals:5,chest:1})}
-global.AntVillage=Object.freeze({award,place,upgrade,upgradeCost,getLevel,worldPreview,itemAllowed,milestones,claimMilestone,selectRegion,expeditionStart,expeditionClaim,lifePreview,collectAnts,signIn,claimDaily,refundCost,remove,replace,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
+global.AntVillage=Object.freeze({award,place,upgrade,upgradeCost,getLevel,worldPreview,activityPreview,activity,itemAllowed,milestones,claimMilestone,selectRegion,expeditionStart,expeditionClaim,lifePreview,collectAnts,signIn,claimDaily,refundCost,remove,replace,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
 })(typeof window==='undefined'?globalThis:window);

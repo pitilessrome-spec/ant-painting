@@ -71,7 +71,7 @@ function render(){
  $('chests').textContent=V.unopenedChests().toLocaleString();
  $('placed').textContent=V.count()+' / 8';
  S.render(st,selectedPlot);
- renderLife();renderWorld();
+ renderLife();renderWorld();window.AntRegionActivities?.render(true);
  const existing=selectedPlot===null?null:st.placements[selectedPlot];
  const refund=existing?V.refundCost(selectedPlot):null;
  const availableAfterRefund=refund?{wood:st.wood+refund.wood,petals:st.petals+refund.petals}:st;
@@ -217,5 +217,6 @@ $('world-sound').addEventListener('click',()=>{
  const message=lines[Math.floor(Math.random()*lines.length)];
  announce(message);
 });
+window.AntRegionActivities?.setOnChange(render);
 render();
 })();

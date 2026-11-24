@@ -235,7 +235,7 @@ stage.addEventListener('pointerdown',e=>{
  else if(a==='nextLv')Ads.midgame(()=>newLevel(LV+1));
  else if(a==='retry')newLevel(LV);
  else if(a==='viewGallery'){location.href='collection.html'}
- else if(a==='viewVillage'){location.href='village.html?v=world-v32'}
+ else if(a==='viewVillage'){location.href='village.html?v=world-v36'}
  else if(a==='reviveAd'){if(G.revive()){$('#lose').classList.remove('on');shown='play';renderUI()}else toast('Revive used. Retry the level.');}
  else if(a==='snd'){SND=SND?0:1;save();toast(SND?'Sound on':'Sound off')}
 });

@@ -38,6 +38,27 @@ function configureRegion(id){
  const l=layouts[region];plots=l.points.map((p,i)=>({id:[0,1,2,3,5,6,7,8][i],x:p[0],y:p[1]}));loops=l.routes;roads=[...l.routes,...l.spurs];
 }
 
+const PAINTED={"garden":{"points":[[11.7,23.5],[54,18.4],[94.5,23.6],[12.2,40.6],[89.5,43],[6.4,67.9],[58.6,85.8],[86.3,88.5]],"hot":[[67,58,"Plant"],[91,70,"Water"]],"routes":[[[33,30],[28,44],[35,51],[44,55],[57,48],[70,49],[58,57],[43,55],[31,49],[28,44]]]},"forest":{"points":[[93.8,11.6],[11.8,24.1],[5.9,50.7],[81.8,29.1],[95.1,49.7],[8,85],[58.5,74.2],[93.4,86.2]],"hot":[[14,71,"Treasure"],[18,46,"Grow glowplants"]],"routes":[[[52,38],[58,45],[62,53],[56,61],[43,65],[34,68],[40,60],[51,56],[58,45]],[[62,16],[72,18],[81,15],[72,18]]]},"island":{"points":[[20.2,20.9],[88,9],[92,22.4],[6.6,44.6],[94.5,36.7],[7.6,68.8],[93.4,63],[77.8,74.6]],"hot":[[37,73,"Sail"],[81,67,"Shells"]],"routes":[[[40,72],[48,65],[60,59],[71,52],[65,44],[55,41],[50,46],[60,55],[50,66]]]},"snow":{"points":[[61,91.8],[91.2,72.4],[37,86.4],[11.2,42],[27.2,35.8],[85.4,46.8],[43.8,13.3],[92.8,17.9]],"hot":[[58,45,"Sculpt"],[77,65,"Explore"],[76,16,"Aurora"],[26.3,67.8,"Ice lake"]],"routes":[[[15,44],[20,49],[25,54],[22,59],[31,64],[41,61],[45,54],[52,48],[45,54],[41,61],[31,64],[22,59],[25,54],[20,49]]]}},artReady={},artPending={};
+let lastRender=null;
+function artPath(id){return 'assets/maps/v36/'+id+'.webp'}
+function requestArt(id){if(artReady[id]||artPending[id]||typeof Image==='undefined')return;artPending[id]=true;const im=new Image();im.onload=()=>{artReady[id]=true;if(region===id&&lastRender){generation++;configureRegion(id);scene();residents();render(...lastRender)}};im.onerror=()=>{};im.src=artPath(id)}
+function paintedScene(){
+ const a=PAINTED[region],ids=[0,1,2,3,5,6,7,8];
+ plots=a.points.map((p,i)=>({id:ids[i],x:p[0]*9.6,y:p[1]*7.2,ordinal:i+1}));
+ loops=a.routes.map(r=>r.map((p,i)=>(i?'L':'M')+(p[0]*9.6)+' '+(p[1]*7.2)).join(' ')+'Z');roads=loops;
+ let sparks='';for(let i=0;i<15;i++){const x=50+(i*117)%860,y=65+(i*83)%560;sparks+='<circle cx="'+x+'" cy="'+y+'" r="12" fill="url(#sb-light)" opacity=".7"/>'}
+ let hot='';if(svg.dataset.readonly!=='true')for(const [x,y,name] of a.hot){const w=Math.max(80,name.length*8+22);hot+=group(x*9.6,y*7.2,1,'<g class="painted-activity" data-activity="1" role="button" tabindex="0" aria-label="'+name+'"><rect x="'+(-w/2)+'" y="-15" width="'+w+'" height="30" rx="15" fill="#fff5d9" stroke="#bb9257" stroke-width="2"/><text text-anchor="middle" y="5" font-size="13" font-weight="bold" fill="#6d4c2a">✦ '+name+'</text></g>')}
+ svg.dataset.painted='true';
+ svg.innerHTML=defs+'<image href="'+artPath(region)+'" width="960" height="720" preserveAspectRatio="none"/>'+(region==='snow'?'':'<g class="sb-night-shade" pointer-events="none"><rect width="960" height="720" fill="#182e63" opacity=".33"/></g>')+'<g class="is-night-only" pointer-events="none">'+sparks+'</g><g id="village-residents"></g><g id="village-buildings"></g><g id="village-combo-effects"></g>'+hot;
+}
+function paintedPlot(p,st,selected,readOnly){
+ const id=st.placements[p.id],lv=Math.max(1,Math.min(3,Number(st.upgrades[p.id])||1)),name=VISIT_NAMES[id]||'Build site '+p.ordinal;
+ const marks='<rect x="-43" y="-28" width="86" height="55" rx="12" fill="'+(id?'#dbe9b2':'#916130')+'" stroke="'+(selected===p.id?'#fff':'#fff2c2')+'" stroke-width="'+(selected===p.id?5:2)+'"/><text text-anchor="middle" y="17" font-size="13" font-weight="bold" fill="'+(id?'#4b6736':'#fff6d6')+'">'+(id?'Lv.'+lv:'Plot '+p.ordinal)+'</text>';
+ const icons={flower:'🌼',mushroom:'🍄',lantern:'🏮',fountain:'⛲',butterfly:'🦋',castle:'🏰',grove:'✨',dock:'🐚',ice:'🔮'};
+ const inner=marks+'<text text-anchor="middle" y="-1" font-size="26">'+(icons[id]||'🔨')+'</text>';
+ const visual=id&&Object.hasOwn(VISIT_NAMES,id)?group(0,-29,.66,building(id,lv)):'';
+ return group(p.x,p.y,1,readOnly?inner+visual:'<g class="plot-interactive" data-plot="'+p.id+'" tabindex="0" role="button" aria-label="'+name+'">'+inner+visual+'</g>');
+}
 let seed=73191;
 function rnd(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
 const n=(x)=>Number(x).toFixed(1);
@@ -145,7 +166,7 @@ function lily(x,y,s){
  return group(x,y,s,'<ellipse rx="25" ry="10" fill="#7cbd57" stroke="#bde27a" stroke-width="1.4"/><path d="M0 0L23 -5L25 1Z" fill="#79c9dc"/><path d="M-4 -1Q-8 -17 0 -19Q10 -15 4 -4Q19 -15 19 -4Q12 6 2 4Q-8 7 -17 -2Q-16 -13 -4 -1Z" fill="#fff0d4" stroke="#edb7a6" stroke-width="1.3"/><circle cy="-4" r="3.6" fill="#ffd27f"/>');
 }
 function scene(){
- seed=73191;
+ seed=73191;svg.dataset.painted='false';requestArt(region);if(artReady[region]){paintedScene();return;}
  if(region!=='garden'){regionalScene();return;}
  let a=defs+'<rect width="960" height="720" fill="url(#sb-sky)" class="sky-day"/><rect width="960" height="720" fill="url(#sb-night)" class="sky-night" opacity="0"/>'+
  '<g class="is-day-only"><circle cx="811" cy="93" r="77" fill="url(#sb-sun)"/><circle cx="811" cy="93" r="27" fill="#fff9ce"/></g>'+
@@ -283,6 +304,7 @@ function building(id,lv){
 }
 const VISIT_NAMES=Object.freeze({flower:'Flower Garden',mushroom:'Mushroom House',lantern:'Firefly Lantern',fountain:'Rainbow Fountain',butterfly:'Butterfly Tree',castle:'Royal Ant Palace',grove:'Glow Mushroom Grove',dock:'Shell Harbor',ice:'Crystal Observatory'});
 function plotNode(p,st,selected,readOnly=false){
+ if(artReady[region])return paintedPlot(p,st,selected,readOnly);
  const id=st.placements[p.id],lv=Number(st.upgrades[p.id])||1,chosen=selected===p.id;
  const item=id&&Object.hasOwn(VISIT_NAMES,id)?{name:VISIT_NAMES[id]}:null,name=item?item.name:'Build here';
  if(readOnly){if(!item)return '';return group(p.x,p.y,1,building(id,Math.max(1,Math.min(3,lv)))+'<text class="plot-name" y="34">'+name+'</text>'+(lv>1?'<text class="plot-level" y="50">'+('★'.repeat(Math.max(1,Math.min(3,lv))))+'</text>':''));}
@@ -294,20 +316,21 @@ function plotNode(p,st,selected,readOnly=false){
  '</g>');
 }
 function render(st,selected,options={}){
+ lastRender=[st,selected,options];
  const next=st.world?.active||'garden';if(next!==region){generation++;configureRegion(next);scene();residents()}
  const b=svg.querySelector('#village-buildings');
  if(b)b.innerHTML=plots.map(p=>{seed=73191+Math.imul(p.id+1,913);return plotNode(p,st,selected,!!options.readOnly)}).join('');
  const fx=svg.querySelector('#village-combo-effects');
- if(fx&&(options.readOnly||region!=='garden'))fx.innerHTML='';
- if(fx&&!options.readOnly&&window.AntVillage&&region==='garden'){
+ if(fx&&(options.readOnly||region!=='garden'||artReady[region]))fx.innerHTML='';
+ if(fx&&!options.readOnly&&window.AntVillage&&region==='garden'&&!artReady[region]){
   fx.innerHTML=window.AntVillage.discoveries().active.map((c,i)=>'<g transform="translate('+(333+i*130)+' '+(359+i*12)+')" class="sb-theme"><circle r="20" fill="url(#sb-light)"/><text text-anchor="middle" y="6" font-size="20">'+c.symbol+'</text></g>').join('');
  }
 }
 function setNight(on){document.getElementById('world-panel').classList.toggle('night',!!on);return !!on;}
 function onSelect(fn){
  if(svg.dataset.readonly==='true')return;
- svg.addEventListener('click',e=>{const p=e.target.closest('[data-plot]');if(p)fn(Number(p.getAttribute('data-plot')));});
- svg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const p=e.target.closest('[data-plot]');if(p){e.preventDefault();fn(Number(p.getAttribute('data-plot')));}}});
+ svg.addEventListener('click',e=>{const p=e.target.closest('[data-plot]');if(p)fn(Number(p.getAttribute('data-plot')));else if(e.target.closest('[data-activity]'))document.getElementById('region-activities')?.scrollIntoView({behavior:'smooth',block:'start'});});
+ svg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const p=e.target.closest('[data-plot]');if(p){e.preventDefault();fn(Number(p.getAttribute('data-plot')));}else if(e.target.closest('[data-activity]')){e.preventDefault();document.getElementById('region-activities')?.scrollIntoView({behavior:'smooth',block:'start'})}}});
 }
 function antMarkup(job){
  let legs='';
