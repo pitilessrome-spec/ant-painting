@@ -35,7 +35,7 @@
         "<button type='button' class='ah-secondary' data-home-action='village'>🌿 World</button>",
         "<button type='button' class='ah-secondary' data-home-action='how'>❔ Help</button>",
       "</div>",
-      "<p class='ah-footer'>SORT THE COLORS · REVEAL THE MAGIC</p>",
+      "<p class='ah-footer'>PUZZLE · COLONY · WORLD &nbsp; | &nbsp; V5.0 RC</p>",
     "</div>",
     "<div class='ah-how' id='ah-how' hidden role='dialog' aria-label='How to play ANT CANVAS'>",
       "<div class='ah-how-card'>",
@@ -44,7 +44,7 @@
         "<div class='ah-step'><div class='ah-step-ico'>🐜</div><div><strong>2. Let ants work</strong><span>Each ant takes one matching block away, from the bottom up.</span></div></div>",
         "<div class='ah-step'><div class='ah-step-ico'>✨</div><div><strong>3. Reveal the art</strong><span>Clear every block to finish the level and discover a new picture.</span></div></div>",
         "<button type='button' class='ah-start' data-home-action='play'>LET'S PLAY →</button>",
-        "<button type='button' class='ah-how-back' data-home-action='back'>← Back to start</button>",
+        "<button type='button' class='ah-how-back' data-home-action='guide'>📖 Full game guide</button><button type='button' class='ah-how-back' data-home-action='back'>← Back to start</button>",
       "</div>",
     "</div>"
   ].join('');
@@ -136,10 +136,11 @@
     const action = control.getAttribute('data-home-action');
     if (action === 'play') start();
     else if (action === 'how') { document.getElementById('ah-how').hidden = false; }
+    else if (action === 'guide') { window.location.href='guide.html'; }
     else if (action === 'back') { document.getElementById('ah-how').hidden = true; }
     else if (action === 'share') share();
     else if (action === 'gallery') window.location.href='collection.html';
-    else if (action === 'village') window.location.href='village.html?v=world-v36';
+    else if (action === 'village') window.location.href='village.html?v=world-v50';
     else if (action === 'mode' && window.AntWorkshop){window.AntWorkshop.toggle();updateHome();}
     else if (action === 'sound' && typeof SND !== 'undefined') {
       SND = SND ? 0 : 1;
