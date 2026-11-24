@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>ANT CANVAS — Little ants. Big art.</title>
 <meta name="description" content="Pick a color, send tiny ants, and reveal a beautiful hidden picture. Play ANT CANVAS free in your browser.">
 <meta name="theme-color" content="#242369">
@@ -74,9 +74,9 @@ html.ant-ready #ant-boot{opacity:0;pointer-events:none}
 #ant-boot.ab-slow .ab-retry{display:block}
 @keyframes ab-load{from{transform:translateX(-110%)}to{transform:translateX(360%)}}
 @media(prefers-reduced-motion:reduce){#ant-boot .ab-progress{animation:none}}
-html,body,#stage,#stage [data-col],#stage [data-act]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}#stage [data-col]{touch-action:none;-webkit-touch-callout:none}#stage button{touch-action:manipulation}
+html,body,#stage{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;overscroll-behavior:none}#tok,#slots,#board,#tools,#top,#ant-home,#ant-home button,#stage [data-col],#stage [data-act]{touch-action:none;-webkit-touch-callout:none}#stage button{touch-action:manipulation}#stage .tgpanel,#win .card{touch-action:pan-y}
 </style>
-<link rel="stylesheet" href="css/home.css?v=world-v37">
+<link rel="stylesheet" href="css/home.css?v=world-v501">
 <link rel="stylesheet" href="css/polish.css?v=ant-v3">
 </head>
 <body>
@@ -128,7 +128,8 @@ html,body,#stage,#stage [data-col],#stage [data-act]{touch-action:manipulation;-
 <script src="js/mystery.js?v=ant-v4"></script>
 <script src="js/blast-fx.js?v=ant-v3b"></script>
 <script src="js/game.js?v=strategy-v34"></script>
-<script src="js/home.js?v=world-v50"></script>
+<script src="js/home.js?v=world-v501"></script>
 <script src="js/polish.js?v=ant-v4"></script>
-<script src="js/ui.js?v=world-v37"></script>
+<script src="js/touch-input.js?v=world-v501"></script>
+<script src="js/ui.js?v=world-v501"></script>
 </body></html>
