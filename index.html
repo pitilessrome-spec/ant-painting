@@ -82,6 +82,7 @@ html,body,#stage{touch-action:manipulation;-webkit-tap-highlight-color:transpare
 @media(prefers-reduced-motion:reduce){#ant-combo.pop{animation:none}}
 #tip[data-challenge=rainbow],#tip[data-challenge=precision],#tip[data-challenge=sprint]{font-size:12px;font-weight:900;line-height:22px;top:439px;margin:0 14px;border-radius:12px;background:#fff8d9;color:#694b27;box-shadow:0 2px 7px #33486c25}#tip[data-challenge=rainbow]{background:linear-gradient(100deg,#ffdbfa,#e4e7ff,#caffdf)}#tip[data-challenge=precision]{background:#e4e4ff;color:#39337a}#tip[data-challenge=sprint]{background:#ffe8ad;color:#80400f}#winMastery{font:800 12px system-ui;color:#68549a;margin:5px 0}#ant-win-stars{color:#eda51e;font-size:24px;letter-spacing:6px;text-shadow:0 2px #a36225}
 #special-note{position:absolute;top:93px;left:12px;right:12px;text-align:center;font:850 11px system-ui;color:#fff6d2;text-shadow:0 1px 3px #242650;pointer-events:none;z-index:43}#special-power{position:absolute;left:12px;top:341px;z-index:43;border:1px solid #fff9;border-radius:12px;background:linear-gradient(135deg,#f2bd66,#a96bd2);color:#fff;font:900 11px system-ui;padding:6px 9px;height:32px;box-shadow:0 3px 8px #3d386955}#special-power:disabled{opacity:.6}
+#boss-hp{position:absolute;z-index:43;top:110px;left:95px;right:95px;height:6px;border-radius:6px;background:#2e214e80;overflow:hidden;pointer-events:none}#boss-hp i{display:block;height:100%;background:linear-gradient(90deg,#ffb677,#ee598e);transition:width .2s}#plan-toggle{position:absolute;z-index:43;left:13px;top:47px;border-radius:15px;border:1px solid white;background:#fffde8;color:#55457c;font:850 10px system-ui;padding:6px 9px}#plan-toggle[aria-pressed=true]{background:#59458c;color:white}#plan-note{position:absolute;z-index:44;left:10px;right:10px;top:120px;text-align:center;color:white;font:850 12px system-ui;background:#302653dc;border-radius:9px;padding:5px 4px;pointer-events:none}
 </style>
 <link rel="stylesheet" href="css/home.css?v=world-v501">
 <link rel="stylesheet" href="css/polish.css?v=ant-v3">
@@ -109,7 +110,7 @@ html,body,#stage{touch-action:manipulation;-webkit-tap-highlight-color:transpare
  </div>
  <div id="slots" class="a"></div>
  <div id="toast" class="a"></div>
- <div id="special-note" hidden aria-live="polite"></div><button id="special-power" data-act="power" type="button" hidden></button><div id="tip" class="a">Tap a box to load a slot · Eat the grid from the bottom up · Hint shows the next box</div>
+ <div id="special-note" hidden aria-live="polite"></div><div id="boss-hp" hidden><i></i></div><button id="plan-toggle" data-act="plan" type="button" hidden>Plan move</button><div id="plan-note" hidden></div><button id="special-power" data-act="power" type="button" hidden></button><div id="tip" class="a">Tap a box to load a slot · Eat the grid from the bottom up · Hint shows the next box</div>
  <div id="tok" class="a"></div>
  <div id="tools" class="a">
   <button class="btn" data-act="speed">Speed <span id="spd">×1</span></button>
@@ -128,16 +129,16 @@ html,body,#stage{touch-action:manipulation;-webkit-tap-highlight-color:transpare
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 <script src="js/ads.js?v=report-v32"></script>
 <script src="js/telegram.js?v=world-v36"></script>
-<script src="js/profile.js?v=arcade-v506"></script>
+<script src="js/profile.js?v=arcade-v507"></script>
 <script src="js/village.js?v=world-v504"></script>
 <script src="js/art.js?v=ant-v3"></script>
-<script src="js/workshop.js?v=arcade-v506"></script>
+<script src="js/workshop.js?v=arcade-v507"></script>
 <script src="js/mystery.js?v=ant-v4"></script>
 <script src="js/sfx.js?v=world-v504"></script>
 <script src="js/blast-fx.js?v=world-v504"></script>
-<script src="js/game.js?v=arcade-v506"></script>
-<script src="js/home.js?v=arcade-v506"></script>
+<script src="js/game.js?v=arcade-v507"></script>
+<script src="js/home.js?v=arcade-v507"></script>
 <script src="js/polish.js?v=ant-v4"></script>
 <script src="js/touch-input.js?v=world-v501"></script>
-<script src="js/ui.js?v=arcade-v506"></script>
+<script src="js/ui.js?v=arcade-v507"></script>
 </body></html>

@@ -23,12 +23,21 @@ function levelParams(lv) {
 }
 
 function specialCells(lv,n){
- const ice=new Uint8Array(n*n),boss=new Uint8Array(n*n);
+ const ice=new Uint8Array(n*n),boss=new Uint8Array(n*n),guards=Array.from({length:n*n},()=>null);
  if(lv>=4&&lv%6===4)for(let y=1;y<n-1;y++)for(let x=0;x<n;x++)if((x*7+y*11+lv%19)%19===0)ice[y*n+x]=1;
  if(lv>=10&&lv%10===0){const mid=Math.floor(n/2);for(let y=mid-1;y<mid+2;y++)for(let x=mid-2;x<mid+2;x++)if(x>=0&&x<n&&y>=0&&y<n)boss[y*n+x]=1}
- const gem=lv>=5?Math.floor(n/3)*n+Math.floor(n/2):-1,markers=[];for(let i=0;i<n*n;i++)if(ice[i]||boss[i]||i===gem)markers.push(i);return {ice,boss,gem,markers,power:lv>=7&&lv%6===1?'bomb':lv>=8&&lv%6===2?'wild':null};
+ // Boss shield dependencies always point downwards, never form a cycle.
+ const kind=lv%10===0&&lv>=10?['Web Guardian','Iron Beetle','Frost Sentinel','Rainbow King'][(Math.floor(lv/10)-1)%4]:null;
+ const layers=[[],[],[]];if(kind){const mid=Math.floor(n/2);for(let i=0;i<n*n;i++)if(boss[i])layers[mid+1-Math.floor(i/n)]?.push(i);
+ for(let layer=1;layer<layers.length;layer++)for(const i of layers[layer]){
+   const lower=layers[layer-1];
+   guards[i]=kind==='Web Guardian'?lower.filter(j=>Math.abs(j%n-i%n)<=1):kind==='Frost Sentinel'?lower.filter(j=>j%n===i%n):lower.slice();
+ }}
+ const gem=lv>=5?Math.floor(n/3)*n+Math.floor(n/2):-1,markers=[];for(let i=0;i<n*n;i++)if(ice[i]||boss[i]||i===gem)markers.push(i);return {ice,boss,guards,layers,kind,gem,markers,power:lv>=7&&lv%6===1?'bomb':lv>=8&&lv%6===2?'wild':null};
 }
 function iceLocked(eaten,ice,n,i){return !!ice?.[i]&&i+n<eaten.length&&!eaten[i+n]}
+function bossLocked(eaten,special,i){return !!special?.guards?.[i]?.some(j=>!eaten[j])}
+function cellLocked(eaten,special,n,i){return iceLocked(eaten,special?.ice,n,i)||bossLocked(eaten,special,i)}
 function dailyLevel(day){const d=Date.parse(day+'T00:00:00Z');return Number.isFinite(d)?3+(Math.floor(d/86400000)%30+30)%30:3;}
 /* ---------- Eating rules ---------- */
 // Starting from the hole, ants can only walk through eaten cells that connect to the hole
@@ -60,18 +69,18 @@ function expoAt(dist, n, x, y) {
   return false;
 }
 // The exposed cell of this color closest to the hole (ants always eat this one)
-function nearestCell(eaten, n, role, c, dist, ice) {
+function nearestCell(eaten, n, role, c, dist, special) {
   let best = -1, bd = Infinity; const hx = n / 2, hy = n + 0.9;
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
     const i = y * n + x;
-    if (eaten[i] || (c!==-1&&role[i] !== c) || iceLocked(eaten,ice,n,i) || !expoAt(dist, n, x, y)) continue;
+    if (eaten[i] || (c!==-1&&role[i] !== c) || cellLocked(eaten,special,n,i) || !expoAt(dist, n, x, y)) continue;
     const d = (x + 0.5 - hx) * (x + 0.5 - hx) + (y + 0.5 - hy) * (y + 0.5 - hy);
     if (d < bd) { bd = d; best = i; }
   }
   return best;
 }
 // Simulate a correct play to build the box order: following this order always clears the level
-function makeSeqFrom(role, n, init, R, cmin, cmax, ice) {
+function makeSeqFrom(role, n, init, R, cmin, cmax, special) {
   const N = n * n, eaten = Uint8Array.from(init);
   let left = 0; for (let i = 0; i < N; i++) if (!eaten[i]) left++;
   const seq = [];
@@ -80,7 +89,7 @@ function makeSeqFrom(role, n, init, R, cmin, cmax, ice) {
     const cnt = new Int32Array(32);
     for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
       const i = y * n + x;
-      if (!eaten[i] && !iceLocked(eaten,ice,n,i) && expoAt(dist, n, x, y)) cnt[role[i]]++;
+      if (!eaten[i] && !cellLocked(eaten,special,n,i) && expoAt(dist, n, x, y)) cnt[role[i]]++;
     }
     const cols = []; for (let c = 0; c < 32; c++) if (cnt[c] > 0) cols.push(c);
     if (!cols.length) throw new Error('no exposed cell');
@@ -88,7 +97,7 @@ function makeSeqFrom(role, n, init, R, cmin, cmax, ice) {
     const k = Math.min(cnt[c], cmin + Math.floor(R() * (cmax - cmin + 1)));
     for (let t = 0; t < k; t++) {
       const { dist: d2 } = reachDist(eaten, n);
-      const i = nearestCell(eaten, n, role, c, d2, ice);if(i<0)throw Error('invalid generated target');
+      const i = nearestCell(eaten, n, role, c, d2, special);if(i<0)throw Error('invalid generated target');
       eaten[i] = 1;
     }
     seq.push({ c, n: k });
@@ -114,7 +123,7 @@ class Game {
     this.state = 'play'; this.speed = o.speed || 1; this._R = null; this.stalled = false;
     this.blastEnabled=typeof window!=='undefined'&&!!(window.AntWorkshop&&window.AntWorkshop.enabled);
     this.blastCharge=0;this.blastRemaining=0;this.blastShots=0;this.visualDone=0;
-    this.challenge=prm.challenge;this.dispatches=0;this.directDispatches=0;this.smartChain=0;this.bestSmartChain=0;
+    this.challenge=prm.challenge;this.dispatches=0;this.directDispatches=0;this.cleanDispatches=0;this.peakWaiting=0;this.smartChain=0;this.bestSmartChain=0;
     this.visualMs = this.challenge.pace;   // time between ants leaving a slot (animation only)
     this.rebuild();
   }
@@ -131,7 +140,7 @@ class Game {
       if (!s) continue;
       for (const job of s.q) { this.spawnVisual(job); this.ev.push({ t: 'eat', i: job.idx, c: job.c }); }
     }
-    const seq = makeSeqFrom(this.role, this.n, this.eaten, this.rand, this.cmin, this.cmax,this.special.ice);
+    const seq = makeSeqFrom(this.role, this.n, this.eaten, this.rand, this.cmin, this.cmax,this.special);
     this.cols = [[], [], [], []];
     seq.forEach((b, i) => this.cols[Math.floor(i / this.difficulty.chunk) % 4].push({ c: b.c, n: b.n, id: i }));
     this.slots.fill(null);
@@ -143,7 +152,7 @@ class Game {
   addSlot() { if (this.cap < 7) { this.cap++; this.slots.push(null); } }
 
   // Can this color be eaten right now? Returns the cell to eat, or -1
-  target(c) { return nearestCell(this.eaten, this.n, this.role, c, this.R().dist,this.special.ice); }
+  target(c) { return nearestCell(this.eaten, this.n, this.role, c, this.R().dist,this.special); }
   // Ant path: from the hole, only through eaten cells (computed before eating)
   route(i) {
     const n = this.n, N = n * n, { dist, par } = this.R();
@@ -161,15 +170,26 @@ class Game {
     return list;
   }
   eatCell(i) { if(this.eaten[i])return false;this.eaten[i]=1;this.left--;this._R=null;return true; }
-  bossHealth(){let total=0,remaining=0;for(let i=0;i<this.total;i++)if(this.special.boss[i]){total++;if(!this.eaten[i])remaining++}return {total,remaining}}
+  bossHealth(){let total=0,remaining=0,shielded=0;for(const i of this.special.markers)if(this.special.boss[i]){total++;if(!this.eaten[i]){remaining++;if(bossLocked(this.eaten,this.special,i))shielded++}}return {total,remaining,shielded,phase:this.special.layers.findIndex(layer=>layer.some(i=>!this.eaten[i]))+1,name:this.special.kind}}
+  // Accurate one-box forecast; only compute on explicit inspection, never auto-play.
+  inspectBox(ci){const b=this.cols[ci]?.[0];if(!b||this.state!=='play')return null;
+    const eaten=this.eaten.slice();const slots=this.slots.map(s=>s?{c:s.c,n:s.n}:null);
+    const si=slots.indexOf(null);if(si<0)return {full:true};
+    slots[si]={c:b.c,n:b.n};let moved=true,total=0,own=0,opened=0;
+    while(moved){moved=false;for(let k=0;k<slots.length;k++){const s=slots[k];if(!s)continue;while(s.n>0){const i=nearestCell(eaten,this.n,this.role,s.c,reachDist(eaten,this.n).dist,this.special);if(i<0)break;eaten[i]=1;s.n--;total++;if(k===si)own++;moved=true}}}
+    for(const i of this.special.markers)if(!eaten[i]&&cellLocked(this.eaten,this.special,this.n,i)&&!cellLocked(eaten,this.special,this.n,i))opened++;
+    return {own,total,waiting:b.n-own,opened,free:slots.filter(s=>!s||s.n===0).length};
+  }
+  bombTargets(){if(this.special.power!=='bomb'||!this.powerReady())return [];const dist=this.R().dist,n=this.n;return Array.from({length:this.total},(_,i)=>i).filter(i=>!this.eaten[i]&&!cellLocked(this.eaten,this.special,n,i)&&expoAt(dist,n,i%n,Math.floor(i/n)))}
+  
   powerReady(){return !!this.special.power&&!this.powerUsed&&this.powerCharge>=3&&this.state==='play'&&this.left>0&&!this.ants.length&&!this.slots.some(s=>s&&s.q.length)}
-  usePower(){
+  usePower(target=null){
     if(!this.powerReady())return false;
-    const mode=this.special.power,n=this.n,first=this.target(-1);if(first<0)return false;
+    const mode=this.special.power,n=this.n,first=target===null?this.target(-1):target;if(first<0||mode==='bomb'&&!this.bombTargets().includes(first))return false;
     const hits=[],limit=mode==='bomb'?5:6;
     for(let k=0;k<limit;k++){let i=-1;if(mode==='wild'||k===0)i=this.target(-1);else{
       const dist=this.R().dist,fx=first%n,fy=Math.floor(first/n);
-      for(let j=0;j<this.total;j++){const x=j%n,y=Math.floor(j/n);if(Math.abs(x-fx)+Math.abs(y-fy)<=1&&!this.eaten[j]&&!iceLocked(this.eaten,this.special.ice,n,j)&&expoAt(dist,n,x,y)){i=j;break}}
+      for(let j=0;j<this.total;j++){const x=j%n,y=Math.floor(j/n);if(Math.abs(x-fx)+Math.abs(y-fy)<=1&&!this.eaten[j]&&!cellLocked(this.eaten,this.special,n,j)&&expoAt(dist,n,x,y)){i=j;break}}
     }if(i<0)break;this.eatCell(i);hits.push({i,c:this.role[i]})}
     if(!hits.length)return false;this.powerUsed=true;this.rebuild();
     for(const hit of hits){this.spawnVisual({idx:hit.i,c:hit.c,path:[]},'blast');this.ev.push({t:'shot',i:hit.i,c:hit.c})}
@@ -210,6 +230,8 @@ class Game {
     const before=this.left;
     this.cascade();
     this.dispatches++;
+    if(this.slots[si].n===0)this.cleanDispatches++;
+    this.peakWaiting=Math.max(this.peakWaiting,this.slots.filter(s=>s&&s.n>0).length);
     if(this.left<before){this.directDispatches++;this.powerCharge=Math.min(3,this.powerCharge+1);this.smartChain++;this.bestSmartChain=Math.max(this.bestSmartChain,this.smartChain)}else this.smartChain=0;
     return 1;
   }
@@ -322,17 +344,17 @@ class Game {
     }
     return this.left <= 0;
   }
-  mastery(){const rate=this.dispatches?this.directDispatches/this.dispatches:0;const clean=this.hintsUsed===0&&this.reshufflesUsed===0&&this.revivesUsed===0&&this.cap===4&&!this.powerUsed;return {rate,chain:this.bestSmartChain,dispatches:this.dispatches,stars:this.state==='win'?(clean&&rate>=.85?3:rate>=.65?2:1):0,clean};}
+  mastery(){const rate=this.dispatches?this.directDispatches/this.dispatches:0;const clean=this.hintsUsed===0&&this.reshufflesUsed===0&&this.revivesUsed===0&&this.cap===4&&!this.powerUsed;return {rate,efficiency:this.dispatches?this.cleanDispatches/this.dispatches:0,peakWaiting:this.peakWaiting,chain:this.bestSmartChain,dispatches:this.dispatches,stars:this.state==='win'?(clean&&rate>=.85?3:rate>=.65?2:1):0,clean};}
   snapshot() {
     return {
-      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,powerCharge:this.powerCharge,powerUsed:this.powerUsed,
+      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,cleanDispatches:this.cleanDispatches,peakWaiting:this.peakWaiting,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,powerCharge:this.powerCharge,powerUsed:this.powerUsed,
       cols: this.cols.map(col => col.map(b => ({ ...b }))),
       slots: this.slots.map(s => s ? { ...s, q: [] } : null)
     };
   }
   restore(sn) {
     this.eaten = sn.eaten; this.left = sn.left; this.cols = sn.cols; this.slots = sn.slots;
-    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;this.powerCharge=sn.powerCharge||0;this.powerUsed=!!sn.powerUsed;
+    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.cleanDispatches=sn.cleanDispatches||0;this.peakWaiting=sn.peakWaiting||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;this.powerCharge=sn.powerCharge||0;this.powerUsed=!!sn.powerUsed;
     this._R = null; this.ants = []; this.ev = []; this.stalled = false; this.state = 'play';
   }
 }
