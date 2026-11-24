@@ -23,6 +23,26 @@ function missing(st,cost){
  const wood=Math.max(0,cost.wood-st.wood),petals=Math.max(0,cost.petals-st.petals);
  return [wood?wood+' more wood':'',petals?petals+' more petals':''].filter(Boolean).join(' + ');
 }
+function rewardText(r){return '🪵 +'+r.wood+' · 🌸 +'+r.petals+(r.chest?' · 🎁 +'+r.chest:'')}
+function renderLife(){
+ const p=V.lifePreview(),collect=$('life-collect'),sign=$('life-sign');
+ $('life-stock').textContent=rewardText(p);
+ $('life-time').textContent=p.hours>=p.maxHours?'Storage full · collect to resume':'Next wood in '+Math.ceil(p.nextMs/60000)+' min · holds up to 8 hours';
+ collect.disabled=!p.valid||p.hours<1;
+ sign.disabled=!p.valid||p.signClaimed;
+ sign.textContent=p.signClaimed?'✓ Claimed today':'Claim day '+p.streak+' · '+rewardText(p.signReward);
+ $('life-streak').textContent='7-day sign-in · Day '+p.streak+' / 7';
+ $('life-calendar').replaceChildren();
+ for(let i=1;i<=7;i++){const e=document.createElement('span');e.className='life-day'+(i===p.streak?' current':'');e.textContent=(i===7?'🎁 ':'')+i;$('life-calendar').appendChild(e)}
+ const tasks=$('life-tasks');tasks.replaceChildren();
+ for(const t of p.tasks){
+  const row=document.createElement('div');row.className='life-task';
+  const text=document.createElement('div');const b=document.createElement('b');b.textContent=t.label;const sub=document.createElement('small');sub.textContent=t.progress+' / '+t.goal+' · '+rewardText(t);text.append(b,sub);
+  const btn=document.createElement('button');btn.type='button';btn.className='btn secondary';btn.textContent=t.claimed?'Claimed':'Claim';btn.disabled=!p.valid||t.claimed||t.progress<t.goal;
+  btn.addEventListener('click',()=>{const r=V.claimDaily(t.id);announce(r.ok?'Task reward: '+rewardText(r):r.error);render()});row.append(text,btn);tasks.appendChild(row)
+ }
+ $('life-clock-note').textContent=p.valid?'Local time · daily reset at midnight.':'Device date moved backward. Rewards resume when the date catches up.';
+}
 function render(){
  const st=V.snapshot(),catalog=V.catalog;
  $('wood').textContent=st.wood.toLocaleString();
@@ -30,6 +50,7 @@ function render(){
  $('chests').textContent=V.unopenedChests().toLocaleString();
  $('placed').textContent=V.count()+' / 8';
  S.render(st,selectedPlot);
+ renderLife();
  const existing=selectedPlot===null?null:st.placements[selectedPlot];
  const refund=existing?V.refundCost(selectedPlot):null;
  const availableAfterRefund=refund?{wood:st.wood+refund.wood,petals:st.petals+refund.petals}:st;
@@ -140,6 +161,11 @@ $('upgrade').addEventListener('click',()=>{
   unlock?'A special building set is now glowing in your village.':'Your '+V.catalog[res.item].name+' looks even better at level '+res.level+'.');
  render();
 });
+$('life-collect').addEventListener('click',()=>{const r=V.collectAnts();announce(r.ok?'Ants delivered '+rewardText(r):r.error);render()});
+$('life-sign').addEventListener('click',()=>{const r=V.signIn();announce(r.ok?'Daily reward: '+rewardText(r.reward):r.error);render()});
+setInterval(renderLife,30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)render()});
+window.addEventListener('storage',e=>{if(e.key==='ant_canvas_village_v1')render()});
 $('chest-open').addEventListener('click',()=>{
  const result=V.openChest();
  if(!result.ok){announce('⚠️ '+result.error);return}

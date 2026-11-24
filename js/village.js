@@ -25,6 +25,47 @@ state.upgrades=state.upgrades||{};
 state.openedChest=Number.isInteger(state.openedChest)?Math.max(0,state.openedChest):0;
 state.souvenirs=state.souvenirs||{};
 state.discovered=state.discovered||{};
+const HOUR=3600000, MAX_HOURS=8;
+const SIGN_REWARDS=Object.freeze([{wood:2,petals:1},{wood:3,petals:1},{wood:3,petals:2},{wood:4,petals:2},{wood:5,petals:2},{wood:5,petals:3},{wood:7,petals:4,chest:1}]);
+const DAILY_TASKS=Object.freeze([{id:'paint1',label:'Complete 1 new painting',goal:1,key:'paint',wood:2,petals:1},{id:'paint3',label:'Complete 3 new paintings',goal:3,key:'paint',wood:4,petals:2},{id:'gather',label:'Collect ant materials once',goal:1,key:'gather',wood:2,petals:1}]);
+function dayNumber(now){const d=new Date(now);return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000)}
+function makeLife(now){return {lastGather:now,lastSign:null,streak:0,day:dayNumber(now),paint:0,gather:0,claimed:{}}}
+if(!state.life||!Number.isFinite(state.life.lastGather)){state.life=makeLife(Date.now());write()}
+function lifeDay(now){
+ const day=dayNumber(now),l=state.life;
+ if(day>l.day){l.day=day;l.paint=0;l.gather=0;l.claimed={}}
+ return day===l.day;
+}
+function lifePreview(now=Date.now()){
+ const l=state.life,day=dayNumber(now),valid=day>=l.day;
+ const elapsed=Math.max(0,now-l.lastGather),hours=Math.min(MAX_HOURS,Math.floor(elapsed/HOUR));
+ const streak=l.lastSign===day?l.streak:l.lastSign===day-1?l.streak%7+1:1;
+ const tasks=DAILY_TASKS.map(t=>Object.assign({},t,{progress:day===l.day?Math.min(t.goal,l[t.key]||0):0,claimed:day===l.day&&!!l.claimed[t.id]}));
+ return {hours,wood:hours,petals:Math.floor(hours/2),nextMs:hours>=MAX_HOURS?0:Math.max(0,HOUR-elapsed%HOUR),maxHours:MAX_HOURS,valid,streak,signClaimed:l.lastSign===day,signReward:SIGN_REWARDS[streak-1],tasks};
+}
+function lifeCommit(before,result){if(!write()){state=before;return {ok:false,error:'Could not save; no materials changed'}}return Object.assign({ok:true},result)}
+function collectAnts(now=Date.now()){
+ const p=lifePreview(now);if(!p.valid||p.hours<1)return {ok:false,error:'No materials ready yet'};
+ const before=snapshot();lifeDay(now);
+ // Keep partial hour, but discard time beyond the storage cap.
+ state.life.lastGather=p.hours>=MAX_HOURS?now:state.life.lastGather+p.hours*HOUR;
+ state.life.gather++;state.wood+=p.wood;state.petals+=p.petals;
+ return lifeCommit(before,{wood:p.wood,petals:p.petals});
+}
+function signIn(now=Date.now()){
+ const p=lifePreview(now);if(!p.valid||p.signClaimed)return {ok:false,error:'Daily reward already claimed or device time invalid'};
+ const before=snapshot();lifeDay(now);state.life.lastSign=dayNumber(now);state.life.streak=p.streak;
+ state.wood+=p.signReward.wood;state.petals+=p.signReward.petals;state.chests+=p.signReward.chest||0;
+ return lifeCommit(before,{reward:p.signReward,streak:p.streak});
+}
+function claimDaily(id,now=Date.now()){
+ const p=lifePreview(now),t=p.tasks.find(x=>x.id===id);
+ if(!p.valid||!t||t.claimed||t.progress<t.goal)return {ok:false,error:'Task not complete or already claimed'};
+ const before=snapshot();lifeDay(now);state.life.claimed[id]=true;state.wood+=t.wood;state.petals+=t.petals;
+ return lifeCommit(before,{wood:t.wood,petals:t.petals});
+}
+// Synchronize ordinary same-origin tabs; no server authority or anti-tamper guarantee.
+if(global.addEventListener)global.addEventListener('storage',e=>{if(e.key===KEY){const next=safeGet();if(next&&next.life)state=next}});
 const SOUVENIRS=Object.freeze([
  {id:'star',name:'Starlight Pebble',symbol:'⭐',description:'A shimmering keepsake from a secret chest'},
  {id:'crystal',name:'Moon Crystal',symbol:'💎',description:'The crystal ants found under the hill'},
@@ -108,6 +149,7 @@ function award(lv,rarity){
  const chest=lv%5===0;
  if(chest){wood+=7;petals+=4;state.chests++}
  state.wood+=wood;state.petals+=petals;
+ if(lifeDay(Date.now()))state.life.paint++;
  state.last={lv,wood,petals,chest,rarity:r};
  write();
  return state.last;
@@ -150,5 +192,5 @@ function redesign(slot,newItem,expectedItem){
 function remove(slot,expectedItem){return redesign(slot,null,expectedItem)}
 function replace(slot,item,expectedItem){if(typeof item!=='string')return {ok:false,error:'Choose a replacement'};return redesign(slot,item,expectedItem)}
 function count(){return Object.keys(state.placements).length}
-global.AntVillage=Object.freeze({award,place,upgrade,upgradeCost,getLevel,refundCost,remove,replace,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
+global.AntVillage=Object.freeze({award,place,upgrade,upgradeCost,getLevel,lifePreview,collectAnts,signIn,claimDaily,refundCost,remove,replace,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
 })(typeof window==='undefined'?globalThis:window);

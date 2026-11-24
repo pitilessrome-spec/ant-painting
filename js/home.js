@@ -138,7 +138,7 @@
     else if (action === 'back') { document.getElementById('ah-how').hidden = true; }
     else if (action === 'share') share();
     else if (action === 'gallery') window.location.href='collection.html';
-    else if (action === 'village') window.location.href='village.html?v=redesign-r1';
+    else if (action === 'village') window.location.href='village.html?v=life-v2';
     else if (action === 'mode' && window.AntWorkshop){window.AntWorkshop.toggle();updateHome();}
     else if (action === 'sound' && typeof SND !== 'undefined') {
       SND = SND ? 0 : 1;
