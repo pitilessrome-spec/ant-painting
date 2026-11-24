@@ -8,12 +8,12 @@ const svg=document.getElementById('village-world');
 if(!svg)return;
 const W=960,H=720;
 svg.setAttribute('viewBox','0 0 '+W+' '+H);
-const plots=[
+const gardenPlots=[
  {id:0,x:157,y:280},{id:1,x:345,y:218},{id:2,x:766,y:260},
  {id:3,x:123,y:465},{id:5,x:828,y:425},
  {id:6,x:217,y:620},{id:7,x:435,y:622},{id:8,x:803,y:604}
 ];
-const roads=[
+const gardenRoads=[
  'M211 354 C267 300 345 265 414 243 C504 222 577 250 623 306 C657 350 647 412 617 468 C581 528 505 557 413 560 C307 564 225 529 187 478 C155 435 166 391 211 354 Z',
  'M211 354 Q177 322 157 280',
  'M353 269 Q333 247 345 218',
@@ -26,7 +26,14 @@ const roads=[
 ];
 // Every resident follows the same continuous visible ring road in the forward direction.
 // Varying initial positions and walking speeds prevent a line of synchronized workers.
-const loops=[roads[0]];
+let plots=gardenPlots,roads=gardenRoads,loops=[roads[0]],region='garden',generation=0;
+const layouts={
+ forest:[[160,295],[350,245],[740,270],[110,475],[820,450],[230,620],[475,630],[790,620]],
+ island:[[180,280],[365,230],[730,280],[135,475],[825,445],[245,615],[485,630],[760,615]],
+ snow:[[155,300],[345,245],[750,265],[120,470],[835,440],[240,615],[470,630],[790,615]]
+};
+function configureRegion(id){region=layouts[id]?id:'garden';if(region==='garden'){plots=gardenPlots;roads=gardenRoads}else{plots=layouts[region].map((p,i)=>({id:[0,1,2,3,5,6,7,8][i],x:p[0],y:p[1]}));const ring=region==='forest'?'M230 365 C290 280 520 235 660 310 C730 355 715 470 635 535 C520 595 290 570 205 480 C175 430 185 395 230 365Z':region==='island'?'M225 365 C320 255 550 250 685 335 C755 400 715 500 615 540 C475 595 285 565 210 465 C185 420 190 395 225 365Z':'M225 360 C325 270 545 250 685 325 C755 395 720 490 635 540 C485 605 280 570 205 470 C170 425 190 390 225 360Z';const anchors=[[230,365],[350,285],[685,325],[205,470],[715,440],[280,550],[475,570],[635,540]];roads=[ring,...plots.map((p,i)=>'M'+anchors[i][0]+' '+anchors[i][1]+' Q'+(p.x+anchors[i][0])/2+' '+anchors[i][1]+' '+p.x+' '+p.y)]}loops=[roads[0]];}
+
 let seed=73191;
 function rnd(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
 const n=(x)=>Number(x).toFixed(1);
@@ -135,6 +142,7 @@ function lily(x,y,s){
 }
 function scene(){
  seed=73191;
+ if(region!=='garden'){regionalScene();return;}
  let a=defs+'<rect width="960" height="720" fill="url(#sb-sky)" class="sky-day"/><rect width="960" height="720" fill="url(#sb-night)" class="sky-night" opacity="0"/>'+
  '<g class="is-day-only"><circle cx="811" cy="93" r="77" fill="url(#sb-sun)"/><circle cx="811" cy="93" r="27" fill="#fff9ce"/></g>'+
  '<g class="is-night-only"><circle cx="811" cy="93" r="29" fill="#fff1bb"/><circle cx="824" cy="81" r="27" fill="#39487d"/>'+Array.from({length:36},(_,i)=>'<circle cx="'+(28+i*73%910)+'" cy="'+(15+i*47%160)+'" r="'+(i%3===0?2:1.2)+'" fill="#fff5bc" class="firefly"/>').join('')+'</g>';
@@ -184,6 +192,28 @@ function scene(){
  a+='<g class="is-night-only" pointer-events="none">'+[[261,365],[612,328],[671,374],[788,376]].map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="45" fill="url(#sb-light)" opacity=".68"/>').join('')+Array.from({length:22},(_,i)=>'<circle class="firefly" cx="'+(45+i*127%870)+'" cy="'+(300+i*67%370)+'" r="2.9" fill="#fff5a3"/>').join('')+'</g>';
  svg.innerHTML=a;
 }
+function pine(x,y,k){return group(x,y,k,shadow(42,10)+'<path d="M-8 3V-90H8V3Z" fill="#796b65"/><path d="M-55 -30L0 -145L55 -30Z" fill="#466f7c" stroke="#b8dce1" stroke-width="2"/><path d="M-43 -69L0 -165L43 -69Z" fill="#537f90"/><path d="M0 -165L-25 -110L-7 -116L7 -103L28 -110Z M-40 -64L-53 -34L-19 -46L3 -37L23 -47L53 -34L40 -64L12 -55L0 -66L-15 -55Z" fill="#f0f8fa"/>')}
+function palm(x,y,k){return group(x,y,k,shadow(42,10)+'<path d="M-8 0Q15 -57 2 -112L13 -112Q31 -60 7 0Z" fill="#c19462" stroke="#98693d" stroke-width="2"/>'+[-65,-33,0,35,68].map(a=>'<g transform="translate(7 -110) rotate('+a+')"><path d="M0 0Q-42 -35 -66 2Q-35 -8 0 0Z" fill="#4d9d69" stroke="#a9dd83" stroke-width="2"/></g>').join('')+'<circle cx="5" cy="-105" r="7" fill="#9d6d45"/>')}
+function regionalScene(){
+ const forest=region==='forest',island=region==='island',snow=region==='snow';
+ const sky=forest?'#f3cf95':island?'#91e6e5':'#bfdaed',land=forest?'#8ea263':island?'#c9df91':'#e1eef2',far=forest?'#627b5c':island?'#6eaf9a':'#8aa9bd',pathColor=forest?'#cdb382':island?'#f9e4b4':'#d5e1df';
+ let a=defs+'<rect width="960" height="720" fill="'+sky+'" class="sky-day"/><rect width="960" height="720" fill="url(#sb-night)" class="sky-night" opacity="0"/><g class="is-day-only"><circle cx="790" cy="80" r="56" fill="url(#sb-sun)"/><circle cx="790" cy="80" r="24" fill="#fff5c7"/></g><g class="is-night-only"><circle cx="790" cy="80" r="28" fill="#fff4c5"/>'+Array.from({length:30},(_,i)=>'<circle cx="'+(25+i*83%900)+'" cy="'+(15+i*47%150)+'" r="1.7" fill="#fff5d0"/>').join('')+'</g>';
+ if(snow)a+='<path d="M0 300L120 85 245 270 365 60 520 280 705 100 960 310V720H0Z" fill="#91adc0"/><path d="M83 151L120 85 158 151 136 145 120 166 106 146Z M310 148L365 60 418 150 386 137 365 158 345 136Z M650 164L705 100 762 169 728 157 705 179 680 157Z" fill="#f8fbff"/>';
+ else a+='<path d="M0 260Q120 110 260 230Q435 80 590 205Q770 120 960 250V720H0Z" fill="'+far+'"/>';
+ a+='<path d="M0 330Q145 210 330 300Q530 205 710 285Q840 230 960 300V720H0Z" fill="'+land+'"/>';
+ if(island){a+='<path d="M0 400Q90 330 90 450Q30 575 155 720H0Z M960 335Q865 400 900 520Q945 600 815 720H960Z" fill="#57c9ce" stroke="#f9edbc" stroke-width="15"/><path d="M0 470Q80 410 45 550M950 420Q875 500 939 590" fill="none" stroke="#e8ffff" stroke-width="4" stroke-dasharray="13 14"/>'}
+ if(forest){for(let i=0;i<10;i++)a+=canopy(20+i*103,236+(i%3)*20,.65+(i%3)*.15);a+='<path d="M0 680Q210 600 360 720H0Z" fill="#7e784d"/>'}
+ if(snow){a+='<ellipse cx="724" cy="555" rx="93" ry="34" fill="#9bd9e8" stroke="#f8fcff" stroke-width="9"/><path d="M672 549l40 -8 32 9 42 -10" fill="none" stroke="#d6f5fc" stroke-width="2"/>'}
+ for(const [x,y,k] of [[40,365,1],[910,340,1],[65,625,.9],[905,635,1],[278,215,.6],[595,245,.6]])a+=forest?mushroom(x,y,k*2):island?palm(x,y,k):pine(x,y,k);
+ a+=roads.map((d,i)=>'<path d="'+d+'" fill="none" stroke="'+far+'" stroke-opacity=".35" stroke-width="'+(i?24:42)+'" stroke-linecap="round"/><path d="'+d+'" fill="none" stroke="'+pathColor+'" stroke-width="'+(i?17:32)+'" stroke-linecap="round"/>').join('');
+ if(forest)a+=group(475,427,1.25,shadow(115,22)+mushroom(-52,-4,2)+mushroom(48,-8,2.3)+mushroom(0,0,3.4)+windowShape(0,-61,13)+'<path d="M-20 3V-34Q0 -58 20 -34V3Z" fill="#815b41" stroke="#f0c88b" stroke-width="3"/>');
+ if(island)a+=group(475,427,1.2,shadow(115,24)+'<path d="M-82 4V-65H82V4Z" fill="#efbd75" stroke="#ad7a49" stroke-width="3"/><path d="M-107 -60Q0 -157 107 -60Q0 -36 -107 -60Z" fill="#d5a047" stroke="#fce6a6" stroke-width="4"/><path d="M-15 4V-40Q0 -58 15 -40V4Z" fill="#926a43"/>'+windowShape(-48,-33,12)+windowShape(48,-33,12)+palm(105,10,.65));
+ if(snow)a+=group(475,427,1.2,shadow(112,26)+'<path d="M-85 4V-71L0 -140 85 -71V4Z" fill="#987a65" stroke="#655e5b" stroke-width="3"/><path d="M-99 -71L0 -154 99 -71L82 -60 0 -133 -82 -60Z" fill="#f7fbff" stroke="#c5dae4" stroke-width="4"/><path d="M-20 4V-42Q0 -66 20 -42V4Z" fill="#6e635c"/>'+windowShape(-50,-34,12)+windowShape(50,-34,12)+windowShape(0,-97,12));
+ a+=group(475,471,1,'<rect x="-100" y="-12" width="200" height="27" rx="8" fill="#72563e" stroke="#d9c5a2" stroke-width="2"/><text text-anchor="middle" y="6" fill="#fff4cf" font-size="14" font-weight="bold">'+(forest?'MUSHROOM HALL':island?'CORAL HARBOR':'SNOWLIGHT LODGE')+'</text>');
+ for(const [x,y,k] of [[65,530,.8],[300,690,.8],[610,665,.8],[915,690,.9]])a+=forest?mushroom(x,y,k):island?group(x,y,k,'<path d="M-18 0Q-26 -24 0 -25Q26 -24 18 0Z" fill="#f49d83" stroke="#fff1c6" stroke-width="2"/><path d="M-12 -2L0 -21 12 -2" fill="none" stroke="#fff0cb" stroke-width="2"/>'):pine(x,y,k*.65);
+ a+='<g id="village-buildings"></g><g id="village-combo-effects"></g><g id="village-residents"></g><g class="sb-night-shade" pointer-events="none"><rect width="960" height="720" fill="#152d69" opacity=".29"/></g><g class="is-night-only" pointer-events="none">'+[[-105,-60],[105,-60]].map(p=>'<circle cx="'+(475+p[0])+'" cy="'+(427+p[1])+'" r="65" fill="url(#sb-light)" opacity=".65"/>').join('')+'</g>';
+ svg.innerHTML=a;
+}
 function building(id,lv){
  let a=shadow(49,13),s=lv===1?1:lv===2?1.10:1.19;
  if(id==='flower'){
@@ -201,6 +231,12 @@ function building(id,lv){
  }else if(id==='butterfly'){
   a+=canopy(0,0,.70)+flowerbed(0,0,.65,10);
   for(let i=0;i<(lv>=2?4:2);i++)a+='<g class="sb-butterfly" transform="translate('+(-37+i*24)+' '+(-83+(i%2)*15)+')"><path d="M0 0Q-15 -15 -16 -3Q-17 10 0 3Q16 -15 17 -3Q15 10 0 3Z" fill="'+(i%2?'#ffcc87':'#ef9fc5')+'" stroke="#fff5ce" stroke-width="1.3"/><ellipse ry="5" rx="1.5" fill="#795145"/></g>';
+ }else if(id==='grove'){
+  a+=mushroom(-25,0,1.35)+mushroom(20,2,1.1)+mushroom(0,-5,1.65)+'<circle cx="0" cy="-62" r="48" fill="url(#sb-light)" opacity=".7"/>';
+ }else if(id==='dock'){
+  a+='<ellipse rx="49" ry="20" fill="#60bfc8" stroke="#f7e9b3" stroke-width="4"/><path d="M-45 4L-45 -20 25 -20 25 4Z" fill="url(#sb-wood)" stroke="#a67b4b" stroke-width="2"/><path d="M-25 -20V-48L9 -48 22 -20Z" fill="#ffe0a2" stroke="#b28a5c" stroke-width="2"/><path d="M22 -48V-20L48 -24Z" fill="#ef9a7b"/>';
+ }else if(id==='ice'){
+  a+='<path d="M-35 0L-29 -57 0 -111 29 -57 35 0Z" fill="#a2dbe9" stroke="#f4ffff" stroke-width="3"/><path d="M0 -111V0M-29 -57L29 -57" stroke="#e7fdff" stroke-width="2"/>'+windowShape(0,-45,10)+'<circle cy="-98" r="20" fill="url(#sb-light)"/>';
  }else if(id==='castle'){
   a+='<path d="M-38 0V-62H38V0Z" fill="url(#sb-cream)" stroke="#b48a61" stroke-width="2.5"/><path d="M-51 0V-83H-24V0M24 0V-83H51V0" fill="url(#sb-stone)" stroke="#ad9f89" stroke-width="2.5"/><path d="M-55 -83L-38 -111L-20 -83ZM20 -83L38 -111L55 -83ZM-22 -61L0 -89L22 -61Z" fill="url(#sb-roof)" stroke="#ab6351" stroke-width="2.5"/><path d="M-12 0V-24Q0 -45 12 -24V0Z" fill="#9a6943"/>'+windowShape(-38,-54,6)+windowShape(38,-54,6)+windowShape(0,-47,7);
   if(lv>=2)a+='<path d="M0 -90V-114" stroke="#986c42" stroke-width="3"/><path d="M0 -114L25 -108L0 -101Z" fill="#ffd97d"/>';
@@ -219,6 +255,7 @@ function plotNode(p,st,selected){
  '</g>');
 }
 function render(st,selected){
+ const next=st.world?.active||'garden';if(next!==region){generation++;configureRegion(next);scene();residents()}
  const b=svg.querySelector('#village-buildings');
  if(b)b.innerHTML=plots.map(p=>{seed=73191+Math.imul(p.id+1,913);return plotNode(p,st,selected)}).join('');
  const fx=svg.querySelector('#village-combo-effects');
@@ -254,8 +291,9 @@ function residents(){
   motion.push({route,len,el,heading:el.querySelector('.sb-ant-heading'),body:el.querySelector('.sb-ant-body'),legs:[...el.querySelectorAll('.sb-ant-leg')],antennae:el.querySelector('.sb-ant-antennae'),distance:len*phase,speed:23+i*1.7,scale:0.84+(i%3)*.035});
  }
  const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
- let last=0;
+ let last=0;const run=generation;
  function step(now){
+  if(run!==generation)return;
   const dt=last?Math.min(.05,(now-last)/1000):0;last=now;
   for(const m of motion){
    if(!reduced)m.distance=(m.distance+dt*m.speed)%m.len;

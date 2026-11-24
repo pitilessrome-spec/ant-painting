@@ -105,7 +105,7 @@ async function adminStats(req,res){
 }
 // Private backup is user-supplied cosmetic progress, never a trusted score.
 const SAVE_KEYS=new Set(['mbh3','ant_canvas_profile_v1','ant_canvas_collection_v1','ant_canvas_village_v1']);
-const REGION_IDS=['garden','forest','island','snow'],PLOT_IDS=['0','1','2','3','5','6','7','8'],ITEM_IDS=['flower','mushroom','lantern','fountain','butterfly','castle'];
+const REGION_IDS=['garden','forest','island','snow'],PLOT_IDS=['0','1','2','3','5','6','7','8'],ITEM_IDS=['flower','mushroom','lantern','fountain','butterfly','castle','grove','dock','ice'];
 function validBackup(data){
  if(!data||typeof data!=='object'||Array.isArray(data))return false;
  const keys=Object.keys(data);if(!keys.length||keys.some(k=>!SAVE_KEYS.has(k)))return false;

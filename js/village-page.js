@@ -52,13 +52,14 @@ function renderWorld(){
  for(const x of p.regions){const b=document.createElement('button');b.type='button';b.className='region-card'+(x.id===p.active?' active':'');b.disabled=!x.unlocked;b.setAttribute('aria-pressed',String(x.id===p.active));const i=document.createElement('span'),t=document.createElement('b'),s=document.createElement('small');i.textContent=x.symbol;t.textContent=x.name;s.textContent=x.unlocked?x.plots+' / 8 built · '+(x.id===p.active?'Here':'Travel'):'🔒 Clear '+x.unlock+' paintings';b.append(i,t,s);b.onclick=()=>{const z=V.selectRegion(x.id);if(!z.ok){announce(z.error);return}selectedPlot=null;selectedItem=null;removePending=false;announce('Welcome to '+x.name+'!');render()};list.append(b)}
  const relics=$('world-relics');relics.replaceChildren();$('world-relic-count').textContent=p.relics.filter(x=>x.found).length+' / 12 relics found';
  for(const x of p.relics){const b=document.createElement('div');b.className='world-relic'+(x.found?' found':'');b.textContent=(x.found?x.symbol:'🔒')+' '+x.name;const s=document.createElement('small');s.textContent=x.region;b.append(s);relics.append(b)}
+ const goals=$('region-goals');goals.replaceChildren();for(const t of V.milestones()){const row=document.createElement('div');row.className='life-task';const desc=document.createElement('div'),b=document.createElement('b'),small=document.createElement('small'),btn=document.createElement('button');b.textContent=t.name;small.textContent='Build '+Math.min(4,t.plots)+'/4 · Lv.2 '+Math.min(2,t.upgraded)+'/2 · Relics '+t.relics+'/3';desc.append(b,small);btn.type='button';btn.className='btn secondary';btn.textContent=t.claimed?'Claimed':'Claim';btn.disabled=!t.ready||t.claimed||!t.unlocked;btn.onclick=()=>{const r=V.claimMilestone(t.id);announce(r.ok?'Region mastered! '+rewardText(r):r.error);render()};row.append(desc,btn);goals.append(row)}
  renderExpedition(p)
 }
 function renderExpedition(p=V.worldPreview()){
  const e=p.expedition,route=$('exp-route'),role=$('exp-role');
- if(!route.options.length)for(const t of p.routes){const o=document.createElement('option');o.value=t.id;o.textContent=t.name+' · '+t.minutes+' min';route.append(o)}
+ const routeKey=(e?e.region:p.active);if(route.dataset.region!==routeKey){route.dataset.region=routeKey;route.replaceChildren();for(const t of p.routes){const o=document.createElement('option');o.value=t.id;o.textContent=t.name+' · '+t.minutes+' min';route.append(o)}}
  if(!role.options.length)for(const a of p.roles){const o=document.createElement('option');o.value=a.id;o.textContent=a.name+' · '+a.skill;role.append(o)}
- route.value=routeChoice;role.value=roleChoice;route.disabled=role.disabled=!!e;$('exp-start').hidden=!!e;$('exp-claim').hidden=!e;$('exp-claim').disabled=!e||e.remaining>0;
+ route.value=e?e.route:routeChoice;role.value=e?e.role:roleChoice;route.disabled=role.disabled=!!e;$('exp-start').hidden=!!e;$('exp-claim').hidden=!e;$('exp-claim').disabled=!e||e.remaining>0;
  const t=p.routes.find(x=>x.id===(e?e.route:routeChoice)),a=p.roles.find(x=>x.id===(e?e.role:roleChoice)),r=p.regions.find(x=>x.id===(e?e.region:p.active));
  $('exp-status').textContent=e?(e.remaining>0?r.name+' · '+t.name+' · '+Math.ceil(e.remaining/60000)+' min left':'Expedition complete — claim your reward!'):'Explore '+r.name+' · '+rewardText({wood:t.wood+(a.id==='worker'?2:0),petals:t.petals+(a.id==='gardener'?2:0)})+(a.id==='scout'?' · Discover a new relic if not yet found':'');
  $('exp-count').textContent=p.completed+' completed expeditions'
@@ -76,6 +77,7 @@ function render(){
  const availableAfterRefund=refund?{wood:st.wood+refund.wood,petals:st.petals+refund.petals}:st;
  const shop=$('shop');shop.replaceChildren();
  for(const [id,item]of Object.entries(catalog)){
+  if(!V.itemAllowed(id))continue;
   const btn=document.createElement('button');btn.type='button';
   btn.className='item'+(selectedItem===id?' selected':'');
   btn.setAttribute('aria-pressed',String(selectedItem===id));

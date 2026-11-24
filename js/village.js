@@ -8,7 +8,10 @@ const catalog=Object.freeze({
  lantern:{name:'Firefly Lantern',symbol:'🏮',wood:8,petals:4,description:'A warm light for night visits'},
  fountain:{name:'Rainbow Fountain',symbol:'⛲',wood:13,petals:8,description:'A sparkling village centerpiece'},
  butterfly:{name:'Butterfly Tree',symbol:'🦋',wood:15,petals:10,description:'Attracts magical butterflies'},
- castle:{name:'Royal Ant Palace',symbol:'🏰',wood:30,petals:20,description:'The ultimate village landmark'}
+ castle:{name:'Royal Ant Palace',symbol:'🏰',wood:30,petals:20,description:'The ultimate village landmark'},
+ grove:{name:'Glow Mushroom Grove',symbol:'🍄',wood:10,petals:5,description:'Golden spores light the forest path',region:'forest'},
+ dock:{name:'Shell Harbor',symbol:'🐚',wood:15,petals:8,description:'A tiny harbor on the coral coast',region:'island'},
+ ice:{name:'Crystal Observatory',symbol:'🔮',wood:20,petals:10,description:'Watch the northern lights from a crystal tower',region:'snow'}
 });
 function safeGet(){try{const j=JSON.parse(localStorage.getItem(KEY)||'null');return j&&j.v===1?j:null}catch(_){return null}}
 function write(){try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(_){return false}}
@@ -68,13 +71,20 @@ function claimDaily(id,now=Date.now()){
 const REGIONS=Object.freeze([{id:'garden',name:'Storybook Garden',symbol:'🌿',unlock:0},{id:'forest',name:'Mushroom Forest',symbol:'🍄',unlock:5},{id:'island',name:'Coral Island',symbol:'🏝️',unlock:15},{id:'snow',name:'Snowlight Valley',symbol:'❄️',unlock:30}]);
 const ROLES=Object.freeze([{id:'scout',name:'🧭 Scout',skill:'Discover relics'},{id:'worker',name:'🪵 Builder',skill:'Extra wood'},{id:'gardener',name:'🌸 Gardener',skill:'Extra petals'}]);
 const ROUTES=Object.freeze([{id:'trail',name:'Hidden trail',minutes:5,wood:2,petals:1,relic:'Trail Token',symbol:'🍃'},{id:'river',name:'River crossing',minutes:10,wood:3,petals:2,relic:'River Gem',symbol:'💎'},{id:'ruins',name:'Ancient ruins',minutes:20,wood:5,petals:3,relic:'Ancient Seal',symbol:'🏺'}]);
+const REGION_ROUTES={
+ forest:[{name:'Firefly hollow',relic:'Golden Spore',symbol:'🍄'},{name:'Root bridge',relic:'Amber Leaf',symbol:'🍂'},{name:'Ancient oak',relic:'Forest Crown',symbol:'👑'}],
+ island:[{name:'Shell beach',relic:'Pearl Shell',symbol:'🐚'},{name:'Coral lagoon',relic:'Coral Star',symbol:'⭐'},{name:'Sunken temple',relic:'Ocean Compass',symbol:'🧭'}],
+ snow:[{name:'Frost trail',relic:'Snowflake',symbol:'❄️'},{name:'Frozen lake',relic:'Ice Crystal',symbol:'💎'},{name:'Aurora peak',relic:'Aurora Lantern',symbol:'🏮'}]
+};
+function routesFor(region){return ROUTES.map((t,i)=>({...t,...(REGION_ROUTES[region]?.[i]||{})}))}
+function itemAllowed(id){const it=catalog[id];return !!it&&(!it.region||it.region===state.world.active)}
 function ensureWorld(){if(!state.world||!REGIONS.some(r=>r.id===state.world.active)){state.world={active:'garden',maps:{},relics:{},expedition:null,completed:0};return true}state.world.maps=state.world.maps||{};state.world.relics=state.world.relics||{};return false}
 if(ensureWorld())write();
 function paintings(){return state.claimedHigh+state.claimedExtra.length}
-function worldPreview(now=Date.now()){const w=state.world,n=paintings(),e=w.expedition;return {active:w.active,paintings:n,regions:REGIONS.map(r=>({...r,unlocked:n>=r.unlock,plots:r.id===w.active?Object.keys(state.placements).length:Object.keys(w.maps[r.id]?.placements||{}).length})),roles:ROLES,routes:ROUTES,expedition:e?{...e,remaining:Math.max(0,e.finish-now)}:null,relics:REGIONS.flatMap(r=>ROUTES.map(t=>({id:r.id+':'+t.id,name:t.relic,region:r.name,symbol:t.symbol,found:!!w.relics[r.id+':'+t.id]}))),completed:w.completed||0}}
+function worldPreview(now=Date.now()){const w=state.world,n=paintings(),e=w.expedition;return {active:w.active,paintings:n,regions:REGIONS.map(r=>({...r,unlocked:n>=r.unlock,plots:r.id===w.active?Object.keys(state.placements).length:Object.keys(w.maps[r.id]?.placements||{}).length})),roles:ROLES,routes:routesFor(e?e.region:w.active),expedition:e?{...e,remaining:Math.max(0,e.finish-now)}:null,relics:REGIONS.flatMap(r=>routesFor(r.id).map(t=>({id:r.id+':'+t.id,name:t.relic,region:r.name,symbol:t.symbol,found:!!w.relics[r.id+':'+t.id]}))),completed:w.completed||0}}
 function selectRegion(id){const r=REGIONS.find(x=>x.id===id),w=state.world;if(!r||paintings()<r.unlock)return {ok:false,error:'Region is locked'};if(id===w.active)return {ok:true};const before=snapshot();w.maps[w.active]={placements:state.placements,upgrades:state.upgrades};const next=w.maps[id]||{placements:{},upgrades:{}};state.placements=next.placements;state.upgrades=next.upgrades;delete w.maps[id];w.active=id;return lifeCommit(before,{region:id})}
 function expeditionStart(route,role,now=Date.now()){const t=ROUTES.find(x=>x.id===route),a=ROLES.find(x=>x.id===role),w=state.world;if(!t||!a||!Number.isFinite(now)||!lifePreview(now).valid)return {ok:false,error:'Invalid expedition'};if(w.expedition)return {ok:false,error:'Claim your current expedition first'};const before=snapshot();w.expedition={region:w.active,route,role,start:now,finish:now+t.minutes*60000};return lifeCommit(before,{expedition:w.expedition})}
-function expeditionClaim(now=Date.now()){const w=state.world,e=w.expedition;if(!e||!Number.isFinite(now)||now<e.finish||!lifePreview(now).valid)return {ok:false,error:'Expedition not ready'};const t=ROUTES.find(x=>x.id===e.route);if(!t||!ROLES.some(x=>x.id===e.role))return {ok:false,error:'Invalid expedition'};const before=snapshot(),id=e.region+':'+e.route,found=!w.relics[id]&&e.role==='scout';const wood=t.wood+(e.role==='worker'?2:0),petals=t.petals+(e.role==='gardener'?2:0);if(found)w.relics[id]=true;state.wood+=wood;state.petals+=petals;w.completed=(w.completed||0)+1;w.expedition=null;return lifeCommit(before,{wood,petals,relic:found?t.relic:null,symbol:t.symbol})}
+function expeditionClaim(now=Date.now()){const w=state.world,e=w.expedition;if(!e||!Number.isFinite(now)||now<e.finish||!lifePreview(now).valid)return {ok:false,error:'Expedition not ready'};const t=routesFor(e.region).find(x=>x.id===e.route);if(!t||!ROLES.some(x=>x.id===e.role))return {ok:false,error:'Invalid expedition'};const before=snapshot(),id=e.region+':'+e.route,found=!w.relics[id]&&e.role==='scout';const wood=t.wood+(e.role==='worker'?2:0),petals=t.petals+(e.role==='gardener'?2:0);if(found)w.relics[id]=true;state.wood+=wood;state.petals+=petals;w.completed=(w.completed||0)+1;w.expedition=null;return lifeCommit(before,{wood,petals,relic:found?t.relic:null,symbol:t.symbol})}
 // Synchronize ordinary same-origin tabs; no server authority or anti-tamper guarantee.
 if(global.addEventListener)global.addEventListener('storage',e=>{if(e.key===KEY){const next=safeGet();if(next&&next.life){state=next;ensureWorld()}}});
 const SOUVENIRS=Object.freeze([
@@ -169,7 +179,7 @@ function place(slot,item){
  const index=Number(slot);
  if(!Number.isInteger(index)||![0,1,2,3,5,6,7,8].includes(index))return {ok:false,error:'Invalid plot'};
  const it=catalog[item];
- if(!it)return {ok:false,error:'Choose a decoration'};
+ if(!Object.hasOwn(catalog,item)||!itemAllowed(item))return {ok:false,error:'This decoration belongs to another region'};
  if(state.placements[index])return {ok:false,error:'This plot is already decorated'};
  if(state.wood<it.wood||state.petals<it.petals)return {ok:false,error:'Not enough materials yet. Clear more paintings!'};
  state.wood-=it.wood;state.petals-=it.petals;
@@ -189,7 +199,7 @@ function redesign(slot,newItem,expectedItem){
  if(!validBuiltPlot(index))return {ok:false,error:'Choose an existing building'};
  const previous=state.placements[index];
  if(previous!==expectedItem)return {ok:false,error:'Building changed; select it again'};
- if(newItem!==null&&(!Object.hasOwn(catalog,newItem)||previous===newItem))return {ok:false,error:'Choose a different building'};
+ if(newItem!==null&&(!Object.hasOwn(catalog,newItem)||!itemAllowed(newItem)||previous===newItem))return {ok:false,error:'Choose a different building'};
  const refund=refundCost(index),cost=newItem===null?{wood:0,petals:0}:catalog[newItem];
  if(state.wood+refund.wood<cost.wood||state.petals+refund.petals<cost.petals)return {ok:false,error:'Not enough materials after refund; original building kept'};
  const before=snapshot();
@@ -203,5 +213,7 @@ function redesign(slot,newItem,expectedItem){
 function remove(slot,expectedItem){return redesign(slot,null,expectedItem)}
 function replace(slot,item,expectedItem){if(typeof item!=='string')return {ok:false,error:'Choose a replacement'};return redesign(slot,item,expectedItem)}
 function count(){return Object.keys(state.placements).length}
-global.AntVillage=Object.freeze({award,place,upgrade,upgradeCost,getLevel,worldPreview,selectRegion,expeditionStart,expeditionClaim,lifePreview,collectAnts,signIn,claimDaily,refundCost,remove,replace,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
+function milestones(){const w=state.world;return REGIONS.map(r=>{const map=r.id===w.active?state:w.maps[r.id]||{},n=Object.keys(map.placements||{}).length,lv=Object.values(map.upgrades||{}).filter(x=>x>=2).length,relics=routesFor(r.id).filter(t=>w.relics[r.id+':'+t.id]).length;return {id:r.id,name:r.name,unlocked:paintings()>=r.unlock,plots:n,upgraded:lv,relics,claimed:!!w.milestones?.[r.id],ready:n>=4&&lv>=2&&relics>=3}})}
+function claimMilestone(id){const t=milestones().find(x=>x.id===id);if(!t||!t.unlocked||!t.ready||t.claimed)return {ok:false,error:'Region milestone is not ready'};const before=snapshot();state.world.milestones=state.world.milestones||{};state.world.milestones[id]=true;state.wood+=10;state.petals+=5;state.chests++;return lifeCommit(before,{wood:10,petals:5,chest:1})}
+global.AntVillage=Object.freeze({award,place,upgrade,upgradeCost,getLevel,worldPreview,itemAllowed,milestones,claimMilestone,selectRegion,expeditionStart,expeditionClaim,lifePreview,collectAnts,signIn,claimDaily,refundCost,remove,replace,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
 })(typeof window==='undefined'?globalThis:window);
