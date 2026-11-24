@@ -33,7 +33,18 @@ function specialCells(lv,n){
    const lower=layers[layer-1];
    guards[i]=kind==='Web Guardian'?lower.filter(j=>Math.abs(j%n-i%n)<=1):kind==='Frost Sentinel'?lower.filter(j=>j%n===i%n):kind==='Rainbow King'?lower.filter((j,k)=>j%n===i%n||k===(lower.length-1-lower.findIndex(v=>v%n===i%n))):lower.slice();
  }}
- const gem=lv>=5?Math.floor(n/3)*n+Math.floor(n/2):-1,markers=[];for(let i=0;i<n*n;i++)if(ice[i]||boss[i]||i===gem)markers.push(i);return {ice,boss,guards,layers,kind,gem,markers,power:lv>=7&&lv%6===1?'bomb':lv>=8&&lv%6===2?'wild':null};
+ const gem=lv>=5?Math.floor(n/3)*n+Math.floor(n/2):-1,markers=[];for(let i=0;i<n*n;i++)if(ice[i]||boss[i]||i===gem)markers.push(i);const skillAt=Object.create(null),secret=new Set();
+ if(lv>=4){
+   const count=lv<10?4:lv<40?6:8,random=rng(mix32((lv*1777+canvasPlayerSeed()+501)>>>0)),types=ice.some(v=>v)?['bomb','wild','frost','bomb','wild','frost','bomb','wild']:['bomb','wild','bomb','wild','bomb','wild','bomb','wild'];
+   for(let k=0;k<count;k++){
+     const y=k===0?n-1:Math.max(0,n-1-Math.floor(n*(k-.35)/count)),pool=[];
+     for(let j=0;j<n*n;j++)if(!ice[j]&&!boss[j]&&j!==gem&&!skillAt[j]&&Math.abs(Math.floor(j/n)-y)<=1)pool.push(j);
+     if(!pool.length)continue;const bottom=k===0?pool.filter(j=>Math.floor(j/n)===n-1):pool;
+     const a=bottom.length?bottom:pool,i=a[Math.floor(random()*a.length)];
+     skillAt[i]=types[k];if(k>=2&&k%2===0)secret.add(i);markers.push(i);
+   }
+ }
+ return {ice,boss,guards,layers,kind,gem,markers,skillAt,secret};
 }
 function iceLocked(eaten,ice,n,i){return !!ice?.[i]&&i+n<eaten.length&&!eaten[i+n]}
 function bossLocked(eaten,special,i){return !!special?.guards?.[i]?.some(j=>!eaten[j])}
@@ -117,7 +128,7 @@ class Game {
     this.difficulty=prm;this.hintsUsed=0;this.reshufflesUsed=0;this.revivesUsed=0;
     const N = this.n * this.n;
     this.total = N; this.left = N;
-    this.eaten = new Uint8Array(N);this.special=specialCells(lv,this.n);this.powerUsed=false;this.powerCharge=0;this.daily=o.daily||null;
+    this.eaten = new Uint8Array(N);this.special=specialCells(lv,this.n);this.skills={bomb:0,wild:0,frost:0};this.skillDelivered=new Uint8Array(N);this.skillsUsed=0;this.daily=o.daily||null;
     this.cap = o.cap || prm.cap; this.slots = new Array(this.cap).fill(null);
     this.cols = [[], [], [], []]; this.ants = []; this.ev = [];
     this.state = 'play'; this.speed = o.speed || 1; this._R = null; this.stalled = false;
@@ -180,22 +191,30 @@ class Game {
     for(const i of this.special.markers)if(!eaten[i]&&cellLocked(this.eaten,this.special,this.n,i)&&!cellLocked(eaten,this.special,this.n,i))opened++;
     return {own,total,waiting:b.n-own,opened,free:slots.filter(s=>!s||s.n===0).length};
   }
-  bombTargets(){if(this.special.power!=='bomb'||!this.powerReady())return [];const dist=this.R().dist,n=this.n;return Array.from({length:this.total},(_,i)=>i).filter(i=>!this.eaten[i]&&!cellLocked(this.eaten,this.special,n,i)&&expoAt(dist,n,i%n,Math.floor(i/n)))}
-  
-  powerReady(){return !!this.special.power&&!this.powerUsed&&this.powerCharge>=3&&this.state==='play'&&this.left>0&&!this.ants.length&&!this.slots.some(s=>s&&s.q.length)}
-  usePower(target=null){
-    if(!this.powerReady())return false;
-    const mode=this.special.power,n=this.n,first=target===null?this.target(-1):target;if(first<0||mode==='bomb'&&!this.bombTargets().includes(first))return false;
+  deliverSkill(i){
+    const mode=this.special.skillAt[i];if(!mode||!this.eaten[i]||this.skillDelivered[i])return false;
+    this.skillDelivered[i]=1;this.skills[mode]++;this.ev.push({t:'skillLoot',mode,count:this.skills[mode]});return true;
+  }
+  powerReady(mode){return ['bomb','wild','frost'].includes(mode)&&this.skills[mode]>0&&this.state==='play'&&this.left>0&&(mode!=='frost'||this.special.markers.some(i=>!this.eaten[i]&&iceLocked(this.eaten,this.special.ice,this.n,i)))}
+  bombTargets(){if(!this.powerReady('bomb'))return [];const dist=this.R().dist,n=this.n;return Array.from({length:this.total},(_,i)=>i).filter(i=>!this.eaten[i]&&!cellLocked(this.eaten,this.special,n,i)&&expoAt(dist,n,i%n,Math.floor(i/n)))}
+  usePower(mode,target=null){
+    if(!this.powerReady(mode))return false;
+    if(mode==='frost'){
+      const locked=this.special.markers.filter(i=>!this.eaten[i]&&iceLocked(this.eaten,this.special.ice,this.n,i)).sort((a,b)=>b-a).slice(0,3);
+      if(!locked.length)return false;
+      for(const i of locked)this.special.ice[i]=0;
+      this.skills[mode]--;this.skillsUsed++;this.rebuild();this.ev.push({t:'power',mode,count:locked.length});return true;
+    }
+    const n=this.n,first=target===null?this.target(-1):target;if(first<0||mode==='bomb'&&!this.bombTargets().includes(first)||mode==='wild'&&target!==null)return false;
     const hits=[],limit=mode==='bomb'?5:6;
     for(let k=0;k<limit;k++){let i=-1;if(k===0)i=first;else if(mode==='wild')i=this.target(-1);else{
       const dist=this.R().dist,fx=first%n,fy=Math.floor(first/n);
       for(let j=0;j<this.total;j++){const x=j%n,y=Math.floor(j/n);if(Math.abs(x-fx)+Math.abs(y-fy)<=1&&!this.eaten[j]&&!cellLocked(this.eaten,this.special,n,j)&&expoAt(dist,n,x,y)){i=j;break}}
-    }if(i<0)break;this.eatCell(i);hits.push({i,c:this.role[i]})}
-    if(!hits.length)return false;this.powerUsed=true;this.rebuild();
-    for(const hit of hits){this.spawnVisual({idx:hit.i,c:hit.c,path:[]},'blast');this.ev.push({t:'shot',i:hit.i,c:hit.c})}
+    }if(i<0)break;const path=this.route(i);this.eatCell(i);hits.push({idx:i,c:this.role[i],path})}
+    if(!hits.length)return false;this.skills[mode]--;this.skillsUsed++;this.rebuild();
+    for(const hit of hits){this.spawnVisual(hit,this.special.skillAt[hit.idx]?'normal':'blast');this.ev.push({t:'shot',i:hit.idx,c:hit.c})}
     this.ev.push({t:'power',mode,count:hits.length});return true;
   }
-
   // Logic: boxes in slots eat whatever they can, in slot order, until nothing more can be eaten. Depends only on cells, never on time
   cascade() {
     let progress = true;
@@ -232,7 +251,7 @@ class Game {
     this.dispatches++;
     if(this.slots[si].n===0)this.cleanDispatches++;
     this.peakWaiting=Math.max(this.peakWaiting,this.slots.filter(s=>s&&s.n>0).length);
-    if(this.left<before){this.directDispatches++;this.powerCharge=Math.min(3,this.powerCharge+1);this.smartChain++;this.bestSmartChain=Math.max(this.bestSmartChain,this.smartChain)}else this.smartChain=0;
+    if(this.left<before){this.directDispatches++;this.smartChain++;this.bestSmartChain=Math.max(this.bestSmartChain,this.smartChain)}else this.smartChain=0;
     return 1;
   }
   // Hint: the next box in order (following this order wins; verified in makeGame)
@@ -269,7 +288,7 @@ class Game {
         if (s.t >= this.visualMs) {
           s.t = 0;
           const job = s.q.shift();
-          const charged=this.blastEnabled&&this.blastRemaining>0;
+          const charged=this.blastEnabled&&this.blastRemaining>0&&!this.special.skillAt[job.idx];
           if(charged){
             this.blastRemaining--;this.blastShots++;
             this.spawnVisual(job,'blast');
@@ -316,6 +335,7 @@ class Game {
         }
       }
     }
+    for(const a of this.ants)if(a.done&&a.mode!=='blast')this.deliverSkill(a.idx);
     this.ants = this.ants.filter(a => !a.done);
     // 3) Win / lose
     if (this.left <= 0) {
@@ -326,7 +346,7 @@ class Game {
     // Every box in the slots is stuck (no ants walking, none queued)
     const full = this.slots.every(s => s);
     const noBoxes = this.cols.every(c => c.length === 0);
-    if (full || noBoxes) { this.state = 'lose'; return; }
+    if (full || noBoxes) { if(['bomb','wild','frost'].some(mode=>this.powerReady(mode))){if(!this.stalled){this.stalled=true;this.ev.push({t:'skillRescue'})}return;}this.state = 'lose'; return; }
     if (this.slots.some(s => s) && !this.stalled) { this.stalled = true; this.ev.push({ t: 'stall' }); }
   }
 
@@ -344,17 +364,17 @@ class Game {
     }
     return this.left <= 0;
   }
-  mastery(){const rate=this.dispatches?this.directDispatches/this.dispatches:0;const tactical=!!this.special.kind||this.challenge.id==='precision',efficiency=this.dispatches?this.cleanDispatches/this.dispatches:0;const clean=this.hintsUsed===0&&this.reshufflesUsed===0&&this.revivesUsed===0&&this.cap===4&&!this.powerUsed;return {rate,efficiency:this.dispatches?this.cleanDispatches/this.dispatches:0,peakWaiting:this.peakWaiting,chain:this.bestSmartChain,dispatches:this.dispatches,stars:this.state==='win'?(clean&&rate>=.85&&(!tactical||efficiency>=.85)?3:rate>=.65?2:1):0,clean};}
+  mastery(){const rate=this.dispatches?this.directDispatches/this.dispatches:0;const tactical=!!this.special.kind||this.challenge.id==='precision',efficiency=this.dispatches?this.cleanDispatches/this.dispatches:0;const clean=this.hintsUsed===0&&this.reshufflesUsed===0&&this.revivesUsed===0&&this.cap===4;return {rate,efficiency:this.dispatches?this.cleanDispatches/this.dispatches:0,peakWaiting:this.peakWaiting,chain:this.bestSmartChain,dispatches:this.dispatches,stars:this.state==='win'?(clean&&rate>=.85&&(!tactical||efficiency>=.85)?3:rate>=.65?2:1):0,clean};}
   snapshot() {
     return {
-      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,cleanDispatches:this.cleanDispatches,peakWaiting:this.peakWaiting,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,powerCharge:this.powerCharge,powerUsed:this.powerUsed,
+      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,cleanDispatches:this.cleanDispatches,peakWaiting:this.peakWaiting,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,skills:{...this.skills},skillDelivered:this.skillDelivered.slice(),skillsUsed:this.skillsUsed,ice:this.special.ice.slice(),
       cols: this.cols.map(col => col.map(b => ({ ...b }))),
       slots: this.slots.map(s => s ? { ...s, q: [] } : null)
     };
   }
   restore(sn) {
     this.eaten = sn.eaten; this.left = sn.left; this.cols = sn.cols; this.slots = sn.slots;
-    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.cleanDispatches=sn.cleanDispatches||0;this.peakWaiting=sn.peakWaiting||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;this.powerCharge=sn.powerCharge||0;this.powerUsed=!!sn.powerUsed;
+    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.cleanDispatches=sn.cleanDispatches||0;this.peakWaiting=sn.peakWaiting||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;this.skills={...sn.skills};this.skillDelivered=sn.skillDelivered.slice();this.skillsUsed=sn.skillsUsed||0;this.special.ice=sn.ice.slice();
     this._R = null; this.ants = []; this.ev = []; this.stalled = false; this.state = 'play';
   }
 }
