@@ -1,0 +1,861 @@
+<!--
+ ANT CANVAS • ANT VILLAGE — EDITABLE STANDALONE FILE
+ This is a SELF-CONTAINED, OFFLINE-OPENABLE export. No server or API token required.
+ It bundles village.html, CSS and 4 JS modules in one editable document.
+ Source sections are labeled data-original-file="...".
+ EDITOR DEMO DATA: 100 wood, 75 petals, two chests, six preview buildings. This
+ demo uses localStorage key ant_canvas_village_editor_v1 so it cannot overwrite
+ the production ant_canvas_village_v1 browser save.
+ ISSUE TO FIX: resident ant in js/village-scene.js uses
+ <animateMotion keyPoints="0;1;0" rotate="auto">, which may render return
+ journeys as BACKWARDS WALKING; inspect orientation on the return leg.
+ SEND THIS HTML BACK AFTER YOU EDIT IT. NO PRODUCTION DEPLOY IS DONE BY THIS EXPORT.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#244769">
+<meta name="description" content="Build a cozy village for your tiny ants. Unlock magical buildings, open milestone chests, and discover hidden treasures.">
+<title>My Ant Village · ANT CANVAS</title>
+<style data-original-file="css/village-world.css">
+/* Editable source: css/village-world.css */
+/* ANT CANVAS — Village world V1/V2 visual redesign.
+   Scenic vector village, daily life, upgraded buildings and collectible treasures. */
+:root{--ink:#203855;--cream:#fff8e6;--sky:#a7e2fc;--leaf:#6bc68e;--gold:#ffd47a;--navy:#173a58}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--ink);background:
+ radial-gradient(ellipse 82% 45% at 15% 0%,#d6eaff 0%,transparent 75%),
+ radial-gradient(ellipse 65% 52% at 95% 80%,#b8ddca 0%,transparent 80%),
+ linear-gradient(145deg,#c0eaf0,#f4f7e6 55%,#a3d2ef);
+ font:14px/1.45 "Trebuchet MS",system-ui,-apple-system,Segoe UI,sans-serif}
+button{font:inherit;cursor:pointer}
+a{color:inherit}
+.topbar{background:#244769;color:#fff;padding:13px max(18px,calc((100vw - 1240px)/2));display:flex;justify-content:space-between;align-items:center;gap:10px;
+ box-shadow:0 5px 16px #18335135}
+.brand{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:950;letter-spacing:.6px}
+.brand-icon{display:grid;place-items:center;background:linear-gradient(155deg,#ffe6a0,#ef9369);border-radius:14px;height:37px;width:37px;font-size:22px;box-shadow:inset 0 2px #fff8,0 3px #9f573c}
+.return{background:#ffffff1c;border:1px solid #ffffff65;border-radius:14px;padding:9px 14px;text-decoration:none;font-weight:900;font-size:12px}
+main{max-width:1240px;padding:21px 16px 60px;margin:auto}
+.eyebrow{color:#4b7993;font-weight:900;letter-spacing:2.5px;font-size:10px;margin-bottom:5px}
+h1{font-size:clamp(27px,4.8vw,42px);line-height:1.06;margin:0;font-weight:1000;letter-spacing:-1.2px;color:#235a60}
+.lead{font-size:13px;line-height:1.6;color:#4b7381;max-width:660px;margin:8px 0 15px}
+.resource-line{display:flex;gap:9px;flex-wrap:wrap;margin:17px 0}
+.stat{display:flex;gap:10px;align-items:center;background:#fffef9df;border:1px solid #fff;border-radius:15px;
+ padding:9px 13px;box-shadow:0 5px 18px #335b7915;min-width:122px;flex:1}
+.stat-icon{display:grid;place-items:center;background:#eff5eb;border-radius:11px;width:36px;height:36px;font-size:20px}
+.stat strong{display:block;font-size:21px;line-height:1.05;color:#295675;font-variant-numeric:tabular-nums}
+.stat small{display:block;font-size:10px;font-weight:900;color:#748e9c;letter-spacing:.4px;margin-top:4px}
+.main-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(276px,.76fr);align-items:start;gap:17px}
+.world-panel{overflow:hidden;position:relative;border:8px solid #fffdf5;border-radius:27px;background:#bbecfa;box-shadow:0 14px 33px #24496740,0 3px 0 #abcbbb,inset 0 0 0 1px #fff}
+#village-world{width:100%;height:auto;display:block;aspect-ratio:960/610;overflow:hidden;touch-action:manipulation}
+.world-plaque{position:absolute;top:14px;left:15px;border:2px solid #fffa;
+ border-radius:13px;background:linear-gradient(170deg,#fff8e7ed,#f7d0a5e9);color:#6e573b;
+ box-shadow:0 4px #b38d6588,0 6px 11px #395b6a38;font-size:12px;font-weight:1000;line-height:1.2;padding:8px 12px;pointer-events:none}
+.world-plaque small{display:block;color:#906b4d;font-size:9px;letter-spacing:1.2px}
+.world-tools{position:absolute;top:13px;right:13px;display:flex;gap:6px}
+.world-tools button{background:#fffffff0;border:1px solid white;border-radius:12px;box-shadow:0 3px 9px #275e6a45;font-weight:950;padding:8px 10px;color:#4e6675;font-size:11px}
+.world-story{position:absolute;bottom:10px;left:12px;right:12px;border-radius:13px;background:#183f53cc;color:#fff;
+ text-align:center;font-weight:850;font-size:11px;padding:8px 10px;backdrop-filter:blur(4px)}
+#village-world .plot-interactive{cursor:pointer;outline:none;transition:filter .2s}
+#village-world .plot-interactive:hover,#village-world .plot-interactive:focus-visible{filter:drop-shadow(0 0 8px #fffbd5)}
+#village-world .plot-interactive.selected .plot-glow{stroke:#fff7a8;stroke-width:8;opacity:.8}
+#village-world .plot-name{font:950 13px system-ui;fill:white;stroke:#3d684a;stroke-width:3;paint-order:stroke;pointer-events:none;text-anchor:middle}
+#village-world .plot-level{font:900 13px system-ui;fill:#ffe89a;stroke:#4a524b;stroke-width:2.5;paint-order:stroke;pointer-events:none;text-anchor:middle}
+#village-world .plot-help{font:950 23px system-ui;fill:#fff;pointer-events:none;text-anchor:middle;filter:drop-shadow(0 2px 2px #306f58)}
+#village-world .resident{pointer-events:none;filter:drop-shadow(1px 3px 2px #235b5055)}
+#village-world .sun{animation:sunshine 5s ease-in-out infinite;transform-origin:786px 102px}
+#village-world .firefly{animation:firefly 3s ease-in-out infinite}
+#village-world .firefly:nth-child(2n){animation-delay:-1s}
+#village-world .flower{animation:flower-sway 4s ease-in-out infinite;transform-box:fill-box;transform-origin:bottom center}
+#village-world .water-streak{animation:stream 7s linear infinite}
+#village-world .building-flag{animation:flag 2s ease-in-out infinite;transform-box:fill-box;transform-origin:left center}
+#village-world .bird{animation:bird 8s ease-in-out infinite}
+#village-world .bird:nth-child(2n){animation-delay:-3s}
+#village-world .hut-smoke{animation:smoke 2.2s ease-out infinite}
+#village-world .is-night-only{opacity:0;transition:opacity .8s}
+#village-world .is-day-only{opacity:1;transition:opacity .8s}
+.world-panel.night #village-world .sky-day{opacity:0}
+.world-panel.night #village-world .sky-night{opacity:1}
+.world-panel.night #village-world .is-night-only{opacity:1}
+.world-panel.night #village-world .is-day-only{opacity:0}
+#village-world .sky-day,#village-world .sky-night{transition:opacity .8s}
+.side{display:flex;flex-direction:column;gap:13px}
+.panel{background:#fffdf4ed;border:2px solid #fff;border-radius:21px;box-shadow:0 8px 23px #385c7720;padding:16px}
+.panel h2{font-size:19px;margin:0;letter-spacing:-.4px;color:#285b65}
+.panel small,.panel .sub{font-size:11px;color:#6d8792}
+.panel .sub{margin:5px 0 11px}
+.shop-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.item{background:#fcfff7;border:2px solid #d9ebe4;border-radius:14px;padding:7px 5px;min-width:0;text-align:center;box-shadow:0 3px #c1dbc8;transition:transform .14s}
+.item:hover{transform:translateY(-2px)}
+.item.selected{background:#fff1cc;border-color:#eead65;box-shadow:0 3px #d9954b}
+.item:focus-visible,.btn:focus-visible,.chest-open:focus-visible{outline:3px solid #4c99e9;outline-offset:2px}
+.item .item-emoji{font-size:25px;display:block;line-height:1.2}
+.item .item-name{display:block;font-size:10px;font-weight:1000;min-height:25px;line-height:1.25;margin-top:5px}
+.item .item-cost{font-size:9px;font-weight:900;color:#5d8d75}
+.build-detail{min-height:51px;padding:9px;background:#e9f3e9;border-radius:13px;margin-top:11px;font-size:11px;color:#52786f;line-height:1.45}
+.build-detail b{display:block;color:#315e66;font-size:12px}
+.btn{border:0;border-radius:14px;padding:11px 12px;font-size:12px;font-weight:1000;box-shadow:0 3px #b57d44;color:#5b4529;background:linear-gradient(#ffe2a1,#ffb96e)}
+.btn:disabled{opacity:.5;cursor:default;box-shadow:0 3px #c9b89f}
+.btn.primary{width:100%;margin-top:10px}
+.btn.secondary{background:linear-gradient(#e9f3ff,#c5dfeb);box-shadow:0 3px #a3c3d3;color:#39586b}
+.btn-row{display:flex;gap:8px;margin-top:10px}
+.btn-row .btn{flex:1}
+#village-message{min-height:28px;font-size:11px;font-weight:800;color:#477c75;margin-top:9px;line-height:1.5}
+.treasure-panel{background:linear-gradient(160deg,#3a527a,#27325d);border-color:#7087a8;color:#fff}
+.treasure-panel h2{color:#fff8e4}
+.treasure-panel .sub{color:#b8c8e8}
+.treasure-wrap{display:flex;align-items:center;gap:12px}
+.chest-figure{position:relative;font-size:57px;line-height:1;filter:drop-shadow(0 6px 0 #1b284b);animation:chest-hover 2.6s ease-in-out infinite;flex:none}
+.chest-figure:before{content:"✦";position:absolute;color:#fff9b4;top:-9px;right:-10px;font-size:22px;animation:firefly 1.5s infinite}
+.chest-figure[aria-disabled=true]{filter:grayscale(1);opacity:.55;animation:none}
+.chest-info{flex:1}
+.chest-info strong{display:block;font-size:16px;color:#fff5ca}
+.chest-info p{color:#c3d2ee;font-size:11px;margin:4px 0}
+.chest-open{width:100%;margin-top:9px;background:linear-gradient(#ffdf90,#ffac4f);border:0;box-shadow:0 4px #b16e37;border-radius:14px;padding:11px;color:#684530;font-size:12px;font-weight:950}
+.chest-open:disabled{filter:grayscale(.8);opacity:.6;box-shadow:none}
+.treasure-result{margin-top:8px;font-size:12px;color:#ffefb4;font-weight:850;min-height:22px}
+.lower-grid{display:grid;grid-template-columns:1fr 1fr;gap:17px;margin-top:17px}
+.collection-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:12px}
+.collectible{background:linear-gradient(150deg,#eaf5ff,#e2eadf);border:1px solid white;border-radius:12px;text-align:center;padding:10px 4px;min-width:0}
+.collectible .symbol{font-size:27px;display:block;filter:drop-shadow(0 2px 2px #344d6342)}
+.collectible.locked .symbol{filter:grayscale(1) blur(1.1px);opacity:.5}
+.collectible b{display:block;font-size:9px;margin-top:4px;line-height:1.2}
+.collectible.locked b{color:#8a98a7}
+.combo-list{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.combo{padding:11px 9px;border-radius:14px;background:#e7f0f2;border:1px solid #fff;text-align:center}
+.combo.unlocked{background:linear-gradient(140deg,#fff3ca,#dcf4d8);box-shadow:0 3px 0 #afcebd}
+.combo .combo-icon{font-size:28px;display:block;filter:grayscale(1);opacity:.6}
+.combo.unlocked .combo-icon{filter:none;opacity:1}
+.combo b{display:block;font-size:11px;line-height:1.2;margin-top:7px}
+.combo span{font-size:9px;line-height:1.3;color:#6a8490;display:block;margin-top:5px}
+.notice{font-size:11px;color:#6a8692;margin:14px 0 0;line-height:1.6}
+#reveal-modal[hidden]{display:none!important}
+#reveal-modal{position:fixed;inset:0;z-index:100;background:#132a4fbd;backdrop-filter:blur(7px);display:grid;place-items:center;padding:20px}
+.modal-card{width:min(100%,340px);background:linear-gradient(165deg,#fffaf0,#e4f8ff);border:3px solid white;border-radius:27px;box-shadow:0 20px 70px #13264290;text-align:center;padding:23px 20px}
+.modal-card .big{font-size:83px;line-height:1.25;display:block;animation:reveal .6s cubic-bezier(.17,1.4,.4,1)}
+.modal-card h2{font-size:26px;margin:7px 0 5px;color:#315e6b}
+.modal-card p{font-size:12px;color:#698390}
+.modal-card .btn{width:100%}
+@keyframes sunshine{0%,100%{opacity:1;scale:1}50%{opacity:.88;scale:1.05}}
+@keyframes firefly{0%,100%{opacity:.4;transform:translateY(3px)}50%{opacity:1;transform:translateY(-7px)}}
+@keyframes flower-sway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+@keyframes stream{to{stroke-dashoffset:-100}}
+@keyframes flag{0%,100%{transform:skewY(0)}50%{transform:skewY(6deg)}}
+@keyframes bird{0%,100%{opacity:.25;transform:translateX(0)}50%{opacity:.8;transform:translateX(21px)}}
+@keyframes smoke{0%{opacity:.55;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-27px) scale(1.7)}}
+@keyframes chest-hover{0%,100%{transform:translateY(1px) rotate(-3deg)}50%{transform:translateY(-6px) rotate(3deg)}}
+@keyframes reveal{0%{transform:scale(.2) rotate(-18deg);opacity:0}100%{transform:scale(1);opacity:1}}
+@media(min-width:1000px){.world-panel{position:sticky;top:15px}}
+@media(max-width:1000px){.main-grid{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.world-panel{max-width:850px}.shop-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){main{padding:15px 9px 45px}.main-grid,.lower-grid,.side{grid-template-columns:1fr}.world-panel{border-width:4px;border-radius:19px}.world-plaque{top:8px;left:8px;font-size:9px;padding:6px}.world-tools{right:8px;top:8px}.world-tools button{padding:6px;font-size:10px}.world-story{font-size:10px;padding:6px}.collection-grid{grid-template-columns:repeat(3,1fr)}.combo-list{grid-template-columns:1fr}.stat{min-width:calc(50% - 6px)}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
+
+</style>
+<style data-original-file="css/village-motion.css">
+/* Editable source: css/village-motion.css */
+/* ANT CANVAS Village — real articulated ant motion, scenic atmosphere and polish. */
+#village-world .village-ant{
+  pointer-events:none;
+  filter:drop-shadow(0px 3px 2px rgba(33,68,57,.23));
+}
+/* Six legs use SVG animateTransform from their own hip joints, including in Telegram WebView. */
+#village-world .village-ant .ant-leg{stroke-linecap:round}
+#village-world .village-ant .ant-bob{
+  animation:ant-bob .43s ease-in-out infinite;
+  transform-box:fill-box;
+  transform-origin:center center;
+}
+#village-world .village-ant .ant-feelers{
+  animation:ant-antenna .76s ease-in-out infinite alternate;
+  transform-origin:16px -8px;
+  transform-box:view-box;
+}
+#village-world .village-ant .ant-cargo{
+  animation:ant-cargo .43s ease-in-out infinite alternate;
+  transform-box:fill-box;
+  transform-origin:center center;
+}
+#village-world .v-garden-flowers{
+  animation:v-garden-sway 4.1s ease-in-out infinite alternate;
+  transform-box:fill-box;transform-origin:center bottom;
+}
+#village-world .v-butterfly-wings{
+  animation:v-butterfly-flap .29s ease-in-out infinite alternate;
+  transform-origin:center center;transform-box:fill-box;
+  filter:drop-shadow(0 2px 2px #37526a55);
+}
+#village-world .v-firefly{animation:v-firefly-light 2.4s ease-in-out infinite alternate}
+#village-world .v-floating-pollen{animation:v-pollen-drift 8s ease-in-out infinite alternate}
+#village-world .v-bird-group{animation:v-bird-drift 11s ease-in-out infinite alternate}
+#village-world .v-chimney-smoke{
+  animation:v-chimney-smoke 3s ease-out infinite;
+  transform-origin:center center;transform-box:fill-box;
+}
+#village-world .v-chimney-smoke.b{animation-delay:-1.4s}
+#world-panel{
+  background:#9fded5;
+  box-shadow:0 16px 35px #24496641,0 3px 0 #a5c7bc,inset 0 0 0 1px #fff;
+  border:7px solid #fff8e9;
+}
+#world-panel:before{
+  content:"";
+  pointer-events:none;
+  z-index:1;
+  position:absolute;inset:0;
+  border-radius:17px;
+  background:linear-gradient(175deg,#fff8d414,transparent 29%,transparent 77%,#265d3b0d);
+  box-shadow:inset 0 0 0 1px #ffffffe0,inset 0 0 25px #fff8d91b;
+}
+#world-panel .world-story{
+  z-index:3;
+  left:50%;right:auto;transform:translateX(-50%);
+  max-width:calc(100% - 20px);width:max-content;
+  bottom:9px;border:1px solid #ffffff4d;
+  background:linear-gradient(110deg,#22495ccf,#3f7562cf);
+  box-shadow:0 5px 13px #19485b55;
+  font-weight:850;
+  padding:8px 14px;
+}
+#world-panel .world-plaque,#world-panel .world-tools{z-index:3}
+#village-world .empty-plot-sign{transition:filter .2s}
+#village-world .plot-interactive:hover .empty-plot-sign,
+#village-world .plot-interactive:focus-visible .empty-plot-sign{
+  filter:drop-shadow(0 0 9px #fff7ad);
+}
+#village-world .plot-name{
+  font-family:system-ui,sans-serif;font-size:11.5px;
+  stroke:#3d6556;stroke-width:2.8px;letter-spacing:.1px;
+}
+#village-world .plot-help{font-size:27px;fill:#6d563e;filter:none}
+.world-panel.night #village-world .v-garden-flowers,
+.world-panel.night #village-world .v-bush{filter:saturate(.6) brightness(.7)}
+.world-panel.night #village-world .v-firefly{filter:drop-shadow(0 0 8px #fff4a9)}
+@keyframes ant-step-a{
+  0%,100%{transform:rotate(-28deg)}
+  50%{transform:rotate(28deg)}
+}
+@keyframes ant-step-b{
+  0%,100%{transform:rotate(29deg)}
+  50%{transform:rotate(-27deg)}
+}
+@keyframes ant-bob{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-1.55px)}
+}
+@keyframes ant-antenna{
+  from{transform:rotate(-6deg)}
+  to{transform:rotate(9deg)}
+}
+@keyframes ant-cargo{
+  from{transform:rotate(-4deg)}
+  to{transform:rotate(5deg)}
+}
+@keyframes v-garden-sway{from{rotate:-1deg}to{rotate:2deg}}
+@keyframes v-butterfly-flap{from{transform:scaleX(.36)}to{transform:scaleX(1.02)}}
+@keyframes v-firefly-light{from{opacity:.2}to{opacity:1}}
+@keyframes v-pollen-drift{from{transform:translateX(-6px)}to{transform:translateX(9px)}}
+@keyframes v-bird-drift{from{transform:translateX(-12px)}to{transform:translateX(28px)}}
+@keyframes v-chimney-smoke{
+  from{opacity:.53;transform:translateY(0) scale(.8)}
+  to{opacity:0;transform:translateY(-27px) scale(1.8)}
+}
+@media(max-width:600px){
+  #world-panel{border:4px solid #fff8e9;border-radius:20px}
+  #world-panel .world-story{font-size:10px;padding:6px 10px;bottom:7px}
+}
+@media(prefers-reduced-motion:reduce){
+  #village-world .village-ant *,
+  #village-world .village-ant,
+  #village-world .v-garden-flowers,
+  #village-world .v-butterfly-wings,
+  #village-world .v-firefly,
+  #village-world .v-floating-pollen,
+  #village-world .v-bird-group,
+  #village-world .v-chimney-smoke{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+ <div class="brand"><span class="brand-icon" aria-hidden="true">🐜</span><span>ANT CANVAS <span style="opacity:.55">/</span> ANT VILLAGE</span></div>
+ <a class="return" href="https://pitilessrome-spec.github.io/ant-painting/">← Back to Puzzles</a>
+</header>
+<main>
+ <div class="eyebrow">YOUR TINY LIVING WORLD</div>
+ <h1>Welcome home, little ants.</h1>
+ <p class="lead">Every finished painting helps your village grow. Watch your ant friends wander, build colorful landmarks, open secret chests and discover magical decoration sets.</p>
+ <div class="resource-line">
+  <div class="stat"><span class="stat-icon">🪵</span><div><strong id="wood">0</strong><small>WOOD</small></div></div>
+  <div class="stat"><span class="stat-icon">🌸</span><div><strong id="petals">0</strong><small>PETALS</small></div></div>
+  <div class="stat"><span class="stat-icon">🎁</span><div><strong id="chests">0</strong><small>UNOPENED CHESTS</small></div></div>
+  <div class="stat"><span class="stat-icon">🏡</span><div><strong id="placed">0 / 8</strong><small>DECORATED PLOTS</small></div></div>
+ </div>
+ <div class="main-grid">
+  <div class="world-panel" id="world-panel">
+   <svg id="village-world" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 610" role="img" aria-label="An animated illustrated ant village with interactive building locations">
+    <rect width="960" height="610" fill="#a8e5fc"></rect>
+    <text x="480" y="305" text-anchor="middle" font-size="19" font-weight="bold" fill="#336579">Growing your ant village...</text>
+   </svg>
+   <div class="world-plaque"><small>ANT CANVAS WORLD</small>🌿 My Little Village</div>
+   <div class="world-tools"><button id="day-night" type="button" aria-pressed="false">🌙 Night</button><button id="world-sound" type="button">✨ Ants at work</button></div>
+   <div class="world-story" id="world-story" aria-live="polite">Tap a glowing plot to start building your little world.</div>
+  </div>
+  <div class="side">
+   <section class="panel">
+    <h2>🛠️ Decoration Workshop</h2>
+    <p class="sub">Select a plot on the map, then choose a building. You can upgrade each building from level 1 to level 3.</p>
+    <div class="shop-grid" id="shop"></div>
+    <div class="build-detail" id="build-detail"><b>Choose a building plot</b>Use your collected materials to create something wonderful.</div>
+    <div class="btn-row">
+     <button class="btn" id="build" type="button" disabled>Build decoration</button>
+     <button class="btn secondary" id="upgrade" type="button" disabled>Upgrade</button>
+    </div>
+    <div id="village-message" role="status" aria-live="polite">Build your first Flower Garden with materials from your first painting.</div>
+   </section>
+   <section class="panel treasure-panel">
+    <h2>🎁 Secret Treasure Chest</h2>
+    <p class="sub">Every 5 levels adds a real chest you can open for a hidden souvenir and extra materials.</p>
+    <div class="treasure-wrap">
+     <div class="chest-figure" id="chest-figure" aria-hidden="true">🧰</div>
+     <div class="chest-info"><strong id="chest-head">No unopened chests</strong><p>Play, paint and return for a surprise!</p></div>
+    </div>
+    <button id="chest-open" type="button" class="chest-open" disabled>Open a mystery chest ✨</button>
+    <div class="treasure-result" id="treasure-result" aria-live="polite"></div>
+   </section>
+  </div>
+ </div>
+ <div class="lower-grid">
+  <section class="panel">
+   <h2>🔒 Secret Souvenir Collection</h2>
+   <p class="sub">Discover six hidden keepsakes inside milestone chests. Each unopened silhouette is a mystery.</p>
+   <div id="collection" class="collection-grid" aria-label="Hidden collectible souvenirs"></div>
+  </section>
+  <section class="panel">
+   <h2>✨ Magical Village Themes</h2>
+   <p class="sub">Upgrade the two matching buildings to level 2 and unlock an exclusive village decoration set.</p>
+   <div id="combos" class="combo-list" aria-label="Three special building combinations"></div>
+  </section>
+ </div>
+ <p class="notice">Your village saves locally in this browser. Existing buildings and materials are preserved during this update. Chest contents follow a fair, deterministic cosmetic sequence; there are no payments or chance-based purchases. Cross-device Telegram saving requires the connected backend.</p>
+</main>
+<div id="reveal-modal" hidden role="dialog" aria-modal="true" aria-labelledby="reveal-title">
+ <div class="modal-card">
+  <span class="big" id="reveal-emoji">✨</span>
+  <h2 id="reveal-title">Treasure found!</h2>
+  <p id="reveal-desc"></p>
+  <button type="button" class="btn" id="reveal-close">Back to the village</button>
+ </div>
+</div>
+<script data-original-file="js/village.js">
+/* Editable source: js/village.js */
+/* ANT CANVAS – persistent, cosmetic-only ant village and reward materials. */
+(function(global){
+'use strict';
+const KEY='ant_canvas_village_editor_v1';
+const catalog=Object.freeze({
+ flower:{name:'Flower Garden',symbol:'🌼',wood:2,petals:1,description:'Your very first flowering garden'},
+ mushroom:{name:'Mushroom House',symbol:'🍄',wood:5,petals:3,description:'A cozy home for tiny ants'},
+ lantern:{name:'Firefly Lantern',symbol:'🏮',wood:8,petals:4,description:'A warm light for night visits'},
+ fountain:{name:'Rainbow Fountain',symbol:'⛲',wood:13,petals:8,description:'A sparkling village centerpiece'},
+ butterfly:{name:'Butterfly Tree',symbol:'🦋',wood:15,petals:10,description:'Attracts magical butterflies'},
+ castle:{name:'Royal Ant Palace',symbol:'🏰',wood:30,petals:20,description:'The ultimate village landmark'}
+});
+function safeGet(){try{const j=JSON.parse(localStorage.getItem(KEY)||'null');return j&&j.v===1?j:null}catch(_){return null}}
+function write(){try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(_){return false}}
+let state=safeGet()||{v:1,wood:100,petals:75,chests:2,openedChest:0,placements:{0:'flower',1:'mushroom',2:'butterfly',3:'lantern',5:'fountain',8:'castle'},upgrades:{0:2,1:2,2:1,3:2,5:1,8:1},claimedHigh:5,claimedExtra:[],last:null};
+state.placements=state.placements||{};
+if(!Number.isSafeInteger(state.claimedHigh)){
+ const old=Object.keys(state.claimed||{}).map(Number).filter(Number.isSafeInteger).sort((a,b)=>a-b);
+ let high=0;while(old.includes(high+1))high++;
+ state.claimedHigh=high;state.claimedExtra=old.filter(x=>x>high);
+ delete state.claimed;write();
+}
+state.claimedExtra=state.claimedExtra||[];
+state.upgrades=state.upgrades||{};
+state.openedChest=Number.isInteger(state.openedChest)?Math.max(0,state.openedChest):0;
+state.souvenirs=state.souvenirs||{};
+state.discovered=state.discovered||{};
+const SOUVENIRS=Object.freeze([
+ {id:'star',name:'Starlight Pebble',symbol:'⭐',description:'A shimmering keepsake from a secret chest'},
+ {id:'crystal',name:'Moon Crystal',symbol:'💎',description:'The crystal ants found under the hill'},
+ {id:'seed',name:'Rainbow Seed',symbol:'🌈',description:'A magical seed for future gardens'},
+ {id:'shell',name:'River Shell',symbol:'🐚',description:'A souvenir from the village stream'},
+ {id:'feather',name:'Golden Feather',symbol:'🪶',description:'A rare and brilliant tiny feather'},
+ {id:'compass',name:'Explorer Compass',symbol:'🧭',description:'A travel charm from an adventurous ant'}
+]);
+const COMBOS=Object.freeze([
+ {id:'garden',name:'Mushroom Meadow',symbol:'🌸',items:['flower','mushroom'],require:2,description:'A glowing garden around a cozy mushroom home'},
+ {id:'festival',name:'Lantern Festival',symbol:'🎆',items:['lantern','fountain'],require:2,description:'The village glows with colorful night lights'},
+ {id:'royal',name:'Royal Butterfly Grove',symbol:'🦋',items:['butterfly','castle'],require:2,description:'A royal garden visited by rare butterflies'}
+]);
+function getLevel(slot){return Math.max(1,Math.min(3,Number(state.upgrades[slot])||1))}
+function upgradeCost(slot){
+ const item=state.placements[slot];if(!item)return null;
+ const level=getLevel(slot);if(level>=3)return null;
+ return {wood:catalog[item].wood*level+2,petals:catalog[item].petals*level+1};
+}
+function activeCombos(){
+ return COMBOS.filter(c=>c.items.every(id=>
+   Object.keys(state.placements).some(k=>state.placements[k]===id&&getLevel(k)>=c.require)));
+}
+function refreshCombos(){
+ const newly=[];
+ for(const combo of activeCombos())if(!state.discovered[combo.id]){
+   state.discovered[combo.id]=1;newly.push(combo.id);
+ }
+ return newly;
+}
+function upgrade(slot){
+ const index=Number(slot),item=state.placements[index];
+ if(!Number.isInteger(index)||index<0||index>8||!item)return {ok:false,error:'Choose an existing building'};
+ const level=getLevel(index),cost=upgradeCost(index);
+ if(!cost)return {ok:false,error:'This building is already at level 3'};
+ if(state.wood<cost.wood||state.petals<cost.petals)return {ok:false,error:'Collect more materials to upgrade'};
+ state.wood-=cost.wood;state.petals-=cost.petals;state.upgrades[index]=level+1;
+ const combos=refreshCombos();write();
+ return {ok:true,item,level:level+1,combos};
+}
+function unopenedChests(){return Math.max(0,state.chests-state.openedChest)}
+function openChest(){
+ if(unopenedChests()===0)return {ok:false,error:'Clear more paintings. Every fifth level brings a chest!'};
+ const seq=state.openedChest,choice=SOUVENIRS[seq%SOUVENIRS.length];
+ state.openedChest++;state.souvenirs[choice.id]=(state.souvenirs[choice.id]||0)+1;
+ // Transparent, deterministic cosmetics; chests are never paid for.
+ const wood=2+(seq%3),petals=1+(seq%2);
+ state.wood+=wood;state.petals+=petals;write();
+ return {ok:true,souvenir:choice,wood,petals,remaining:unopenedChests()};
+}
+function discoveries(){
+ return {
+  items:SOUVENIRS.map(item=>Object.assign({},item,{unlocked:!!state.souvenirs[item.id],count:state.souvenirs[item.id]||0})),
+  combos:COMBOS.map(c=>Object.assign({},c,{unlocked:!!state.discovered[c.id]})),
+  active:activeCombos()
+ };
+}
+
+function alreadyAwarded(lv){return lv<=state.claimedHigh||state.claimedExtra.includes(lv)}
+function trackAward(lv){
+ if(lv===state.claimedHigh+1){
+   state.claimedHigh=lv;
+   while(state.claimedExtra.includes(state.claimedHigh+1)){
+     state.claimedHigh++;
+     state.claimedExtra=state.claimedExtra.filter(x=>x!==state.claimedHigh);
+   }
+ }else if(state.claimedExtra.length<1000)state.claimedExtra.push(lv);
+ else return false;
+ return true;
+}
+function snapshot(){return JSON.parse(JSON.stringify(state))}
+function award(lv,rarity){
+ if(!Number.isSafeInteger(lv)||lv<1||alreadyAwarded(lv))return null;
+ // The caller must verify a FIRST-TIME local level completion.
+ if(!trackAward(lv))return null;
+ let wood=2,petals=1;
+ const r=rarity&&rarity.id||'common';
+ if(r==='rare'){wood+=3;petals+=1}
+ if(r==='epic'){wood+=5;petals+=3}
+ if(r==='legendary'){wood+=12;petals+=6}
+ const chest=lv%5===0;
+ if(chest){wood+=7;petals+=4;state.chests++}
+ state.wood+=wood;state.petals+=petals;
+ state.last={lv,wood,petals,chest,rarity:r};
+ write();
+ return state.last;
+}
+function place(slot,item){
+ const index=Number(slot);
+ if(!Number.isInteger(index)||index<0||index>8)return {ok:false,error:'Invalid plot'};
+ const it=catalog[item];
+ if(!it)return {ok:false,error:'Choose a decoration'};
+ if(state.placements[index])return {ok:false,error:'This plot is already decorated'};
+ if(state.wood<it.wood||state.petals<it.petals)return {ok:false,error:'Not enough materials yet. Clear more paintings!'};
+ state.wood-=it.wood;state.petals-=it.petals;
+ state.placements[index]=item;state.upgrades[index]=1;refreshCombos();write();
+ return {ok:true,item};
+}
+function count(){return Object.keys(state.placements).length}
+global.AntVillage=Object.freeze({award,place,upgrade,upgradeCost,getLevel,openChest,unopenedChests,discoveries,snapshot,count,catalog,COMBOS,SOUVENIRS});
+})(typeof window==='undefined'?globalThis:window);
+
+</script>
+<script data-original-file="js/village-scene.js">
+/* Editable source: js/village-scene.js */
+/* ANT CANVAS illustrated village — SVG world and moving residents. */
+(function(){
+'use strict';
+const svg=document.getElementById('village-world');if(!svg)return;
+const points=[{id:0,x:165,y:267},{id:1,x:401,y:225},{id:2,x:751,y:268},{id:3,x:166,y:426},{id:5,x:788,y:424},{id:6,x:268,y:539},{id:7,x:502,y:531},{id:8,x:753,y:544}];
+const routes=['M476 393Q365 325 168 269','M476 390Q446 299 401 225','M478 399Q608 303 753 266','M467 412Q325 406 166 428','M496 412Q633 423 788 426','M478 425Q381 510 268 540','M487 422Q495 490 502 532','M503 425Q644 532 753 542'];
+function flower(x,y,c,s){
+ const colors=[c,'#ffed91','#c6a4f4'];let p='';
+ for(let i=0;i<5;i++){let a=i*Math.PI*2/5;p+='<circle cx="'+(Math.cos(a)*5.7).toFixed(2)+'" cy="'+(-15+Math.sin(a)*5.7).toFixed(2)+'" r="5" fill="'+colors[i%3]+'"/>';}
+ return '<g class="flower" transform="translate('+x+' '+y+') scale('+(s||1)+')"><path d="M0 0V-15" stroke="#459461" stroke-width="3"/>'+p+'<circle cy="-15" r="3.4" fill="#fff4ad"/></g>';
+}
+function tree(x,y,s){
+ return '<g transform="translate('+x+' '+y+') scale('+(s||1)+')" filter="url(#v-shadow)"><path d="M-8 0L-6 -77H9L7 0Z" fill="#a67656"/><circle cx="-24" cy="-80" r="29" fill="#65bb7e" stroke="#429b70" stroke-width="4"/><circle cx="6" cy="-96" r="35" fill="#90db9f" stroke="#49a97b" stroke-width="4"/><circle cx="33" cy="-80" r="29" fill="#5eba80" stroke="#48a374" stroke-width="4"/><path d="M-27 -102Q-7 -123 11 -110" stroke="#c5f6bc" stroke-width="7" fill="none" stroke-linecap="round" opacity=".8"/></g>';
+}
+function ant(path,start,color,job=0){
+ // Six independently alternating articulated legs, antennae and three body segments.
+ // SVG animateMotion follows the curved road, including heading when returning home.
+ const upper=(x,phase)=>'<g transform="translate('+x+' -3)"><g class="ant-leg '+(phase?'ant-step-b':'ant-step-a')+'"><animateTransform attributeName="transform" type="rotate" values="'+(phase?'-22;24;-22':'22;-23;22')+'" dur=".42s" repeatCount="indefinite"/><path d="M0 0L-2 -8L'+(x<0?-8:7)+' -12" fill="none" stroke="#4b344d" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+(x<0?-8:7)+'" cy="-12" r="1.8" fill="#60475c"/></g></g>';
+ const lower=(x,phase)=>'<g transform="translate('+x+' 4)"><g class="ant-leg '+(phase?'ant-step-b':'ant-step-a')+'"><animateTransform attributeName="transform" type="rotate" values="'+(phase?'23;-22;23':'-22;23;-22')+'" dur=".42s" repeatCount="indefinite"/><path d="M0 0L-3 9L'+(x<0?-10:8)+' 13" fill="none" stroke="#47334b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+(x<0?-10:8)+'" cy="13" r="1.7" fill="#60415b"/></g></g>';
+ const gear=job%3===0?
+   '<g class="ant-cargo" transform="translate(-16 -10)"><path d="M0 2Q-11 -13 -19 -9Q-14 6 0 2" fill="#87d993" stroke="#3a977a" stroke-width="1.6"/><path d="M-1 2L-14 -7" stroke="#e4ffd6" stroke-width="1.5"/></g>':
+   job%3===1?
+   '<g class="ant-cargo"><circle cx="-16" cy="-12" r="6" fill="#ffa4a6" stroke="#fbd3b1" stroke-width="2"/><path d="M-16 -18Q-19 -23 -22 -18" stroke="#70a973" stroke-width="2" fill="none"/></g>':
+   '<g class="ant-cargo" transform="translate(-15 -11)"><path d="M-10 -2L-7 -9H7L10 -2V5H-10Z" fill="#e2aa64" stroke="#96613e" stroke-width="2"/><path d="M-10 -2H10" stroke="#ffe1a3" stroke-width="2"/></g>';
+ return '<g class="resident village-ant" aria-label="Worker ant walking along the village road">'+
+  '<animateMotion dur="'+(17+job%3*2)+'s" begin="'+start+'s" path="'+path+'" keyPoints="0;1;0" keyTimes="0;0.5;1" calcMode="linear" rotate="auto" repeatCount="indefinite"/>'+
+  '<g transform="scale(1.35)">'+
+  '<ellipse cx="-1" cy="9" rx="25" ry="6" fill="#235d4c" opacity=".24"/>'+
+  '<g class="ant-bob">'+
+  upper(-8,0)+upper(1,1)+upper(7,0)+lower(-8,1)+lower(1,0)+lower(7,1)+
+  '<path d="M-13 0L-2 -1L8 -2" fill="none" stroke="#49354a" stroke-width="5.5" stroke-linecap="round"/>'+
+  '<ellipse cx="-15" cy="0" rx="11.5" ry="9.2" fill="'+color+'" stroke="#483646" stroke-width="2"/>'+
+  '<ellipse cx="-19" cy="-4" rx="5.2" ry="2.3" fill="#e9d2c6" opacity=".38" transform="rotate(-20 -19 -4)"/>'+
+  '<ellipse cx="-1" cy="-1" rx="6.8" ry="6.7" fill="#9d6675" stroke="#483646" stroke-width="2"/>'+
+  '<ellipse cx="11" cy="-4" rx="9" ry="8.4" fill="#b27785" stroke="#483646" stroke-width="2.3"/>'+
+  '<ellipse cx="10" cy="-7.9" rx="6" ry="2.3" fill="#f4c3b1" opacity=".44" transform="rotate(-15 10 -8)"/>'+
+  gear+
+  '<g class="ant-feelers"><path d="M14 -10Q18 -24 23 -25M17 -9Q27 -19 32 -17" stroke="#5c3b53" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="23" cy="-25" r="2.5" fill="#c18e94"/><circle cx="32" cy="-17" r="2.5" fill="#c18e94"/></g>'+
+  '<circle cx="16" cy="-7" r="3.4" fill="#fffdf8"/><circle cx="17" cy="-6.7" r="1.7" fill="#3b3549"/>'+
+  '<circle cx="18" cy="-8.6" r=".7" fill="#fff"/>'+
+  '<path d="M17 -1Q21 2 24 -2" stroke="#5c3c53" stroke-width="1.5" fill="none"/>'+
+  '</g></g></g>';
+}
+function base(){
+ let s='<defs>'+
+ '<linearGradient id="v-sky" x2="0" y2="1"><stop stop-color="#70b7ef"/><stop offset="1" stop-color="#e0f9f2"/></linearGradient>'+
+ '<linearGradient id="v-night" x2="0" y2="1"><stop stop-color="#182a60"/><stop offset="1" stop-color="#5a6cba"/></linearGradient>'+
+ '<linearGradient id="v-grass" x2="0" y2="1"><stop stop-color="#b7ec91"/><stop offset="1" stop-color="#53b67a"/></linearGradient>'+
+ '<linearGradient id="v-water" x2="0" y2="1"><stop stop-color="#d0faff"/><stop offset="1" stop-color="#4db5e5"/></linearGradient>'+
+ '<linearGradient id="v-roof" x2="0" y2="1"><stop stop-color="#ffb38e"/><stop offset="1" stop-color="#d66382"/></linearGradient>'+
+ '<linearGradient id="v-gold" x2="0" y2="1"><stop stop-color="#fff5a5"/><stop offset="1" stop-color="#f4af53"/></linearGradient>'+
+ '<filter id="v-shadow" x="-40%" y="-50%" width="180%" height="220%"><feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#347462" flood-opacity=".43"/></filter>'+
+ '</defs>'+
+ '<rect class="sky-day" width="960" height="610" fill="url(#v-sky)"/><rect class="sky-night" width="960" height="610" fill="url(#v-night)" opacity="0"/>'+
+ '<g class="is-day-only"><circle class="sun" cx="793" cy="95" r="50" fill="#fff1b3" opacity=".3"/><circle cx="793" cy="95" r="34" fill="#ffeca1" stroke="#fff6c5" stroke-width="7"/></g>'+
+ '<g class="is-night-only"><circle cx="787" cy="95" r="32" fill="#fff0be"/><circle cx="801" cy="79" r="30" fill="#455490"/>'+
+ Array.from({length:20},(_,i)=>'<circle class="firefly" cx="'+(50+i*48%865)+'" cy="'+(18+i*53%174)+'" r="2.7" fill="#fffbe1"/>').join('')+'</g>'+
+ '<g fill="#fff" opacity=".87"><ellipse cx="156" cy="96" rx="68" ry="20"/><circle cx="124" cy="82" r="23"/><circle cx="173" cy="73" r="30"/><ellipse cx="610" cy="132" rx="82" ry="18"/><circle cx="583" cy="109" r="27"/><circle cx="633" cy="109" r="30"/></g>'+
+ '<path d="M0 270Q144 137 288 231Q459 111 612 228Q779 121 960 230V610H0Z" fill="#c4e8ca"/>'+
+ '<path d="M0 322Q145 233 290 287Q456 208 640 296Q811 211 960 310V610H0Z" fill="#91d7b0"/>'+
+ '<path d="M0 360Q178 277 353 344Q518 271 725 343Q876 277 960 339V610H0Z" fill="url(#v-grass)"/>'+
+ '<path d="M-10 520Q145 449 318 500Q505 557 672 482Q795 435 970 516V620H-10Z" fill="#43a879" opacity=".5"/>'+
+ '<path d="M958 300Q778 313 702 388Q668 430 642 504Q618 560 586 620" stroke="#e3facd" stroke-width="96" fill="none"/>'+
+ '<path d="M958 300Q778 313 702 388Q668 430 642 504Q618 560 586 620" stroke="url(#v-water)" stroke-width="62" fill="none" stroke-linecap="round"/>'+
+ '<path class="water-streak" d="M941 319Q763 340 701 405Q662 466 614 572" stroke="#ddfdff" stroke-width="7" stroke-dasharray="16 20" fill="none"/>'+
+ routes.map(r=>'<path d="'+r+'" stroke="#f6e9c5" fill="none" stroke-width="25" stroke-linecap="round"/><path d="'+r+'" stroke="#d1b78b" fill="none" stroke-width="3" stroke-dasharray="2 15" stroke-linecap="round"/>').join('')+
+ '<path d="M641 456L710 472L696 491L629 472Z" fill="#a87757" stroke="#805c43" stroke-width="4"/><path d="M637 464L702 481M632 469L697 486" stroke="#e8c294" stroke-width="4"/>'+
+ tree(32,356,1.02)+tree(933,352,1.04)+tree(70,559,.85)+tree(907,572,.75)+tree(316,190,.56)+tree(580,205,.5)+
+ [[62,450,'#ffaac7'],[123,338,'#ffd18e'],[319,413,'#c8acff'],[589,313,'#ffeb8e'],[878,430,'#ff9ab9'],[349,574,'#ffe1a4'],[835,552,'#c5a9ff'],[525,468,'#ffc78b']].map(q=>flower(q[0],q[1],q[2],.8)).join('')+
+ '<g transform="translate(486 394)" filter="url(#v-shadow)"><ellipse cy="18" rx="106" ry="29" fill="#397c56" opacity=".35"/>'+
+ '<path d="M-64 17V-39Q-59 -85 0 -93Q59 -84 64 -39V17Z" fill="#ffe4ae" stroke="#ba8a67" stroke-width="5"/>'+
+ '<path d="M-85 -40L-8 -110Q0 -118 8 -110L85 -40Q71 -16 56 -33L0 -81L-60 -29Q-72 -21 -85 -40Z" fill="url(#v-roof)" stroke="#aa6271" stroke-width="6" stroke-linejoin="round"/>'+
+ '<path d="M-24 18V-19Q-24 -46 0 -47Q24 -46 24 -19V18Z" fill="#86594e" stroke="#6b4d48" stroke-width="4"/>'+
+ '<circle cx="-46" cy="-23" r="13" fill="#a5e7f7" stroke="#fff7d1" stroke-width="5"/><circle cx="47" cy="-23" r="13" fill="#a5e7f7" stroke="#fff7d1" stroke-width="5"/>'+
+ '<rect x="-12" y="-100" width="24" height="14" rx="3" fill="#fff5c8"/><text y="42" text-anchor="middle" font-weight="950" font-size="16" fill="#fff" stroke="#406c60" stroke-width="3" paint-order="stroke">ANT HOME</text></g>'+
+ '<g id="village-residents">'+routes.slice(0,7).map((r,i)=>ant(r,-i*2.4,['#69516a','#775b78','#695371'][i%3],i)).join('')+'</g>'+
+ '<g id="village-buildings"></g><g id="village-combo-effects"></g>';
+ svg.innerHTML=s;
+}
+function structure(name,level){
+ const enhanced=level>=2,royal=level>=3;
+ let s='';
+ if(name==='flower'){
+  s='<ellipse rx="59" ry="19" fill="#65b47d" stroke="#b2f3ae" stroke-width="4"/>'+
+  flower(-31,-5,'#ff9fc5',1.2)+flower(-7,-9,'#ffec81',1.45)+flower(22,-3,'#b4a2f4',1.2)+flower(45,-4,'#ff8eae',1.1);
+  if(enhanced)s+=flower(-49,1,'#a2defd',.85)+flower(49,1,'#fff2b5',.85);
+  if(royal)s+='<path d="M0 -25V-72" stroke="#987357" stroke-width="5"/><path class="building-flag" d="M0 -72L34 -61L0 -52Z" fill="#ffdc74"/>';
+ }else if(name==='mushroom'){
+  s='<path d="M-32 0V-53Q0 -70 31 -53V0Z" fill="#fff0d3" stroke="#c69b82" stroke-width="4"/>'+
+  '<path d="M-56 -47Q-46 -112 0 -114Q46 -112 56 -47Q45 -26 30 -44Q0 -57 -29 -44Q-44 -25 -56 -47Z" fill="url(#v-roof)" stroke="#bb5e78" stroke-width="5"/>'+
+  '<ellipse cx="-20" cy="-74" rx="12" ry="7" fill="#fffce3" transform="rotate(-20 -20 -74)"/>'+
+  '<ellipse cx="18" cy="-86" rx="13" ry="7" fill="#fffce3"/><path d="M-14 0V-21Q-12 -41 0 -41Q14 -41 14 -21V0Z" fill="#936d5c"/>';
+  if(enhanced)s+=flower(43,0,'#ffd9ea',.9);
+  if(royal)s+='<circle class="firefly" cx="0" cy="-119" r="9" fill="#fff2a7"/>';
+ }else if(name==='lantern'){
+  s='<path d="M-7 0V-94H7V0Z" fill="#b77d54" stroke="#916044" stroke-width="4"/>'+
+  '<path d="M-27 -94Q0 -121 27 -94L17 -59H-17Z" fill="#d97386" stroke="#a85873" stroke-width="4"/>'+
+  '<path d="M-15 -91V-67H15V-91Z" fill="#ffeda0" stroke="#fff2cb" stroke-width="3"/>'+
+  '<circle cy="-78" r="38" fill="#ffea8c" opacity=".22"/>';
+  if(enhanced)s+='<circle class="firefly" cx="-31" cy="-77" r="7" fill="#fff1a6"/>';
+  if(royal)s+='<circle class="firefly" cx="35" cy="-77" r="7" fill="#fff1a6"/>';
+ }else if(name==='fountain'){
+  s='<ellipse rx="62" ry="21" cy="-8" fill="#e2f4fc" stroke="#a6cbe0" stroke-width="6"/>'+
+  '<ellipse rx="47" ry="14" cy="-12" fill="#69c7ed"/><path d="M-6 -13V-74H6V-13Z" fill="#eaf1e8" stroke="#acc6ce" stroke-width="3"/>'+
+  '<ellipse rx="26" ry="10" cy="-75" fill="#d4eff4" stroke="#fff" stroke-width="3"/>'+
+  '<path d="M0 -74Q-41 -107 -42 -40M0 -74Q41 -107 42 -40" stroke="#a6ebff" stroke-width="5" fill="none"/>';
+  if(enhanced)s+='<path d="M-11 -81Q-56 -115 -53 -44M11 -81Q56 -115 53 -44" stroke="#eaffff" stroke-width="3" fill="none"/>';
+  if(royal)s+='<circle class="firefly" cy="-114" r="9" fill="#fff2ae"/>';
+ }else if(name==='butterfly'){
+  s=tree(0,0,.78)+'<path d="M-15 -75Q-36 -104 -48 -83Q-45 -65 -15 -75M-15 -75Q-3 -110 18 -102Q23 -79 -15 -75" fill="#df92e7" stroke="#fff" stroke-width="2"/>'+
+  '<path d="M20 -67Q49 -99 54 -73Q44 -58 20 -67M20 -67Q-1 -91 -10 -67Q-2 -48 20 -67" fill="#92c6f0" stroke="#fff" stroke-width="2"/>';
+  if(enhanced)s+='<circle class="firefly" cx="-4" cy="-107" r="8" fill="#fff1a7"/>';
+  if(royal)s+='<circle class="firefly" cx="31" cy="-90" r="8" fill="#fff1a7"/>';
+ }else if(name==='castle'){
+  s='<path d="M-48 0V-73H48V0Z" fill="#f5e4c8" stroke="#abb2b8" stroke-width="5"/>'+
+  '<path d="M-65 0V-105H-31V0M31 0V-105H65V0" fill="#f4e1c9" stroke="#abb2b8" stroke-width="4"/>'+
+  '<path d="M-66 -101V-118H-51V-109H-42V-118H-29V-101M30 -101V-118H44V-109H53V-118H67V-101" fill="#fff0d6" stroke="#abb2b8" stroke-width="4"/>'+
+  '<path d="M-19 0V-29Q0 -56 19 -29V0Z" fill="#8f7471"/>'+
+  '<path d="M-20 -76L0 -103L20 -76Z" fill="#d9869c"/>';
+  if(enhanced)s+='<path d="M0 -105V-139" stroke="#a08764" stroke-width="5"/><path class="building-flag" d="M0 -139L37 -130L0 -119Z" fill="#ffdb76"/>';
+  if(royal)s+='<circle class="firefly" cx="-49" cy="-127" r="7" fill="#fff1aa"/><circle class="firefly" cx="50" cy="-127" r="7" fill="#fff1aa"/>';
+ }
+ return s;
+}
+function plot(x,state,selected){
+ const name=state.placements[x.id],level=Number(state.upgrades[x.id])||1,built=!!name;
+ const label=built?window.AntVillage.catalog[name].name:'Build here';
+ return '<g class="plot-interactive'+(selected===x.id?' selected':'')+'" data-plot="'+x.id+'" tabindex="0" role="button" aria-label="'+label+', plot '+(x.id+1)+'" transform="translate('+x.x+' '+x.y+')">'+
+ '<ellipse rx="52" ry="18" cy="7" fill="#39855a" opacity=".26"/>'+
+ '<ellipse class="plot-glow" rx="50" ry="17" cy="4" fill="'+(selected===x.id?'#fff3ab':'#9fe0a2')+'" stroke="'+(selected===x.id?'#fff5a7':'#c9f5c1')+'" stroke-width="'+(selected===x.id?6:2)+'" opacity="'+(built?'.56':'.40')+'"/>'+
+ (built?'<g filter="url(#v-shadow)">'+structure(name,level)+'</g>':
+  '<g class="empty-plot-sign" filter="url(#v-shadow)"><path d="M0 -3V-31" stroke="#956344" stroke-width="5" stroke-linecap="round"/>'+
+  '<path d="M-27 -46Q0 -51 27 -46L27 -21Q0 -17 -27 -21Z" fill="#edc18e" stroke="#ad7b54" stroke-width="3" stroke-linejoin="round"/>'+
+  '<path d="M-20 -39Q0 -42 19 -39" fill="none" stroke="#fff0bb" stroke-width="2" opacity=".8"/>'+
+  '<text x="0" y="-26" class="plot-help">+</text>'+
+  '<path d="M-31 4l-5 -7m9 3l-1 -9M34 5l3 -7m-11 4l-1 -6" stroke="#d9f7bd" stroke-width="2" stroke-linecap="round"/>'+
+  '</g>')+
+ (built&&level>=2?'<text class="plot-level" y="-132">'+('★'.repeat(level))+'</text>':'')+
+ (built?'<text class="plot-name" y="34">'+label+'</text>':'')+'</g>';
+}
+function render(state,selected){
+ const b=svg.querySelector('#village-buildings');if(b)b.innerHTML=points.map(p=>plot(p,state,selected)).join('');
+ const fx=svg.querySelector('#village-combo-effects');
+ if(fx&&window.AntVillage){
+  const active=window.AntVillage.discoveries().active;
+  fx.innerHTML=active.map((c,i)=>'<g class="is-night-only"><circle class="firefly" cx="'+(328+i*162)+'" cy="'+(352+i*19)+'" r="13" fill="#fff4a4" opacity=".4"/><text x="'+(314+i*165)+'" y="'+(322+i*18)+'" font-size="27">'+c.symbol+'</text></g>').join('');
+ }
+}
+function setNight(on){document.getElementById('world-panel').classList.toggle('night',!!on);return !!on}
+function onSelect(fn){
+ svg.addEventListener('click',e=>{const target=e.target.closest('[data-plot]');if(target)fn(Number(target.getAttribute('data-plot')))});
+ svg.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const target=e.target.closest('[data-plot]');if(target){e.preventDefault();fn(Number(target.getAttribute('data-plot')))}}});
+}
+base();window.AntVillageScene=Object.freeze({render,setNight,onSelect});
+})();
+
+</script>
+<script data-original-file="js/village-ambience.js">
+/* Editable source: js/village-ambience.js */
+/* ANT CANVAS village atmosphere — details drawn inside the actual playable world. */
+(function(){
+'use strict';
+const svg=document.getElementById('village-world');
+const anchor=svg&&svg.querySelector('#village-residents');
+if(!anchor)return;
+const NS='http://www.w3.org/2000/svg';
+const ambient=document.createElementNS(NS,'g');
+ambient.id='village-ambience';
+ambient.setAttribute('pointer-events','none');
+function flowers(x,y,s){
+ let petals='';
+ const colors=['#ffb0cc','#ffdd7b','#b6b3ef','#93e1da'];
+ for(let i=0;i<7;i++){
+   const a=i*Math.PI/4,px=Math.cos(a)*20,py=Math.sin(a)*7;
+   petals+='<path d="M'+px+' 1v-13" stroke="#408d65" stroke-width="2"/><circle cx="'+px+'" cy="'+(py-13)+'" r="5" fill="'+colors[i%4]+'" stroke="#fff8c9" stroke-width="1.5"/>';
+ }
+ return '<g class="v-garden-flowers" transform="translate('+x+' '+y+') scale('+s+')"><ellipse cy="7" rx="40" ry="12" fill="#3f9667" opacity=".34"/>'+petals+'</g>';
+}
+function bush(x,y,s){
+ return '<g class="v-bush" transform="translate('+x+' '+y+') scale('+s+')"><ellipse cy="4" rx="46" ry="13" fill="#367b5b" opacity=".22"/>'+
+ '<ellipse cx="-21" cy="-9" rx="21" ry="18" fill="#4fa87d" stroke="#378a72" stroke-width="2"/>'+
+ '<ellipse cx="5" cy="-22" rx="26" ry="22" fill="#85d4a1" stroke="#4bad83" stroke-width="2"/>'+
+ '<ellipse cx="27" cy="-7" rx="21" ry="17" fill="#66c48f" stroke="#459b78" stroke-width="2"/>'+
+ '<path d="M-12 -29Q6 -45 20 -29" stroke="#bff6c1" stroke-width="6" fill="none" opacity=".8" stroke-linecap="round"/></g>';
+}
+function lantern(x,y,s){
+ return '<g transform="translate('+x+' '+y+') scale('+s+')"><ellipse cy="4" rx="17" ry="6" fill="#377d60" opacity=".3"/>'+
+ '<path d="M0 0V-49" stroke="#956647" stroke-width="6" stroke-linecap="round"/>'+
+ '<path d="M-18 -48L0 -64L18 -48L13 -25H-13Z" fill="#c57988" stroke="#985e70" stroke-width="3"/>'+
+ '<path d="M-12 -47H12V-31H-12Z" fill="#ffdf91" stroke="#fff7c9" stroke-width="2"/>'+
+ '<circle class="v-lantern-glow is-night-only" cx="0" cy="-40" r="35" fill="#ffe69f" opacity=".22"/></g>';
+}
+function fence(x,y,s){
+ const posts=[-61,-36,-11,14,39,64].map(function(dx){
+  return '<path d="M'+(dx-6)+' 11V-22L'+dx+' -31L'+(dx+6)+' -22V11Z" />';
+ }).join('');
+ return '<g transform="translate('+x+' '+y+') scale('+s+')" fill="#fff3da" stroke="#c7a77e" stroke-width="2.5">'+
+ '<path d="M-71 -13Q0 -23 71 -13M-71 4Q0 -5 71 4" fill="none" stroke="#af825b" stroke-width="7"/>'+posts+'</g>';
+}
+function butterfly(x,y,col,d,phase){
+ return '<g class="v-butterfly"><animateMotion path="M'+x+' '+y+'Q'+(x+36)+' '+(y-20)+' '+(x+40)+' '+(y+13)+'Q'+(x+12)+' '+(y+22)+' '+x+' '+y+'" dur="'+d+'s" begin="'+phase+'s" rotate="auto" repeatCount="indefinite"/>'+
+ '<g class="v-butterfly-wings"><path d="M0 0Q-22 -20 -24 -2Q-21 14 0 2Q22 -20 24 -2Q20 14 0 2Z" fill="'+col+'" stroke="#fff6dc" stroke-width="2"/>'+
+ '<path d="M0 -6Q-6 -12 -10 -10M0 -6Q6 -12 10 -10" stroke="#58466a" stroke-width="2" fill="none"/><ellipse rx="2.7" ry="9" fill="#62465c"/></g></g>';
+}
+function reeds(x,y){
+ return '<g transform="translate('+x+' '+y+')"><path d="M-8 0Q-12 -20 -5 -32M0 0Q5 -25 7 -40M7 0Q17 -16 16 -25" stroke="#4c9a75" stroke-width="4" fill="none" stroke-linecap="round"/>'+
+ '<ellipse cx="7" cy="-40" rx="4" ry="10" fill="#b59a65"/><ellipse cx="-5" cy="-32" rx="3" ry="8" fill="#b59a65"/></g>';
+}
+const plants=[[62,373,1],[922,372,1],[64,581,1.12],[896,577,1],[337,287,.57],[573,276,.52]].map(function(p){return bush(p[0],p[1],p[2])}).join('')+
+ [[119,375,.83],[324,479,.72],[587,484,.71],[828,491,.76],[350,562,.8],[88,438,.68]].map(function(p){return flowers(p[0],p[1],p[2])}).join('');
+const rocks=[[150,478],[285,407],[572,446],[813,561],[94,516]].map(function(p){
+ return '<g transform="translate('+p[0]+' '+p[1]+')"><ellipse rx="18" ry="8" fill="#bccbb9" stroke="#eaf1da" stroke-width="2"/><path d="M-9 -3Q0 -7 9 -3" stroke="#e7f2e6" stroke-width="2" fill="none"/></g>';
+}).join('');
+const pollen=Array.from({length:22},function(_,i){
+ const x=23+(i*101)%915,y=275+(i*79)%291;
+ if((x>350&&x<610&&y>305&&y<487)||(x>650&&x<900&&y>339&&y<550))return '';
+ return '<ellipse cx="'+x+'" cy="'+y+'" rx="4" ry="2" fill="'+(i%3?'#dcf8bc':'#fff1a6')+'" opacity=".7" transform="rotate('+(i*29%150)+' '+x+' '+y+')"/>';
+}).join('');
+ambient.innerHTML=
+ '<g class="v-floating-pollen">'+pollen+'</g>'+plants+rocks+
+ fence(93,504,.83)+fence(883,497,.72)+
+ lantern(351,359,.78)+lantern(617,353,.78)+
+ reeds(690,367)+reeds(765,377)+reeds(699,510)+
+ '<g class="v-water-garden"><ellipse cx="818" cy="344" rx="24" ry="8" fill="#71c58d" stroke="#c1f1b5" stroke-width="2"/>'+
+ '<circle cx="812" cy="340" r="5" fill="#ffabc9"/><ellipse cx="675" cy="454" rx="20" ry="7" fill="#76c98b" stroke="#cff4b8" stroke-width="2"/>'+
+ '<circle cx="668" cy="451" r="4" fill="#ffdf82"/></g>'+
+ '<g transform="translate(488 486)"><path d="M0 0V-31" stroke="#906947" stroke-width="7"/>'+
+ '<path d="M-72 -56Q0 -64 72 -56L69 -28Q0 -20 -69 -28Z" fill="#edc98e" stroke="#9c744d" stroke-width="4"/>'+
+ '<path d="M-60 -49Q0 -53 57 -49" fill="none" stroke="#fff0be" stroke-width="2"/>'+
+ '<text x="0" y="-34" font-size="13" font-family="system-ui" font-weight="900" fill="#76553c" text-anchor="middle">HAPPY ANT VILLAGE</text></g>'+
+ '<g class="v-bird-group" stroke="#f7fff8" stroke-width="3" fill="none" stroke-linecap="round" opacity=".88">'+
+ '<path d="M331 80q11 -11 22 0q11 -11 22 0"/><path d="M368 103q8 -9 17 0q8 -9 17 0"/>'+
+ '<path d="M650 62q12 -13 25 0q11 -13 23 0"/></g>'+
+ butterfly(266,127,'#ffb9e8',6,-2)+butterfly(689,206,'#ffdc81',7,-4)+butterfly(120,400,'#a0deff',8,-3)+
+ '<g class="is-night-only"><circle class="v-firefly" cx="420" cy="320" r="6" fill="#ffe795"/>'+
+ '<circle class="v-firefly" cx="554" cy="358" r="6" fill="#ffe795"/>'+
+ '<circle class="v-firefly" cx="267" cy="486" r="5" fill="#ffe795"/></g>';
+anchor.parentNode.insertBefore(ambient,anchor);
+const home=svg.querySelector('g[transform="translate(486 394)"]');
+if(home)home.insertAdjacentHTML('beforeend',
+ '<g class="v-home-details"><path d="M-57 -45V-106H-40V-65" fill="#ae806b" stroke="#8d5e64" stroke-width="3"/>'+
+ '<rect x="-62" y="-113" width="26" height="10" rx="2" fill="#f6ddc0" stroke="#b0856b" stroke-width="2"/>'+
+ '<circle class="v-chimney-smoke a" cx="-51" cy="-126" r="7" fill="#fff" opacity=".65"/>'+
+ '<circle class="v-chimney-smoke b" cx="-54" cy="-139" r="9" fill="#fff" opacity=".38"/>'+
+ '<path d="M-11 -98V-115" stroke="#a97a60" stroke-width="5"/>'+
+ '<path class="building-flag" d="M-11 -116L22 -108L-11 -99Z" fill="#ffda87" stroke="#fff2c4" stroke-width="2"/></g>');
+window.AntVillageAmbience=Object.freeze({ready:true});
+})();
+</script>
+<script data-original-file="js/village-page.js">
+/* Editable source: js/village-page.js */
+/* ANT CANVAS Village V2 — construction, building upgrades, collectible chests. */
+(function(){
+'use strict';
+const V=window.AntVillage,S=window.AntVillageScene;
+if(!V||!S)return;
+const $=id=>document.getElementById(id);
+let selectedPlot=null,selectedItem=null,night=false;
+function announce(message){
+ $('village-message').textContent=message;
+ $('world-story').textContent=message;
+}
+function showCollectible(title,emoji,desc){
+ $('reveal-title').textContent=title;
+ $('reveal-emoji').textContent=emoji;
+ $('reveal-desc').textContent=desc;
+ $('reveal-modal').hidden=false;
+ $('reveal-close').focus();
+}
+function render(){
+ const st=V.snapshot(),catalog=V.catalog;
+ $('wood').textContent=st.wood.toLocaleString();
+ $('petals').textContent=st.petals.toLocaleString();
+ $('chests').textContent=V.unopenedChests().toLocaleString();
+ $('placed').textContent=V.count()+' / 8';
+ S.render(st,selectedPlot);
+ const shop=$('shop');shop.replaceChildren();
+ for(const [id,item]of Object.entries(catalog)){
+  const btn=document.createElement('button');btn.type='button';
+  btn.className='item'+(selectedItem===id?' selected':'');
+  btn.setAttribute('aria-pressed',String(selectedItem===id));
+  const emoji=document.createElement('span');emoji.className='item-emoji';emoji.textContent=item.symbol;
+  const title=document.createElement('span');title.className='item-name';title.textContent=item.name;
+  const cost=document.createElement('span');cost.className='item-cost';cost.textContent='🪵 '+item.wood+' · 🌸 '+item.petals;
+  btn.append(emoji,title,cost);
+  btn.addEventListener('click',()=>{selectedItem=id;render()});shop.appendChild(btn);
+ }
+ const item=selectedItem?catalog[selectedItem]:null;
+ const existing=selectedPlot===null?null:st.placements[selectedPlot];
+ const cost=existing?V.upgradeCost(selectedPlot):null;
+ const build=$('build'),upgrade=$('upgrade');
+ build.disabled=selectedPlot===null||!item||!!existing;
+ upgrade.disabled=!existing||!cost;
+ if(!existing&&selectedPlot!==null&&item){
+  $('build-detail').innerHTML='<b>Plot '+(selectedPlot+1)+' · '+item.name+'</b>'+item.description+' · Build with '+item.wood+' wood and '+item.petals+' petals.';
+  build.textContent='Build '+item.name;
+ }else if(existing){
+  const lv=V.getLevel(selectedPlot);
+  $('build-detail').innerHTML='<b>'+catalog[existing].name+' · Level '+lv+' / 3</b>'+catalog[existing].description+(cost?' · Upgrade: '+cost.wood+' wood + '+cost.petals+' petals.':' · Fully upgraded!');
+  build.textContent='Plot already built';
+ }else{
+  $('build-detail').innerHTML='<b>Choose an empty plot</b>Select a glowing space in the village and choose a building from the workshop.';
+  build.textContent='Build decoration';
+ }
+ upgrade.textContent=cost?'Upgrade to Lv.'+(V.getLevel(selectedPlot)+1)+' ✨':'Upgrade maxed';
+ const available=V.unopenedChests(),open=$('chest-open');
+ $('chest-head').textContent=available?available+' unopened chest'+(available!==1?'s':''):'No unopened chests';
+ $('chest-figure').setAttribute('aria-disabled',String(!available));open.disabled=!available;
+ const discoveries=V.discoveries();
+ const collection=$('collection');collection.replaceChildren();
+ for(const thing of discoveries.items){
+  const tile=document.createElement('div');tile.className='collectible'+(thing.unlocked?'':' locked');
+  const ico=document.createElement('span');ico.className='symbol';ico.textContent=thing.unlocked?thing.symbol:'❔';
+  const name=document.createElement('b');name.textContent=thing.unlocked?thing.name:'Hidden treasure';
+  tile.title=thing.unlocked?thing.description:'Unlock by opening milestone chests';
+  tile.append(ico,name);collection.appendChild(tile);
+ }
+ const combos=$('combos');combos.replaceChildren();
+ for(const combo of discoveries.combos){
+  const card=document.createElement('div');card.className='combo'+(combo.unlocked?' unlocked':'');
+  const emoji=document.createElement('span');emoji.className='combo-icon';emoji.textContent=combo.symbol;
+  const title=document.createElement('b');title.textContent=combo.unlocked?combo.name:'??? '+combo.name;
+  const desc=document.createElement('span');desc.textContent=combo.unlocked?combo.description:'Upgrade '+combo.items.map(i=>catalog[i].name).join(' + ')+' to Lv.2';
+  card.append(emoji,title,desc);combos.appendChild(card);
+ }
+}
+S.onSelect(i=>{
+ selectedPlot=i;
+ const st=V.snapshot();
+ announce(st.placements[i]?'Selected '+V.catalog[st.placements[i]].name+'. Upgrade it to add details.':'Plot '+(i+1)+' selected. Choose a building in the workshop.');
+ render();
+});
+$('build').addEventListener('click',()=>{
+ if(selectedPlot===null||!selectedItem)return;
+ const result=V.place(selectedPlot,selectedItem);
+ if(!result.ok){announce('⚠️ '+result.error);return}
+ announce('✨ '+V.catalog[selectedItem].name+' has joined your village!');
+ showCollectible('New building!',V.catalog[selectedItem].symbol,'Your ants built '+V.catalog[selectedItem].name+'. Keep completing puzzles to expand your village.');
+ selectedItem=null;render();
+});
+$('upgrade').addEventListener('click',()=>{
+ if(selectedPlot===null)return;
+ const res=V.upgrade(selectedPlot);
+ if(!res.ok){announce('⚠️ '+res.error);return}
+ announce('⭐ Building upgraded to level '+res.level+'!');
+ const unlock=res.combos&&res.combos.length;
+ showCollectible(unlock?'Theme unlocked!':'Building upgraded!',unlock?'🎆':V.catalog[res.item].symbol,
+  unlock?'A special building set is now glowing in your village.':'Your '+V.catalog[res.item].name+' looks even better at level '+res.level+'.');
+ render();
+});
+$('chest-open').addEventListener('click',()=>{
+ const result=V.openChest();
+ if(!result.ok){announce('⚠️ '+result.error);return}
+ $('treasure-result').textContent='+'+result.wood+' 🪵 · +'+result.petals+' 🌸 · '+result.souvenir.name;
+ announce('🎁 Treasure found! Your ants discovered '+result.souvenir.name+'.');
+ showCollectible('A secret treasure!',result.souvenir.symbol,result.souvenir.description+' · +'+result.wood+' wood, +'+result.petals+' petals');
+ render();
+});
+$('reveal-close').addEventListener('click',()=>$('reveal-modal').hidden=true);
+$('reveal-modal').addEventListener('click',e=>{if(e.target===$('reveal-modal'))$('reveal-modal').hidden=true});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('reveal-modal').hidden=true});
+$('day-night').addEventListener('click',()=>{
+ night=!night;S.setNight(night);
+ $('day-night').textContent=night?'☀️ Day':'🌙 Night';
+ $('day-night').setAttribute('aria-pressed',String(night));
+ announce(night?'✨ The village has settled into a magical evening.':'☀️ A new bright day in your ant village!');
+});
+$('world-sound').addEventListener('click',()=>{
+ const lines=['🐜 Your ants are delivering flowers to the garden.','🪵 Little workers are building new homes.','🌿 Your village is growing one masterpiece at a time.','✨ The residents are exploring the river path.'];
+ const message=lines[Math.floor(Math.random()*lines.length)];
+ announce(message);
+});
+render();
+})();
+
+</script>
+</body></html>
