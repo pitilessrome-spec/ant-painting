@@ -126,11 +126,17 @@ function plot(x,state,selected){
  const name=state.placements[x.id],level=Number(state.upgrades[x.id])||1,built=!!name;
  const label=built?window.AntVillage.catalog[name].name:'Build here';
  return '<g class="plot-interactive'+(selected===x.id?' selected':'')+'" data-plot="'+x.id+'" tabindex="0" role="button" aria-label="'+label+', plot '+(x.id+1)+'" transform="translate('+x.x+' '+x.y+')">'+
- '<ellipse rx="67" ry="23" cy="5" fill="#43976a" opacity=".4"/>'+
- '<ellipse class="plot-glow" rx="61" ry="21" cy="1" fill="'+(selected===x.id?'#fff3ab':'#b8ee94')+'" stroke="#e9ffb9" stroke-width="'+(selected===x.id?7:3)+'" opacity="'+(built?'.58':'.82')+'"/>'+
- (built?'<g filter="url(#v-shadow)">'+structure(name,level)+'</g>':'<circle cy="-25" r="21" fill="#fff1b9" stroke="#fff9df" stroke-width="4"/><text class="plot-help" y="-18">+</text>')+
+ '<ellipse rx="52" ry="18" cy="7" fill="#39855a" opacity=".26"/>'+
+ '<ellipse class="plot-glow" rx="50" ry="17" cy="4" fill="'+(selected===x.id?'#fff3ab':'#9fe0a2')+'" stroke="'+(selected===x.id?'#fff5a7':'#c9f5c1')+'" stroke-width="'+(selected===x.id?6:2)+'" opacity="'+(built?'.56':'.40')+'"/>'+
+ (built?'<g filter="url(#v-shadow)">'+structure(name,level)+'</g>':
+  '<g class="empty-plot-sign" filter="url(#v-shadow)"><path d="M0 -3V-31" stroke="#956344" stroke-width="5" stroke-linecap="round"/>'+
+  '<path d="M-27 -46Q0 -51 27 -46L27 -21Q0 -17 -27 -21Z" fill="#edc18e" stroke="#ad7b54" stroke-width="3" stroke-linejoin="round"/>'+
+  '<path d="M-20 -39Q0 -42 19 -39" fill="none" stroke="#fff0bb" stroke-width="2" opacity=".8"/>'+
+  '<text x="0" y="-26" class="plot-help">+</text>'+
+  '<path d="M-31 4l-5 -7m9 3l-1 -9M34 5l3 -7m-11 4l-1 -6" stroke="#d9f7bd" stroke-width="2" stroke-linecap="round"/>'+
+  '</g>')+
  (built&&level>=2?'<text class="plot-level" y="-132">'+('★'.repeat(level))+'</text>':'')+
- '<text class="plot-name" y="36">'+(built?label:'BUILD HERE')+'</text></g>';
+ (built?'<text class="plot-name" y="34">'+label+'</text>':'')+'</g>';
 }
 function render(state,selected){
  const b=svg.querySelector('#village-buildings');if(b)b.innerHTML=points.map(p=>plot(p,state,selected)).join('');
