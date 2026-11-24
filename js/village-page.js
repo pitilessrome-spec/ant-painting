@@ -24,11 +24,20 @@ function missing(st,cost){
  return [wood?wood+' more wood':'',petals?petals+' more petals':''].filter(Boolean).join(' + ');
 }
 function rewardText(r){return '🪵 +'+r.wood+' · 🌸 +'+r.petals+(r.chest?' · 🎁 +'+r.chest:'')}
+const JOB_LABELS={wood:'🪵 Wood gatherer',petal:'🌸 Gardener',builder:'🔨 Builder',scout:'🧭 Scout'};
+function renderWorkers(w=V.workPreview()){
+ const list=$('worker-list');if(!list)return;
+ $('worker-rate').textContent='🪵 '+w.woodRate+'/h · 🌸 '+w.petalRate+'/h · '+w.builders+' builders · '+w.scouts+' scouts';
+ if(!list.children.length)for(let i=0;i<5;i++){const row=document.createElement('label'),name=document.createElement('span'),sel=document.createElement('select');name.textContent='🐜 Ant '+(i+1);sel.setAttribute('aria-label','Ant '+(i+1)+' job');for(const [id,label] of Object.entries(JOB_LABELS)){const opt=document.createElement('option');opt.value=id;opt.textContent=label;sel.append(opt)}sel.onchange=()=>{const r=V.assignWorker(i,sel.value);announce(r.ok?'Ant '+(i+1)+' assigned: '+JOB_LABELS[sel.value]:r.error);render()};row.append(name,sel);list.append(row)}
+ [...list.querySelectorAll('select')].forEach((el,i)=>{if(document.activeElement!==el)el.value=w.roles[i]});
+}
+function renderRewards(){const q=V.upgradePreview();$('upgrade-status').textContent=q?V.catalog[q.item].name+' · '+q.region+' · '+(q.remaining?Math.ceil(q.remaining/1000)+'s left':'Ready to complete'):'No upgrade underway';$('upgrade-finish').hidden=!q;$('upgrade-finish').disabled=!q||q.remaining>0;for(const kind of ['gather','daily','chest','upgrade','expedition']){const b=$('ad-'+kind);b.disabled=!V.adTicket(kind)||typeof Ads==='undefined'||Ads.busy;}}
+function showAdReward(kind){const ticket=V.adTicket(kind);if(!ticket)return announce('Reward not available or daily limit reached');if(typeof Ads==='undefined')return announce('Ad unavailable · free options remain');if(!Ads.ready)Ads.init();Ads.rewardedSlot(()=>{const r=V.applyAdReward(ticket);announce(r.ok?(kind==='upgrade'?'Upgrade completed!':kind==='expedition'?'Expedition time reduced by 50%':rewardText(r)):r.error);if(r.ok&&r.souvenir)showCollectible('A secret treasure!',r.souvenir.symbol,r.souvenir.name+' · '+rewardText(r));render();renderRewards()},()=>{announce('Ad skipped or unavailable · no reward granted');renderRewards()});renderRewards()}
 function renderLife(){
  const p=V.lifePreview(),collect=$('life-collect'),sign=$('life-sign');
  $('life-stock').textContent=rewardText(p);
- $('life-time').textContent=p.hours>=p.maxHours?'Storage full · collect to resume':'Next wood in '+Math.ceil(p.nextMs/60000)+' min · holds up to 8 hours';
- collect.disabled=!p.valid||p.hours<1;
+ $('life-time').textContent=p.work.storedHours>=p.maxHours?'Storage full · collect to resume':Number.isFinite(p.nextMs)?'Next delivery in '+Math.ceil(p.nextMs/60000)+' min · up to 8 hours':'Assign gatherers to produce materials';renderWorkers(p.work);
+ collect.disabled=!p.valid||(!p.wood&&!p.petals);
  sign.disabled=!p.valid||p.signClaimed;
  sign.textContent=p.signClaimed?'✓ Claimed today':'Claim day '+p.streak+' · '+rewardText(p.signReward);
  $('life-streak').textContent='7-day sign-in · Day '+p.streak+' / 7';
@@ -98,11 +107,11 @@ function render(){
  }
  const item=selectedItem?catalog[selectedItem]:null;
  const cost=existing?V.upgradeCost(selectedPlot):null;
- const build=$('build'),upgrade=$('upgrade'),remove=$('remove'),cancel=$('remove-cancel');
+ const build=$('build'),upgrade=$('upgrade'),remove=$('remove'),cancel=$('remove-cancel'),queued=V.upgradePreview();
  const replacing=!!(existing&&item&&selectedItem!==existing);
  const buildShort=item?missing(availableAfterRefund,item):'',upgradeShort=cost?missing(st,cost):'';
  build.disabled=selectedPlot===null||!item||!!buildShort||!!(existing&&!replacing)||removePending;
- upgrade.disabled=!existing||!cost||!!upgradeShort;
+ upgrade.disabled=!existing||!cost||!!upgradeShort||!!queued;
  if(!existing&&selectedPlot!==null&&item){
   $('build-detail').innerHTML='<b>Plot '+(selectedPlot+1)+' · '+item.name+'</b>🪵 '+item.wood+' · 🌸 '+item.petals+' · '+(buildShort?'Need '+buildShort:'✓ Materials ready — tap Build to confirm.');
   build.textContent=buildShort?'Not enough materials':'Build '+item.name;
@@ -123,12 +132,14 @@ function render(){
  upgrade.hidden=!existing||replacing||removePending;
  build.hidden=!!existing&&!replacing||removePending;
  remove.hidden=!existing;
+ if(queued&&queued.region===st.world.active&&queued.slot===selectedPlot){build.disabled=true;remove.disabled=true}else remove.disabled=false;
  remove.textContent=removePending?'Confirm removal':'Remove';
  cancel.hidden=!removePending;
  upgrade.textContent=cost?(upgradeShort?'Need materials':'Upgrade to Lv.'+(V.getLevel(selectedPlot)+1)+' ✨'):'Upgrade maxed';
  const available=V.unopenedChests(),open=$('chest-open');
  $('chest-head').textContent=available?available+' unopened chest'+(available!==1?'s':''):'No unopened chests';
  $('chest-figure').setAttribute('aria-disabled',String(!available));open.disabled=!available;
+ renderRewards();
  const discoveries=V.discoveries();
  const collection=$('collection');collection.replaceChildren();
  for(const thing of discoveries.items){
@@ -173,16 +184,10 @@ $('remove').addEventListener('click',()=>{
  render();
 });
 $('remove-cancel').addEventListener('click',()=>{removePending=false;render();});
-$('upgrade').addEventListener('click',()=>{
- if(selectedPlot===null)return;
- const res=V.upgrade(selectedPlot);
- if(!res.ok){announce('⚠️ '+res.error);return}
- announce('⭐ Building upgraded to level '+res.level+'!');
- const unlock=res.combos&&res.combos.length;
- showCollectible(unlock?'Theme unlocked!':'Building upgraded!',unlock?'🎆':V.catalog[res.item].symbol,
-  unlock?'A special building set is now glowing in your village.':'Your '+V.catalog[res.item].name+' looks even better at level '+res.level+'.');
- render();
-});
+$('upgrade').addEventListener('click',()=>{if(selectedPlot===null)return;const r=V.upgrade(selectedPlot);announce(r.ok?'Builders started the upgrade! Wait for free or watch an ad to finish.':r.error);render()});
+$('upgrade-finish').addEventListener('click',()=>{const r=V.finishUpgrade();announce(r.ok?'Building upgraded to Lv.'+r.level:r.error);if(r.ok)showCollectible('Building upgraded!',V.catalog[r.item].symbol,'Level '+r.level);render()});
+for(const kind of ['gather','daily','chest','upgrade','expedition'])$('ad-'+kind).addEventListener('click',()=>showAdReward(kind));
+setInterval(()=>{if(!document.hidden){renderRewards();const w=V.workPreview();$('life-stock').textContent=rewardText(w);$('life-collect').disabled=!w.valid||(!w.wood&&!w.petals)}},1000);
 $('exp-route').addEventListener('change',e=>{routeChoice=e.target.value;renderExpedition()});
 $('exp-role').addEventListener('change',e=>{roleChoice=e.target.value;renderExpedition()});
 $('exp-start').addEventListener('click',()=>{const r=V.expeditionStart(routeChoice,roleChoice);announce(r.ok?'Your ant has set out!':r.error);render()});
