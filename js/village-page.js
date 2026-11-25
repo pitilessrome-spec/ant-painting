@@ -6,6 +6,8 @@ if(!V||!S)return;
 const $=id=>document.getElementById(id);
 let selectedPlot=null,selectedItem=null,removePending=false,routeChoice='trail',roleChoice='scout',selectedSite=0;
 function isNight(date=new Date()){const h=date.getHours();return h<6||h>=18;}
+const weatherLayer=document.querySelector('#world-panel .weather-layer');
+if(weatherLayer){for(let i=0;i<40;i++){const drop=document.createElement('i');drop.className='ac-raindrop';drop.style.setProperty('--x',((i*37.17+3)%100).toFixed(2)+'%');drop.style.setProperty('--alpha',(.25+(i%5)*.085).toFixed(2));drop.style.setProperty('--speed',(1.05+(i%7)*.16)+'s');drop.style.setProperty('--delay',(-i*.137)+'s');weatherLayer.append(drop)}const resizeRain=()=>weatherLayer.style.setProperty('--fall',(weatherLayer.clientHeight+32)+'px');resizeRain();if(window.ResizeObserver)new ResizeObserver(resizeRain).observe(weatherLayer);else window.addEventListener('resize',resizeRain);}
 function syncDayNight(){const night=isNight();S.setNight(night);$('day-night').textContent=night?'🌙 Night · Auto':'☀️ Day · Auto';$('day-night').title='Local time · Day 06:00–18:00';}
 function revealBuild(){const el=$('build-detail');if(el.getBoundingClientRect().top<0||el.getBoundingClientRect().bottom>window.innerHeight)el.scrollIntoView({block:'center',behavior:'smooth'});}
 function announce(message){
