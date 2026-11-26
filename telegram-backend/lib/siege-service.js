@@ -13,10 +13,10 @@ if(path==='siege/create'){await c.query('SELECT pg_advisory_xact_lock(hashtext($
 const join=path==='siege/join';if(join?!/^[a-f0-9]{12}$/.test(b.code||''):!/^[a-f0-9-]{36}$/i.test(b.room||''))fail('Invalid room',400);
 const {rows}=await c.query(join?'SELECT * FROM siege_rooms WHERE code=$1 FOR UPDATE':'SELECT * FROM siege_rooms WHERE id=$1 FOR UPDATE',[join?b.code:b.room]);if(!rows.length)fail('Room missing',404);const row=rows[0];let s=row.state;const ids=s.status==='lobby'?s.members:Object.keys(s.players);
 if(join&&!ids.includes(id)){if(s.status!=='lobby'||ids.length>=4)fail('Room closed/full');s.members.push(id);s.loadouts[id]=['worker']}else if(!ids.includes(id))fail('Not a member',403);
-if(path==='siege/equip'){if(s.status!=='lobby')fail('Already started');const a=await owned(c,id),keys=b.skills;if(!Array.isArray(keys)||keys.length>4||new Set(keys).size!==keys.length||keys.some(k=>k!=='worker'&&!a[k]))fail('Ant not owned',403);s.loadouts[id]=keys}
+if(path==='siege/equip'){if(s.status!=='lobby')fail('Already started');const a=await owned(c,id),keys=b.skills;if(!Array.isArray(keys)||keys.length>4||new Set(keys).size!==keys.length||keys.some(k=>k!=='worker'&&!Object.hasOwn(a,k)))fail('Ant not owned',403);s.loadouts[id]=keys}
 else if(path==='siege/start'){if(String(row.owner_id)!==id||s.status!=='lobby')fail('Only leader can start lobby',403);const a={};for(const k of s.members)a[k]=await owned(c,k);const next=R.create(s.members,now,randomBytes(4).readUInt32LE(),a);for(const k of s.members)R.equip(next,k,s.loadouts[k]);s=next}
-else if(path==='siege/act'){if(s.status==='lobby')fail('Not started');R.act(s,id,b.action||{},now)}
-else if(path==='siege/state'){if(s.status!=='lobby')R.advance(s,now)}
+else if(path==='siege/act'){if(s.status==='lobby')fail('Not started');R.act(s,id,b.action||{},Math.max(s.now,Date.now()))}
+else if(path==='siege/state'){if(s.status!=='lobby')R.advance(s,Math.max(s.now,Date.now()))}
 else if(!join)fail('Unknown endpoint',404);
 await c.query('UPDATE siege_rooms SET state=$2,updated_at=now() WHERE id=$1',[row.id,JSON.stringify(s)]);await c.query("SELECT pg_notify('ant_raid_room',$1)",[row.id]);await c.query('COMMIT');return send(res,200,show({...row,state:s},id))
 }catch(e){if(c)await c.query('ROLLBACK');if(e.status)return send(res,e.status,{error:e.message});throw e}finally{if(c)c.release()}}
