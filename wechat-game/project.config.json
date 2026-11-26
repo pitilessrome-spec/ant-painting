@@ -1,8 +1,8 @@
 {
-  "description": "ANT CANVAS native WeChat mini-game candidate",
+  "description": "蚂蚁画布 中文测试版",
   "appid": "touristappid",
   "compileType": "game",
-  "projectname": "ant-canvas-wechat",
+  "projectname": "ant-canvas-cn",
   "setting": {
     "es6": true,
     "minified": true

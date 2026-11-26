@@ -8,8 +8,8 @@ function set(key,type,value){try{execFileSync('/usr/libexec/PlistBuddy',['-c','S
 set('GADApplicationIdentifier','string',conf.appId);
 set('CFBundleDisplayName','string','ANT CANVAS');
 execFileSync('swift',['scripts/make-brand.swift'],{stdio:'inherit'});
-set('CFBundleShortVersionString','string','0.6.0');
-set('CFBundleVersion','string','6');
+set('CFBundleShortVersionString','string','0.7.0');
+set('CFBundleVersion','string','7');
 if(JSON.stringify(built.baidu)!==JSON.stringify(baiduConfig()))throw Error('Build and Baidu configuration mismatch');
 const appDelegate='ios/App/App/AppDelegate.swift',story='ios/App/App/Base.lproj/Main.storyboard';
 const marker='// BEGIN ANT REGION PLUGIN';
