@@ -6,7 +6,7 @@ const { readFileSync } = require('node:fs'), { join } = require('node:path'), vm
 const root = join(__dirname, '..', '..');
 
 test('js/raid-practice-engine.js is up to date with the server engine', async () => {
-  const { build } = await import(join(root, 'tools', 'build-raid-practice.mjs'));
+  const { build } = await import(require('node:url').pathToFileURL(join(root, 'tools', 'build-raid-practice.mjs')).href);
   const committed = readFileSync(join(root, 'js', 'raid-practice-engine.js'), 'utf8');
   assert.equal(committed, build(), 'run: node tools/build-raid-practice.mjs');
 });
