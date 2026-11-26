@@ -5,9 +5,9 @@ let init;function ensure(db){return init||(init=db.query(SQL).catch(e=>{init=nul
 function fail(message,status=409){const e=Error(message);e.status=status;throw e}
 function send(res,status,data){res.statusCode=status;res.setHeader('Content-Type','application/json');res.end(JSON.stringify(data))}
 async function owned(c,id){const q=await c.query('SELECT species,level FROM raid_ant_species WHERE player_id=$1',[id]);return Object.fromEntries(q.rows.filter(x=>Object.hasOwn(A.SPECIES,x.species)).map(x=>[x.species,x.level]))}
-function show(row,id){const s=row.state;return {room:row.id,code:row.code,owner:String(row.owner_id),...(s.status==='lobby'?s:R.view(s,id))}}
+function show(row,id){const s=row.state;return {room:row.id,code:row.code,you:id,owner:String(row.owner_id),...(s.status==='lobby'?s:R.view(s,id))}}
 async function route(req,res,db,user,path){if(process.env.ANT_SIEGE_V8!=='1')return send(res,503,{error:'Siege candidate not enabled'});if(req.method!=='POST')return send(res,405,{error:'POST required'});await ensure(db);const id=String(user.id),b=req.body||{},now=Date.now();let c;try{
-if(path==='siege/catalog')return send(res,200,{version:8,cap:4,rewards:false});
+if(path==='siege/catalog')return send(res,200,{version:8,cap:4,rewards:false,owned:{worker:1,...await owned(db,id)}});
 c=await db.connect();await c.query('BEGIN');
 if(path==='siege/create'){await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',['siege:'+id]);const q=await c.query("SELECT count(*)::int AS n FROM siege_rooms WHERE owner_id=$1 AND created_at>now()-interval '1 hour'",[id]);if(q.rows[0].n>=6)fail('Room limit',429);const room=randomUUID(),code=randomBytes(6).toString('hex'),state={status:'lobby',members:[id],loadouts:{[id]:['worker']}};const {rows}=await c.query('INSERT INTO siege_rooms(id,code,owner_id,state) VALUES($1,$2,$3,$4) RETURNING *',[room,code,id,JSON.stringify(state)]);await c.query('COMMIT');return send(res,200,show(rows[0],id))}
 const join=path==='siege/join';if(join?!/^[a-f0-9]{12}$/.test(b.code||''):!/^[a-f0-9-]{36}$/i.test(b.room||''))fail('Invalid room',400);
