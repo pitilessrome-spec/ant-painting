@@ -19,10 +19,11 @@ test('the browser bundle runs a V7 fight on its own', () => {
   const s = R.createRoom('small', 'beetle', 'me', 0);
   assert.equal(s.rulesVersion, 7);
   R.start(s, 'me', 1000);
-  R.advance(s, s.nextRageAt);
-  const v = R.view(s, 'me', s.nextRageAt);
+  const rage = s.nextRageAt;
+  R.advance(s, rage);
+  const v = R.view(s, 'me', rage);
   assert.equal(v.mechanic.type, 'spots');
   assert.equal(v.bossNameEn, 'Giant Ladybug');
-  const r = R.act(s, 'me', { seq: 1, kind: 'color', color: v.me.available.find(c => c !== v.me.blocked) }, s.nextRageAt + 1000);
+  const r = R.act(s, 'me', { seq: 1, kind: 'color', color: v.me.available.find(c => c !== v.me.blocked) ?? v.me.available[0] }, rage + 1000);
   assert.ok(r.damage > 0);
 });

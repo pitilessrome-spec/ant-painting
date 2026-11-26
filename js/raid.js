@@ -33,7 +33,9 @@
   const ANTS = { worker: 'Worker Ant', fire: 'Fire Ant', thunder: 'Thunder Ant', royal: 'Royal Guard Ant', frost: 'Frost Ant', life: 'Life Ant', wing: 'Wing Ant', crystal: 'Crystal Ant', ancient: 'Ancient Ant' };
   const RARITY = ['', 'Common', 'Rare', 'Epic', 'Legendary', 'Mythic'];
   const RELICS = { beetle: 'Golden Carapace', spider: "Queen's Silk", prism: 'Rainbow Scale', frost: 'Dragon Scale' };
-  const MATERIALS = { beetle: 'Scarab Brick', spider: 'Glow Silk', prism: 'Sunken Treasure', frost: 'Aurora Energy' };
+  const MATERIALS = { beetle: 'Flower Nectar', spider: 'Glow Spores', prism: 'Rainbow Shells', frost: 'Ice Carving Stone' };
+  const RARE = { beetle: 'Golden Scarab Brick', spider: 'Glow Silk', prism: 'Shipwreck Chest', frost: 'Aurora Energy' };
+  let shardsPerRelic = 5;
   const EVENTS = {
     spot: 'Spot hit ×2!', thorn: 'Thorns cost an extra turn', 'thorns-burned': 'The bomb burned the thorns', 'ball-stopped': 'Golden ball stopped!',
     'slime-split': 'The slime split in two!', 'slime-merged': 'Slime merged · +30', revealed: 'Revealed! Its weakness is visible', 'egg-cleared': 'Egg destroyed',
@@ -51,9 +53,10 @@
   const creature = (boss, t) => CREATURES[boss]?.[t] || CREATURES[boss]?.world || ['Unknown', ''];
   const secs = (t, now) => Math.max(0, Math.ceil((t - now) / 1000));
   const itemName = x => x.item_code === 'evolution_core' ? 'Evolution core'
-    : x.item_code === 'relic_shard' ? RELICS[x.boss] + ' shard'
+    : x.item_code === 'relic_shard' ? `${RELICS[x.boss]} shard (${Math.min(x.quantity, shardsPerRelic)}/${shardsPerRelic} for the relic)`
     : x.item_code === 'relic' ? RELICS[x.boss]
     : x.item_code === 'material' ? MATERIALS[x.boss]
+    : x.item_code === 'rare_material' ? RARE[x.boss] + ' (rare)'
     : creature(x.boss, x.tier)[0] + ' relic';
 
   // ---------------- boss art ----------------
@@ -303,7 +306,7 @@
       const r = await call('rewards');
       $('rewards').replaceChildren(...r.rewards.map(x => el('li', `${creature(x.boss, x.tier)[0]} · #${x.rank} · ${new Date(x.granted_at).toLocaleDateString()}`)));
       if (!r.rewards.length) $('rewards').append(el('li', 'No trophies yet'));
-      const inv = await call('inventory');
+      const inv = await call('inventory'); if (inv.shardsPerRelic) shardsPerRelic = inv.shardsPerRelic;
       $('inventory').replaceChildren(...inv.items.map(x => el('li', `${itemName(x)} ×${x.quantity}`)));
       if (!inv.items.length) $('inventory').append(el('li', 'Nothing stored yet'));
     } catch (_) { $('rank-list').replaceChildren(el('li', 'The leaderboard opens with online raids')); }
