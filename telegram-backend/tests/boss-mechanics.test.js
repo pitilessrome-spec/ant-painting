@@ -124,6 +124,20 @@ test('Abyss Spider Queen: eggs left for 2 counterattacks hatch; cleared eggs do 
   assert.throws(() => color(c, '1', 1, c.nextRageAt - 1000), /Web blocked/);
 });
 
+test('Abyss Spider Queen: hatch healing is shared by the team and capped at 6% per counterattack', () => {
+  const healOf = (n, eggs) => {
+    const s = room('spider', 'world', n);
+    for (const p of Object.values(s.players)) for (const col of p.board) for (const t of col) { delete t.m; if (eggs) Object.assign(t, { m: 'egg', at: -5 }); }
+    s.hp = s.maxHP - 2000; const before = s.hp; R.advance(s, s.nextRageAt); return { heal: s.hp - before, max: s.maxHP };
+  };
+  for (const n of [1, 5, 8]) {
+    const withEggs = healOf(n, true), base = healOf(n, false);   // the boss's own counterattack heal is the same in both
+    const fromEggs = withEggs.heal - base.heal;
+    assert.ok(fromEggs > 0, n + ' players: eggs should heal');
+    assert.ok(fromEggs <= Math.floor(withEggs.max * 0.06), n + ' players healed ' + fromEggs + ' from eggs');
+  }
+});
+
 test('Giant Hermit Crab: a big hit makes it hide (35% damage for 5 s, then 4 s before it can hide again), lightning cracks the shell, phase 3 steals a skill', () => {
   const s = room('prism', 'small'), p = s.players['1']; s.ward = 0;
   p.board = all(0, 3);

@@ -116,13 +116,16 @@ const MECHANICS = {
   'spider:world': {
     en: 'Abyss Spider Queen', mechanic: 'eggs',
     counter(s) {
-      const n = s.phase >= 2 ? 2 : 1;
+      const n = s.phase >= 2 ? 2 : 1, team = Object.keys(s.players).length;
+      // Each hatchling heals 2% split across the team, at most 6% per counterattack, so a bigger team is never punished.
+      const perEgg = s.maxHP * 0.02 / team, cap = Math.floor(s.maxHP * 0.06); let healed = 0;
       for (const p of Object.values(s.players)) {
         const hatched = new Set(); // a tile that just hatched is not re-laid in the same counterattack
         eachTile(p, t => {
           if (t.m === 'egg' && s.retaliations - t.at >= 2) {
             clearMark(t); hatched.add(t); s.m.hatched = (s.m.hatched || 0) + 1;
-            s.hp = Math.min(s.maxHP, s.hp + Math.floor(s.maxHP * 0.02));
+            const add = Math.min(Math.floor(perEgg), cap - healed); healed += add;
+            s.hp = Math.min(s.maxHP, s.hp + add);
           }
         });
         mark(p, roll(p, s, 53), n, 'egg', { at: s.retaliations }, 3, hatched);
