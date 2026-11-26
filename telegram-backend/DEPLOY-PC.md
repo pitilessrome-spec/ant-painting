@@ -14,7 +14,7 @@ cd ant-painting
 git switch -c deploy/setup-kit
 git am "C:\path\to\deploy-setup-kit.patch"
 ```
-That patch only adds the helper scripts and this guide, and adds four npm commands to `package.json` plus ignore rules in `.gitignore`. Game code is unchanged.
+This branch only adds the helper scripts, the migration runner and its tests, this guide, npm commands in `package.json` and ignore rules in `.gitignore`. Game code is unchanged.
 
 ## 2. Create the database (Neon)
 1. In Neon, create a project and copy its PostgreSQL connection string. Keep it private.
@@ -34,16 +34,28 @@ That patch only adds the helper scripts and this guide, and adds four npm comman
 3. `/newgame` for the native game, with a short name such as `antcanvas`.
 4. Copy the bot token into Vercel as `TELEGRAM_BOT_TOKEN` (step 3). Do not write it into any file.
 
-## 5. Create the database tables (on your PC)
+## 5. Create or update the database tables (on your PC)
 ```
 cd telegram-backend
 npm install
 npm run db:plan
 $env:DATABASE_URL = "paste the Neon connection string here"
-npm run db:migrate
+npm run db:status
+```
+`db:plan` only lists the files. `db:status` only reads; it shows each file as `applied`, `baseline`, `pending` or `CHANGED`.
+
+**New, empty database:** run `npm run db:migrate`. Each file runs once in its own transaction and is recorded.
+
+**Database that already has game tables but no records** (the live `ant-canvas-db` on 2026-11-26 is in this state; `db:status` shows `pending (objects already present)`):
+1. In Neon, create a branch of the database first and test the steps below on the branch's connection string.
+2. `npm run db:baseline` checks that every table, column and index each file declares already exists, and records only the files that pass. It does not change game tables or data.
+3. `npm run db:migrate` then applies only files that are still pending (for example `006_raid.sql` later).
+4. Repeat on the main branch only after the Neon branch looks right.
+
+`db:migrate` refuses to run on such a database until baseline has been done, so files are never re-run blindly. Only one migration run can happen at a time; a second run waits. If a recorded file was edited, the run stops: never edit an applied migration, add a new numbered file instead.
+```
 Remove-Item Env:DATABASE_URL
 ```
-`db:plan` only lists the files. `db:migrate` applies each file once and records it.
 
 ## 6. Check the settings (names only, no values printed)
 ```

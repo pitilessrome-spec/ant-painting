@@ -12,6 +12,8 @@
     "check": "node --check api/index.js && node --test tests/*.test.js",
     "env:check": "node scripts/check-env.mjs",
     "db:plan": "node scripts/migrate.mjs --dry-run",
+    "db:status": "node scripts/migrate.mjs --status",
+    "db:baseline": "node scripts/migrate.mjs --baseline",
     "db:migrate": "node scripts/migrate.mjs",
     "health": "node scripts/health-check.mjs"
   }
