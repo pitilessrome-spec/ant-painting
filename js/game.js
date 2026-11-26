@@ -234,7 +234,7 @@ class Game {
     const n=this.n,first=target,destructive=mode!=='wild',hits=[],limit={bomb:5,lightning:9,super:13,wild:6,wind:3}[mode],chainColor=this.role[first],radius=mode==='super'||mode==='wild'?2:1;
     for(let k=0;k<limit;k++){let i=-1;if(k===0)i=first;else if(mode==='lightning')i=this.target(chainColor);else{
       const dist=this.R().dist,fx=first%n,fy=Math.floor(first/n);
-      for(let j=0;j<this.total;j++){const x=j%n,y=Math.floor(j/n);if(Math.abs(x-fx)+Math.abs(y-fy)<=radius&&!this.eaten[j]&&!cellLocked(this.eaten,this.special,n,j)&&expoAt(dist,n,x,y)){i=j;break}}
+      for(let j=0;j<this.total;j++){const x=j%n,y=Math.floor(j/n);if(Math.abs(x-fx)+Math.abs(y-fy)<=radius&&!this.eaten[j]&&!cellLocked(this.eaten,this.special,n,j)&&expoAt(dist,n,x,y)){i=j;break}}}
       if(i<0)break;const path=this.route(i);this.eatCell(i);const c=this.role[i];this.powerCredits[c]++;hits.push({idx:i,c,path});
     }
     if(!hits.length)return false;this.skills[mode]--;this.skillsUsed++;this.pendingPowerCascade=true;this.stalled=false;
