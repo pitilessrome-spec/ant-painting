@@ -197,8 +197,21 @@ class Game {
   }
   resolveBattleCell(i,mode,c){const b=this.battle;if(!b||!this.eaten[i]||this.battleResolved[i])return false;this.battleResolved[i]=1;if(mode==='blast')b.shots++;else {b.delivered++;this.regenEligible[i]=1;}let bonus=(this.special.boss[i]?3:0)+(c===b.weak?1:0)+(mode==='blast'?1:0);if(b.armor>0){b.armor--;bonus=0;}this.battleDamage(1+bonus,mode,c);return true;}
   regenerateBossTiles(){const b=this.battle;if(!b||!b.regenPending||!b.hp||this.ants.length||this.slots.some(s=>s&&s.q.length))return 0;
-    const wanted=b.regenPending;b.regenPending=0;const targets=[];for(let i=this.total-1;i>=0&&targets.length<wanted;i--)if(this.eaten[i]&&this.battleResolved[i]&&this.regenEligible[i]&&!this.regenSeen[i]&&!this.special.markers.includes(i)){targets.push(i)}
-    if(!targets.length)return 0;for(const i of targets){this.eaten[i]=0;this.battleResolved[i]=0;this.regenEligible[i]=0;this.regenSeen[i]=1;}this.left+=targets.length;this._R=null;this.rebuild();b.regenerated+=targets.length;b.regenWaves++;const healed=Math.min(targets.length,b.max-b.hp);b.hp+=healed;b.healed+=healed;this.ev.push({t:'bossRegen',targets,count:targets.length,healed});return targets.length;
+    const wanted=b.regenPending;b.regenPending=0;const targets=[],n=this.n;
+    // Regrow only cells whose restoration leaves existing routes and exposed tiles reachable.
+    // The replacement colour boxes are appended, never replacing the original queue or slots.
+    const candidates=[];for(let i=this.total-1;i>=0;i--)if(this.eaten[i]&&this.battleResolved[i]&&this.regenEligible[i]&&!this.regenSeen[i]&&!this.special.markers.includes(i))candidates.push(i);
+    for(const i of candidates){if(targets.length>=wanted)break;
+      const before=this.R().dist;this.eaten[i]=0;const after=reachDist(this.eaten,n).dist;
+      let safe=true;for(let j=0;j<this.total;j++){if(j===i)continue;if(this.eaten[j]&&before[j]>=0&&after[j]<0){safe=false;break}if(!this.eaten[j]&&expoAt(before,n,j%n,Math.floor(j/n))&&!expoAt(after,n,j%n,Math.floor(j/n))){safe=false;break}}
+      if(!safe){this.eaten[i]=1;continue}
+      this._R=null;this.battleResolved[i]=0;this.regenEligible[i]=0;this.regenSeen[i]=1;targets.push(i);
+    }
+    if(!targets.length)return 0;this.left+=targets.length;this._R=null;
+    const counts=new Int32Array(32);for(const i of targets)counts[this.role[i]]++;
+    let id=Math.max(-1,...this.cols.flat().map(v=>v.id),...this.slots.filter(Boolean).map(v=>v.id))+1;
+    for(let c=0;c<counts.length;c++)while(counts[c]>0){const n=Math.min(this.cmax,counts[c]);counts[c]-=n;const ci=this.cols.reduce((best,col,i)=>col.length<this.cols[best].length?i:best,0);this.cols[ci].push({c,n,id:id++})}
+    this.cascade();b.regenerated+=targets.length;b.regenWaves++;const healed=Math.min(targets.length,b.max-b.hp);b.hp+=healed;b.healed+=healed;this.ev.push({t:'bossRegen',targets,count:targets.length,healed});return targets.length;
   }
   bossPowerReady(mode){return !!this.battle&&this.battle.hp>0&&this.state==='play'&&['bomb','lightning','super','frost','wind'].includes(mode)&&this.skills[mode]>0&&(mode!=='frost'||this.battle.frostMs>0)&&(mode!=='wind'||this.battle.webMs>0);}
   attackBoss(mode){if(!this.bossPowerReady(mode))return false;const b=this.battle;this.skills[mode]--;this.skillsUsed++;b.direct++;let dmg={bomb:18,lightning:28,super:45,frost:8,wind:8}[mode];if(mode==='frost')b.frostMs=0;if(mode==='wind')b.webMs=0;if(b.armor>0&&['bomb','lightning','super'].includes(mode)){b.armor=0;dmg+=12;}this.battleDamage(dmg,mode,b.weak);this.ev.push({t:'bossSkill',mode});return true;}
