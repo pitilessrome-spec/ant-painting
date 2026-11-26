@@ -23,7 +23,7 @@ function levelParams(lv) {
 }
 
 const SKILL_TYPES=['bomb','wild','frost','lightning','wind','key','super'];
-function specialCells(lv,n){
+function specialCells(lv,n,random=Math.random){
  const ice=new Uint8Array(n*n),boss=new Uint8Array(n*n),guards=Array.from({length:n*n},()=>null);
  if(lv>=4&&lv%6===4)for(let y=1;y<n-1;y++)for(let x=0;x<n;x++)if((x*7+y*11+lv%19)%19===0)ice[y*n+x]=1;
  if(lv>=10&&lv%10===0){const mid=Math.floor(n/2);for(let y=mid-1;y<mid+2;y++)for(let x=mid-2;x<mid+2;x++)if(x>=0&&x<n&&y>=0&&y<n)boss[y*n+x]=1}
@@ -36,15 +36,11 @@ function specialCells(lv,n){
  }}
  const gem=lv>=5?Math.floor(n/3)*n+Math.floor(n/2):-1,markers=[];for(let i=0;i<n*n;i++)if(ice[i]||boss[i]||i===gem)markers.push(i);const skillAt=Object.create(null),secret=new Set(),treasureGuards=Array(n*n).fill(null);
  if(lv>=12&&lv%3===0&&gem>=0){for(const i of [gem-1,gem,gem+1])if(i>=0&&i+n<n*n&&!boss[i]){treasureGuards[i]=[i+n];if(!markers.includes(i))markers.push(i)}}
- if(lv>=4){
-   const count=Math.min(40,Math.max(12,Math.round(n*n*.015))),random=rng(mix32((lv*1777+canvasPlayerSeed()+501)>>>0)),types=ice.some(v=>v)?['bomb','wild','frost']:['bomb','wild'];if(lv>=6)types.push('lightning');if(lv>=9)types.push('wind');if(treasureGuards.some(Boolean))types.push('key');if(lv>=15)types.push('super');
-   for(let k=0;k<count;k++){
-     const y=k===0?n-1:Math.max(0,n-1-Math.floor(n*(k-.35)/count)),pool=[];
-     for(let j=0;j<n*n;j++)if(!ice[j]&&!boss[j]&&!treasureGuards[j]&&j!==gem&&!skillAt[j]&&Math.abs(Math.floor(j/n)-y)<=1)pool.push(j);
-     if(!pool.length)continue;const bottom=k===0?pool.filter(j=>Math.floor(j/n)===n-1):pool;
-     const a=bottom.length?bottom:pool,i=a[Math.floor(random()*a.length)];
-     skillAt[i]=types[k%types.length];markers.push(i);
-   }
+ {
+ const count=8+Math.floor(random()*8),types=ice.some(v=>v)?['bomb','wild','frost']:['bomb','wild'];if(lv>=6)types.push('lightning');if(lv>=9)types.push('wind');if(treasureGuards.some(Boolean))types.push('key');if(lv>=15)types.push('super');
+ const available=new Set(Array.from({length:n*n},(_,i)=>i).filter(i=>!ice[i]&&!boss[i]&&!treasureGuards[i]&&i!==gem));
+ for(let i=types.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[types[i],types[j]]=[types[j],types[i]]}
+ for(let k=0;k<count&&available.size;k++){const y=Math.max(0,n-1-Math.floor(n*k/count));let pool=Array.from(available).filter(j=>Math.abs(Math.floor(j/n)-y)<=1);if(k===0){const p=pool.filter(j=>Math.floor(j/n)===n-1);if(p.length)pool=p}if(!pool.length)pool=Array.from(available);const i=pool[Math.floor(random()*pool.length)];available.delete(i);skillAt[i]=types[k%types.length];markers.push(i)}
  }
  return {ice,boss,guards,layers,kind,gem,markers,skillAt,secret,treasureGuards,treasureOpen:false};
 }
@@ -131,7 +127,7 @@ class Game {
     this.difficulty=prm;this.hintsUsed=0;this.reshufflesUsed=0;this.revivesUsed=0;
     const N = this.n * this.n;
     this.total = N; this.left = N;
-    this.eaten = new Uint8Array(N);this.special=specialCells(lv,this.n);this.skills=Object.fromEntries(SKILL_TYPES.map(k=>[k,0]));this.skillOrder=[];this.skillDelivered=new Uint8Array(N);this.skillDestroyed=new Uint8Array(N);this.skillsUsed=0;this.daily=o.daily||null;
+    this.eaten = new Uint8Array(N);this.special=specialCells(lv,this.n,o.skillRand||Math.random);this.powerCredits=new Int32Array(32);this.pendingPowerCascade=false;this.skills=Object.fromEntries(SKILL_TYPES.map(k=>[k,0]));this.skillOrder=[];this.skillDelivered=new Uint8Array(N);this.skillDestroyed=new Uint8Array(N);this.skillsUsed=0;this.daily=o.daily||null;
     // Combat is independent of the tile-guard counter. Each resolved cell supplies at least 1 damage.
     this.battle=this.special.kind?{hp:N,max:N,phase:1,weak:this.role[N-1],armor:0,webMs:0,frostMs:0,webSlot:0,damage:0,delivered:0,shots:0,direct:0,attacks:0,regenPending:0,regenerated:0,healed:0,regenWaves:0,tier:Math.min(6,1+Math.floor((lv-10)/20))}:null;this.battleResolved=new Uint8Array(N);this.regenSeen=new Uint8Array(N);this.regenEligible=new Uint8Array(N);
     this.cap = o.cap || prm.cap; this.slots = new Array(this.cap).fill(null);
@@ -156,6 +152,7 @@ class Game {
       if (!s) continue;
       for (const job of s.q) { this.spawnVisual(job); if(!this.special.skillAt[job.idx])this.ev.push({ t: 'eat', i: job.idx, c: job.c }); }
     }
+    this.powerCredits.fill(0);this.pendingPowerCascade=false;
     const seq = makeSeqFrom(this.role, this.n, this.eaten, this.rand, this.cmin, this.cmax,this.special);
     this.cols = [[], [], [], []];
     seq.forEach((b, i) => this.cols[Math.floor(i / this.difficulty.chunk) % 4].push({ c: b.c, n: b.n, id: i }));
@@ -207,10 +204,10 @@ class Game {
   attackBoss(mode){if(!this.bossPowerReady(mode))return false;const b=this.battle;this.skills[mode]--;this.skillsUsed++;b.direct++;let dmg={bomb:18,lightning:28,super:45,frost:8,wind:8}[mode];if(mode==='frost')b.frostMs=0;if(mode==='wind')b.webMs=0;if(b.armor>0&&['bomb','lightning','super'].includes(mode)){b.armor=0;dmg+=12;}this.battleDamage(dmg,mode,b.weak);this.ev.push({t:'bossSkill',mode});return true;}
   // Accurate one-box forecast; only compute on explicit inspection, never auto-play.
   inspectBox(ci){const b=this.cols[ci]?.[0];if(!b||this.state!=='play')return null;
-    const eaten=this.eaten.slice();const slots=this.slots.map(s=>s?{c:s.c,n:s.n}:null);
+    const eaten=this.eaten.slice(),credits=this.powerCredits.slice();const slots=this.slots.map(s=>s?{c:s.c,n:s.n}:null);
     const si=slots.indexOf(null);if(si<0)return {full:true};
     slots[si]={c:b.c,n:b.n};let moved=true,total=0,own=0,opened=0;
-    while(moved){moved=false;for(let k=0;k<slots.length;k++){const s=slots[k];if(!s)continue;while(s.n>0){const i=nearestCell(eaten,this.n,this.role,s.c,reachDist(eaten,this.n).dist,this.special);if(i<0)break;eaten[i]=1;s.n--;total++;if(k===si)own++;moved=true}}}
+    while(moved){moved=false;for(let k=0;k<slots.length;k++){const s=slots[k];if(!s)continue;while(s.n>0){const i=nearestCell(eaten,this.n,this.role,s.c,reachDist(eaten,this.n).dist,this.special);if(i<0){if(credits[s.c]>0){credits[s.c]--;s.n--;total++;if(k===si)own++;moved=true;continue}break}eaten[i]=1;s.n--;total++;if(k===si)own++;moved=true}}}
     for(const i of this.special.markers)if(!eaten[i]&&cellLocked(this.eaten,this.special,this.n,i)&&!cellLocked(eaten,this.special,this.n,i))opened++;
     return {own,total,waiting:b.n-own,opened,free:slots.filter(s=>!s||s.n===0).length};
   }
@@ -218,26 +215,30 @@ class Game {
     const mode=this.special.skillAt[i];if(!mode||!this.eaten[i]||this.skillDelivered[i]||this.skillDestroyed[i])return false;
     this.skillDelivered[i]=1;if(!this.skillOrder.includes(mode))this.skillOrder.push(mode);this.skills[mode]++;this.ev.push({t:'skillLoot',mode,count:this.skills[mode]});return true;
   }
-  powerReady(mode){return SKILL_TYPES.includes(mode)&&this.skills[mode]>0&&this.state==='play'&&this.left>0&&(mode!=='frost'||this.special.markers.some(i=>!this.eaten[i]&&iceLocked(this.eaten,this.special.ice,this.n,i)))&&(mode!=='key'||this.special.markers.some(i=>!this.eaten[i]&&treasureLocked(this.eaten,this.special,i)))&&(mode!=='wind'||this.slots.some(s=>s&&s.n>0))}
-  bombTargets(mode='bomb'){if(!['bomb','lightning','super'].includes(mode)||!this.powerReady(mode))return [];const dist=this.R().dist,n=this.n;return Array.from({length:this.total},(_,i)=>i).filter(i=>!this.eaten[i]&&!cellLocked(this.eaten,this.special,n,i)&&expoAt(dist,n,i%n,Math.floor(i/n)))}
+  powerReady(mode){if(!SKILL_TYPES.includes(mode)||!this.skills[mode]||this.state!=='play'||!this.left||this.battle?.regenPending)return false;
+    if(mode==='frost')return this.special.markers.some(i=>!this.eaten[i]&&iceLocked(this.eaten,this.special.ice,this.n,i));
+    if(mode==='key')return this.special.markers.some(i=>!this.eaten[i]&&treasureLocked(this.eaten,this.special,i));
+    return this.target(-1)>=0;
+  }
+  bombTargets(mode='bomb'){if(!this.powerReady(mode))return [];
+    if(mode==='frost')return this.special.markers.filter(i=>!this.eaten[i]&&iceLocked(this.eaten,this.special.ice,this.n,i));
+    if(mode==='key')return this.special.markers.filter(i=>!this.eaten[i]&&treasureLocked(this.eaten,this.special,i));
+    const dist=this.R().dist,n=this.n;return Array.from({length:this.total},(_,i)=>i).filter(i=>!this.eaten[i]&&!cellLocked(this.eaten,this.special,n,i)&&expoAt(dist,n,i%n,Math.floor(i/n)));
+  }
   usePower(mode,target=null){
-    if(!this.powerReady(mode))return false;
-    if(mode==='wind'||mode==='key'){if(target!==null)return false;const count=mode==='wind'?this.slots.filter(s=>s&&s.n>0).length:this.special.markers.filter(i=>!this.eaten[i]&&treasureLocked(this.eaten,this.special,i)).length;if(mode==='key')this.special.treasureOpen=true;this.skills[mode]--;this.skillsUsed++;this.rebuild();this.ev.push({t:'power',mode,count});return true;}
-    if(mode==='frost'){if(target!==null)return false;
-      const locked=this.special.markers.filter(i=>!this.eaten[i]&&iceLocked(this.eaten,this.special.ice,this.n,i)).sort((a,b)=>b-a).slice(0,3);
-      if(!locked.length)return false;
-      for(const i of locked)this.special.ice[i]=0;
-      this.skills[mode]--;this.skillsUsed++;this.rebuild();this.ev.push({t:'power',mode,count:locked.length});return true;
+    if(!Number.isInteger(target)||!this.bombTargets(mode).includes(target))return false;
+    if(mode==='key'||mode==='frost'){
+      if(mode==='key')this.special.treasureGuards[target]=null;else this.special.ice[target]=0;
+      this.skills[mode]--;this.skillsUsed++;this.pendingPowerCascade=true;this.stalled=false;this.ev.push({t:'power',mode,count:1,targets:[target]});return true;
     }
-    const n=this.n,first=target===null?this.target(-1):target,destructive=mode!=='wild';if(first<0||destructive&&!this.bombTargets(mode).includes(first)||!destructive&&target!==null)return false;
-    const hits=[],limit=mode==='bomb'?5:mode==='lightning'?9:mode==='super'?13:6,chainColor=this.role[first];
-    for(let k=0;k<limit;k++){let i=-1;if(k===0)i=first;else if(mode==='wild')i=this.target(-1);else if(mode==='lightning')i=this.target(chainColor);else{
+    const n=this.n,first=target,destructive=mode!=='wild',hits=[],limit={bomb:5,lightning:9,super:13,wild:6,wind:3}[mode],chainColor=this.role[first],radius=mode==='super'||mode==='wild'?2:1;
+    for(let k=0;k<limit;k++){let i=-1;if(k===0)i=first;else if(mode==='lightning')i=this.target(chainColor);else{
       const dist=this.R().dist,fx=first%n,fy=Math.floor(first/n);
-      for(let j=0;j<this.total;j++){const x=j%n,y=Math.floor(j/n);if(Math.abs(x-fx)+Math.abs(y-fy)<=(mode==='super'?2:1)&&!this.eaten[j]&&!cellLocked(this.eaten,this.special,n,j)&&expoAt(dist,n,x,y)){i=j;break}}
-    }if(i<0)break;const path=this.route(i);this.eatCell(i);hits.push({idx:i,c:this.role[i],path})}
-    if(!hits.length)return false;this.skills[mode]--;this.skillsUsed++;this.rebuild();
-    let lost=0;
-    for(const hit of hits){if(destructive){if(this.special.skillAt[hit.idx]){this.skillDestroyed[hit.idx]=1;lost++;}this.spawnVisual(hit,'blast');this.ev.push({t:'shot',i:hit.idx,c:hit.c});}else{this.spawnVisual(hit);if(!this.special.skillAt[hit.idx])this.ev.push({t:'eat',i:hit.idx,c:hit.c});}}
+      for(let j=0;j<this.total;j++){const x=j%n,y=Math.floor(j/n);if(Math.abs(x-fx)+Math.abs(y-fy)<=radius&&!this.eaten[j]&&!cellLocked(this.eaten,this.special,n,j)&&expoAt(dist,n,x,y)){i=j;break}}
+      if(i<0)break;const path=this.route(i);this.eatCell(i);const c=this.role[i];this.powerCredits[c]++;hits.push({idx:i,c,path});
+    }
+    if(!hits.length)return false;this.skills[mode]--;this.skillsUsed++;this.pendingPowerCascade=true;this.stalled=false;
+    let lost=0;for(const h of hits){if(destructive){if(this.special.skillAt[h.idx]){this.skillDestroyed[h.idx]=1;lost++;}this.spawnVisual(h,'blast');this.ev.push({t:'shot',i:h.idx,c:h.c});}else{this.spawnVisual(h);if(!this.special.skillAt[h.idx])this.ev.push({t:'eat',i:h.idx,c:h.c});}}
     this.ev.push({t:'power',mode,count:hits.length,lost,targets:hits.map(h=>h.idx)});return true;
   }
   // Logic: boxes in slots eat whatever they can, in slot order, until nothing more can be eaten. Depends only on cells, never on time
@@ -249,7 +250,7 @@ class Game {
         if (!s) continue;
         while (s.n > 0) {
           const idx = this.target(s.c);
-          if (idx < 0) break;
+          if(idx<0){if(this.powerCredits[s.c]>0){this.powerCredits[s.c]--;s.n--;progress=true;continue}break}
           const path = this.route(idx);
           this.eatCell(idx);
           s.q.push({ idx, path, c: s.c });
@@ -303,6 +304,7 @@ class Game {
 
   tick(dt) {
     if (this.state !== 'play') return;
+    if(this.pendingPowerCascade){this.pendingPowerCascade=false;this.cascade()}
     const sp = this.speed,b=this.battle;if(b){b.webMs=Math.max(0,b.webMs-dt*sp);b.frostMs=Math.max(0,b.frostMs-dt*sp);}
     // 1) Boxes in slots release ants at a steady pace (animation only); finished slots are freed
     for (let si = 0; si < this.slots.length; si++) {
@@ -366,7 +368,7 @@ class Game {
     this.ants = this.ants.filter(a => !a.done);
     if(b?.regenPending){if(this.ants.length||this.slots.some(s=>s&&s.q.length))return;this.regenerateBossTiles();}
     // 3) Win / lose
-    if (this.left <= 0) {
+    if (this.left <= 0 && !this.cols.some(c=>c.length)) {
       if (!this.ants.length && this.slots.every(s => !s) && (!this.battle||this.battle.hp===0)) this.state = 'win';
       return;
     }
@@ -395,14 +397,14 @@ class Game {
   mastery(){const rate=this.dispatches?this.directDispatches/this.dispatches:0;const tactical=!!this.special.kind||this.challenge.id==='precision',efficiency=this.dispatches?this.cleanDispatches/this.dispatches:0;const clean=this.hintsUsed===0&&this.reshufflesUsed===0&&this.revivesUsed===0&&this.cap===4;return {rate,efficiency:this.dispatches?this.cleanDispatches/this.dispatches:0,peakWaiting:this.peakWaiting,chain:this.bestSmartChain,dispatches:this.dispatches,stars:this.state==='win'?(clean&&rate>=.85&&(!tactical||efficiency>=.85)?3:rate>=.65?2:1):0,clean};}
   snapshot() {
     return {
-      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,cleanDispatches:this.cleanDispatches,peakWaiting:this.peakWaiting,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,skills:{...this.skills},skillOrder:this.skillOrder.slice(),skillDelivered:this.skillDelivered.slice(),skillDestroyed:this.skillDestroyed.slice(),skillsUsed:this.skillsUsed,ice:this.special.ice.slice(),treasureOpen:this.special.treasureOpen,battle:this.battle?{...this.battle}:null,battleResolved:this.battleResolved.slice(),regenSeen:this.regenSeen.slice(),regenEligible:this.regenEligible.slice(),
+      eaten: this.eaten.slice(), left: this.left,dispatches:this.dispatches,directDispatches:this.directDispatches,cleanDispatches:this.cleanDispatches,peakWaiting:this.peakWaiting,smartChain:this.smartChain,bestSmartChain:this.bestSmartChain,skills:{...this.skills},skillOrder:this.skillOrder.slice(),skillDelivered:this.skillDelivered.slice(),skillDestroyed:this.skillDestroyed.slice(),skillsUsed:this.skillsUsed,powerCredits:this.powerCredits.slice(),pendingPowerCascade:this.pendingPowerCascade,ice:this.special.ice.slice(),treasureOpen:this.special.treasureOpen,treasureGuards:this.special.treasureGuards.map(v=>v&&v.slice()),battle:this.battle?{...this.battle}:null,battleResolved:this.battleResolved.slice(),regenSeen:this.regenSeen.slice(),regenEligible:this.regenEligible.slice(),
       cols: this.cols.map(col => col.map(b => ({ ...b }))),
       slots: this.slots.map(s => s ? { ...s, q: [] } : null)
     };
   }
   restore(sn) {
     this.eaten = sn.eaten; this.left = sn.left; this.cols = sn.cols; this.slots = sn.slots;
-    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.cleanDispatches=sn.cleanDispatches||0;this.peakWaiting=sn.peakWaiting||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;this.skills={...sn.skills};this.skillOrder=(sn.skillOrder||[]).slice();this.skillDelivered=sn.skillDelivered.slice();this.skillDestroyed=sn.skillDestroyed.slice();this.skillsUsed=sn.skillsUsed||0;this.special.ice=sn.ice.slice();this.special.treasureOpen=!!sn.treasureOpen;this.battle=sn.battle?{...sn.battle}:null;this.battleResolved=sn.battleResolved.slice();this.regenSeen=sn.regenSeen.slice();this.regenEligible=sn.regenEligible.slice();
+    this.dispatches=sn.dispatches||0;this.directDispatches=sn.directDispatches||0;this.cleanDispatches=sn.cleanDispatches||0;this.peakWaiting=sn.peakWaiting||0;this.smartChain=sn.smartChain||0;this.bestSmartChain=sn.bestSmartChain||0;this.skills={...sn.skills};this.skillOrder=(sn.skillOrder||[]).slice();this.skillDelivered=sn.skillDelivered.slice();this.skillDestroyed=sn.skillDestroyed.slice();this.skillsUsed=sn.skillsUsed||0;this.powerCredits=sn.powerCredits?sn.powerCredits.slice():new Int32Array(32);this.pendingPowerCascade=!!sn.pendingPowerCascade;this.special.ice=sn.ice.slice();this.special.treasureOpen=!!sn.treasureOpen;if(sn.treasureGuards)this.special.treasureGuards=sn.treasureGuards.map(v=>v&&v.slice());this.battle=sn.battle?{...sn.battle}:null;this.battleResolved=sn.battleResolved.slice();this.regenSeen=sn.regenSeen.slice();this.regenEligible=sn.regenEligible.slice();
     this._R = null; this.ants = []; this.ev = []; this.stalled = false; this.state = 'play';
   }
 }
