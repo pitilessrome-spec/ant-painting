@@ -252,6 +252,7 @@ async function handler(req,res) {
   const path=(req.url||'').split('?')[0].replace(/^\/api\/?/,'').replace(/\/$/,'');
   if (path==='health' && req.method==='GET') return json(res,200,{status:'online',botConfigured:!!process.env.TELEGRAM_BOT_TOKEN,storageConfigured:!!process.env.DATABASE_URL,adminConfigured:typeof process.env.ANT_ADMIN_KEY==='string'&&process.env.ANT_ADMIN_KEY.length>=32});
   try {
+    if(path==='admin/partners')return await require('../lib/game-ops.js').handle(req,res,{json,authorized:adminAuthorized,connection});
     if(path==='admin/ad-report')return await adminAdReport(req,res);
     if (path==='admin/stats' && req.method==='GET') return await adminStats(req,res);
     if (path==='webhook' && req.method==='POST') return await handleWebhook(req,res);
