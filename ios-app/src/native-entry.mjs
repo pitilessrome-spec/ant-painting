@@ -1,0 +1,14 @@
+import {Capacitor,registerPlugin} from '@capacitor/core';
+import {AdMob,RewardAdPluginEvents,AdmobConsentStatus} from '@capacitor-community/admob';
+import {Haptics,ImpactStyle} from '@capacitor/haptics';
+import {Share} from '@capacitor/share';
+import {createRewardAd} from './reward-ad.mjs';
+import {createAdRouter,createBaiduAdapter} from './ad-router.mjs';
+import config from './ad-config.generated.json';
+const isIOS=Capacitor.isNativePlatform()&&Capacitor.getPlatform()==='ios';
+const region=registerPlugin('AntRegion'),baiduPlugin=registerPlugin('AntBaiduAds');
+const ads=createRewardAd({sdk:AdMob,events:RewardAdPluginEvents,consentStatus:AdmobConsentStatus,adId:config.rewardedId,test:config.test});
+const getRegion=async()=>{if(!isIOS||!Capacitor.isPluginAvailable('AntRegion'))return {};let timer;try{return await Promise.race([region.getRegion(),new Promise(resolve=>{timer=setTimeout(()=>resolve({}),2500)})])}finally{clearTimeout(timer)}};
+const baidu=createBaiduAdapter({plugin:baiduPlugin,available:()=>isIOS&&Capacitor.isPluginAvailable('AntBaiduAds'),config:config.baidu,consent:async()=>localStorage.getItem('ant_baidu_ad_consent')==='yes'});
+const router=createAdRouter({region:getRegion,admob:ads,baidu});
+window.AntNative=Object.freeze({isIOS,adTest:config.test,adStatus:()=>router.status(),showReward:async()=>{if(!isIOS)return false;const status=await router.status();if(status.provider==='baidu'&&status.available&&localStorage.getItem('ant_baidu_ad_consent')!=='yes'){if(!window.confirm('Allow optional Baidu rewarded ads? Baidu may process advertising, device and diagnostic data. See Settings > Privacy for details. You can decline and continue playing.'))return false;localStorage.setItem('ant_baidu_ad_consent','yes')}return router.show()},privacy:()=>isIOS?router.privacy():Promise.resolve(false),setBaiduConsent:yes=>localStorage.setItem('ant_baidu_ad_consent',yes?'yes':'no'),baiduConsent:()=>localStorage.getItem('ant_baidu_ad_consent')==='yes',haptic:()=>{if(isIOS)Haptics.impact({style:ImpactStyle.Light}).catch(()=>{})},share:()=>isIOS?Share.share({title:'ANT CANVAS',text:'Little ants. Big art. A world to grow.'}).catch(()=>{}):Promise.resolve()});

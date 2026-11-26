@@ -1,0 +1,5 @@
+# Baidu native candidate
+Official integration: https://union.baidu.com/docs/sdk/iOSSDK/10025/ and https://union.baidu.com/docs/sdk/iOSSDK/10121/
+Test APPSID d83eff1f; APID 20892820; channel 12022. Direct floor-price, no bidding or server verification during testing.
+The Objective-C service calls documented manager, reward-video and settings APIs; the Swift bridge returns an earned reward only after verified reward, completed playback, and close. Requests start only after the user opts in and clicks an ad. Disable location and personalization. No automatic international fallback.
+Device CI builds generic iOS using the pinned BaiduMobAdSDK 10.051 pod and workspace; simulator CI excludes the Baidu binary. Native build, real iPhone playback, SDK privacy and provider acceptance are separate gates. Production IDs must be approved before enabling.
