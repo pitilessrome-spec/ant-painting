@@ -252,6 +252,7 @@ async function handler(req,res) {
   const path=(req.url||'').split('?')[0].replace(/^\/api\/?/,'').replace(/\/$/,'');
   if (path==='health' && req.method==='GET') return json(res,200,{status:'online',botConfigured:!!process.env.TELEGRAM_BOT_TOKEN,storageConfigured:!!process.env.DATABASE_URL,adminConfigured:typeof process.env.ANT_ADMIN_KEY==='string'&&process.env.ANT_ADMIN_KEY.length>=32});
   try {
+    if(['admin/promotions','partner/promotions'].includes(path))return await require('../lib/promotions').handle(req,res,{json,authorized:adminAuthorized,connection,path});
     if(['admin/operations','partner/operations'].includes(path))return await require('../lib/operations-reports.js').handle(req,res,{json,authorized:adminAuthorized,connection,path});
     if(['admin/license-orders','partner/login','partner/orders','partner/logout'].includes(path))return await require('../lib/license-orders.js').handle(req,res,{json,authorized:adminAuthorized,connection,path});
     if(path==='admin/partners')return await require('../lib/game-ops.js').handle(req,res,{json,authorized:adminAuthorized,connection});
@@ -267,7 +268,7 @@ async function handler(req,res) {
     if(path==='ad-event')return await recordAdEvent(req,res,db,user);
     await ensureNames(db);
     const inviter=referralId(user.startParam,user.id);
-    if(inviter){
+    if(await require('../lib/promotions').attributeNew(db,user)){}else if(inviter){
       await db.query(`WITH fresh AS (INSERT INTO players(telegram_id) VALUES($1) ON CONFLICT DO NOTHING RETURNING telegram_id) INSERT INTO player_referrals(invitee_id,inviter_id) SELECT fresh.telegram_id,p.telegram_id FROM fresh JOIN players p ON p.telegram_id=$2 ON CONFLICT DO NOTHING`,[user.id,inviter]);
     }else await db.query('INSERT INTO players(telegram_id) VALUES($1) ON CONFLICT DO NOTHING',[user.id]);
     await db.query('UPDATE players SET display_name=$2 WHERE telegram_id=$1 AND display_name IS DISTINCT FROM $2',[user.id,user.displayName]);

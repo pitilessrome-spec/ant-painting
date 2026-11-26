@@ -1,0 +1,65 @@
+'use strict';
+const {randomBytes,createHash}=require('node:crypto'),{SCHEMA:BASE}=require('./game-ops'),{SCHEMA:LICENSE,catalog,isUuid}=require('./license-orders'),{SCHEMA:OPS,money,date}=require('./operations-reports');
+const SCHEMA="CREATE TABLE IF NOT EXISTS game_ops.promotion_codes(\n code text PRIMARY KEY CHECK(code ~ '^ag_[0-9a-f]{24}$'), agent_id bigint UNIQUE NOT NULL REFERENCES game_ops.agents(user_id),created_at timestamptz NOT NULL DEFAULT now());\nCREATE TABLE IF NOT EXISTS game_ops.player_attributions(\n telegram_id bigint PRIMARY KEY REFERENCES players(telegram_id) ON DELETE CASCADE,agent_id bigint NOT NULL REFERENCES game_ops.agents(user_id),code text NOT NULL REFERENCES game_ops.promotion_codes(code),created_at timestamptz NOT NULL DEFAULT now());\nCREATE INDEX IF NOT EXISTS ops_attribution_agent_idx ON game_ops.player_attributions(agent_id,created_at);\nCREATE TABLE IF NOT EXISTS game_ops.promotion_commissions(\n id uuid PRIMARY KEY, agent_id bigint NOT NULL REFERENCES game_ops.agents(user_id),game_id text NOT NULL,channel text NOT NULL,day date NOT NULL,currency text NOT NULL,\n source_revision int NOT NULL,attributed numeric(20,8) NOT NULL CHECK(attributed>0),amount numeric(20,8) NOT NULL CHECK(amount>0),\n evidence_ref text NOT NULL CHECK(length(evidence_ref) BETWEEN 3 AND 240),status text NOT NULL CHECK(status IN ('draft','approved','paid','void')),\n payment_ref text UNIQUE, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),\n FOREIGN KEY(game_id,channel,day,currency) REFERENCES game_ops.ad_daily(game_id,channel,day,currency),\n CHECK((status='paid')=(payment_ref IS NOT NULL)));\nCREATE UNIQUE INDEX IF NOT EXISTS ops_commission_one_idx ON game_ops.promotion_commissions(agent_id,game_id,channel,day,currency) WHERE status<>'void';\nCREATE TABLE IF NOT EXISTS game_ops.commission_audit(\n id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,commission_id uuid NOT NULL REFERENCES game_ops.promotion_commissions(id),action text NOT NULL CHECK(action IN ('draft','approved','paid','void')),created_at timestamptz NOT NULL DEFAULT now());",AD_SCHEMA="CREATE TABLE IF NOT EXISTS admin_adsgram_reports (\n  platform TEXT NOT NULL CHECK (platform='ANT CANVAS'),\n  period_start DATE NOT NULL, period_end DATE NOT NULL,\n  impressions BIGINT NOT NULL CHECK (impressions>=0),\n  revenue NUMERIC(20,8) NOT NULL CHECK (revenue>=0),\n  imported_at TIMESTAMPTZ NOT NULL DEFAULT now(),\n  PRIMARY KEY(platform,period_start,period_end),\n  CHECK(period_start<=period_end)\n);\n\nCREATE TABLE IF NOT EXISTS admin_ad_events (\n id UUID PRIMARY KEY, actor TEXT NOT NULL, outcome TEXT NOT NULL CHECK(outcome IN ('pending','completed','failed')),\n requested_at TIMESTAMPTZ NOT NULL DEFAULT now(), finished_at TIMESTAMPTZ\n);\nCREATE INDEX IF NOT EXISTS admin_ad_events_requested_idx ON admin_ad_events(requested_at);\nCREATE INDEX IF NOT EXISTS admin_ad_events_actor_idx ON admin_ad_events(actor,requested_at);";
+const validCode=s=>typeof s==='string'&&/^ag_[0-9a-f]{24}$/.test(s);
+const userId=s=>typeof s==='string'&&/^[1-9][0-9]{0,17}$/.test(s);
+const ref=s=>typeof s==='string'&&s.trim().length>=3&&s.length<=240&&!/[\x00-\x1f\x7f]/.test(s);
+const channels=['telegram','wechat','douyin','tiktok','crazygames','gamedistribution'],currencies=['CNY','USD','USDT','EUR'];
+function units(s){if(!money(s))throw Error('invalid amount');const [a,b='']=s.split('.');return BigInt(a)*100000000n+BigInt(b.padEnd(8,'0'))}
+function decimal(n){return String(n/100000000n)+'.'+String(n%100000000n).padStart(8,'0')}
+function commission(s,currency){if(!currencies.includes(currency))throw Error('invalid currency');const step=currency==='USDT'?100n:1000000n;return decimal(units(s)/10n/step*step)}
+function valid(b){if(!b||typeof b!=='object')return false;if(b.action==='code')return userId(b.agentId);
+if(b.action==='draft')return isUuid(b.id)&&userId(b.agentId)&&catalog.some(g=>g.id===b.gameId)&&channels.includes(b.channel)&&date(b.day)&&currencies.includes(b.currency)&&money(b.attributed)&&units(b.attributed)>0n&&ref(b.evidenceRef)&&Number.isInteger(b.sourceRevision)&&b.sourceRevision>0;
+if(['approved','void'].includes(b.action))return isUuid(b.id);
+if(b.action==='paid')return isUuid(b.id)&&ref(b.paymentRef);return false;}
+async function init(c){await c.query('SELECT pg_advisory_xact_lock(923175401)');await c.query(BASE);await c.query(LICENSE);await c.query(OPS);await c.query(SCHEMA);await c.query(AD_SCHEMA)}
+// Called only after signature verification; signed start parameter is the sole referral input.
+async function attributeNew(db,user){if(!validCode(user.startParam))return false;const c=await db.connect();try{await c.query('BEGIN');await init(c);await c.query(`WITH fresh AS (INSERT INTO players(telegram_id) VALUES($1) ON CONFLICT DO NOTHING RETURNING telegram_id) INSERT INTO game_ops.player_attributions(telegram_id,agent_id,code) SELECT fresh.telegram_id,p.agent_id,p.code FROM fresh JOIN game_ops.promotion_codes p ON p.code=$2 JOIN game_ops.agents a ON a.user_id=p.agent_id AND a.active ON CONFLICT DO NOTHING`,[user.id,user.startParam]);await c.query('COMMIT');return true}catch(e){await c.query('ROLLBACK').catch(()=>{});throw e}finally{c.release()}}
+async function sync(c){
+ // Only exact single-day official imports; never split multi-day totals or overwrite finance-owned records.
+ const r=await c.query(`SELECT period_start::text AS day,revenue::text,imported_at FROM admin_adsgram_reports WHERE platform='ANT CANVAS' AND period_start=period_end AND period_start<=(now() AT TIME ZONE 'UTC')::date ORDER BY period_start DESC LIMIT 90`);
+ let count=0;
+ for(const x of r.rows){const k=['ant-canvas','telegram',x.day,'USDT'];const old=(await c.query('SELECT revision,estimated::text,confirmed,received,source_ref FROM game_ops.ad_daily WHERE game_id=$1 AND channel=$2 AND day=$3 AND currency=$4 FOR UPDATE',k)).rows[0];const source='adsgram-imported-daily:'+new Date(x.imported_at).toISOString();
+ if(old&&(!old.source_ref.startsWith('adsgram-imported-daily:')||old.confirmed!==null||old.received!==null||old.source_ref===source))continue;
+ const v=[...k,x.revenue,null,null,source,(old?.revision||0)+1];await c.query('INSERT INTO game_ops.ad_daily(game_id,channel,day,currency,estimated,confirmed,received,source_ref,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(game_id,channel,day,currency) DO UPDATE SET estimated=EXCLUDED.estimated,source_ref=EXCLUDED.source_ref,revision=EXCLUDED.revision,updated_at=now()',v);await c.query('INSERT INTO game_ops.ad_daily_revisions(game_id,channel,day,currency,estimated,confirmed,received,source_ref,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',v);count++}
+ return count;
+}
+async function capacity(c,row,exclude){const k=[row.game_id,row.channel,row.day,row.currency];const ledger=(await c.query('SELECT revision,confirmed::text,received::text FROM game_ops.ad_daily WHERE game_id=$1 AND channel=$2 AND day=$3 AND currency=$4 FOR UPDATE',k)).rows[0];if(!ledger||ledger.confirmed===null||ledger.received===null||ledger.revision!==row.source_revision)return false;
+ const used=(await c.query("SELECT COALESCE(sum(attributed),0)::text AS used FROM game_ops.promotion_commissions WHERE game_id=$1 AND channel=$2 AND day=$3 AND currency=$4 AND status<>'void' AND id<>$5", [...k,exclude])).rows[0].used;
+ const a=units(ledger.confirmed),b=units(ledger.received);return units(used)+units(row.attributed)<=(a<b?a:b)}
+async function handle(req,res,{json,authorized,connection,path}){
+ const send=(s,d)=>json(res,s,d),admin=path==='admin/promotions',b=req.body||{};
+ if(admin){const k=process.env.ANT_ADMIN_KEY;if(!k||k.length<32)return send(503,{error:'管理员未配置'});if(!authorized(req.headers.authorization,k))return send(401,{error:'管理员认证失败'});}
+ else if(!/^Bearer [a-f0-9]{64}$/.test(req.headers.authorization||''))return send(401,{error:'请登录'});
+ if(!process.env.DATABASE_URL)return send(503,{error:'数据库未配置'});
+ if((admin&&!['GET','POST'].includes(req.method))||(!admin&&req.method!=='GET'))return send(405,{error:'Method not allowed'});
+ if(admin&&req.method==='POST'&&b.action!=='sync'&&!valid(b))return send(400,{error:'参数无效'});
+ let c;try{c=await connection().connect();await c.query('BEGIN');let uid;
+ if(admin){await init(c)}else{const s=await c.query('SELECT user_id::text FROM game_ops.customer_sessions WHERE token_hash=$1 AND expires_at>now() FOR SHARE',[createHash('sha256').update(req.headers.authorization.slice(7)).digest('hex')]);if(!s.rowCount){await c.query('ROLLBACK');return send(401,{error:'登录已过期'})}uid=s.rows[0].user_id;}
+ const fail=async(s,error)=>{await c.query('ROLLBACK');return send(s,{error})};
+ let synced=0;
+ if(admin&&req.method==='POST'){
+ if(b.action==='sync'){synced=await sync(c)}
+ else if(b.action==='code'){const a=await c.query('SELECT user_id FROM game_ops.agents WHERE user_id=$1 AND active FOR UPDATE',[b.agentId]);if(!a.rowCount)return await fail(409,'必须先由公司授权代理');await c.query('INSERT INTO game_ops.promotion_codes(code,agent_id) VALUES($1,$2) ON CONFLICT(agent_id) DO NOTHING',['ag_'+randomBytes(12).toString('hex'),b.agentId]);}
+ else if(b.action==='draft'){
+ const a=await c.query('SELECT user_id FROM game_ops.agents WHERE user_id=$1 AND active FOR UPDATE',[b.agentId]);if(!a.rowCount)return await fail(409,'代理未获授权');
+ // Current implemented attribution is Telegram only, and at least one verified game completion is required.
+ if(b.gameId!=='ant-canvas'||b.channel!=='telegram')return await fail(409,'该渠道尚无服务端玩家归因');
+ const eligible=await c.query("SELECT 1 FROM game_ops.player_attributions p JOIN level_sessions l ON l.telegram_id=p.telegram_id WHERE p.agent_id=$1 AND l.completed_at>=p.created_at AND l.completed_at>=($2::date::timestamp AT TIME ZONE 'UTC') AND l.completed_at<(($2::date+1)::timestamp AT TIME ZONE 'UTC') LIMIT 1",[b.agentId,b.day]);if(!eligible.rowCount)return await fail(409,'该日无已完成关卡的归因玩家');
+ const amount=commission(b.attributed,b.currency);if(units(amount)===0n)return await fail(400,'佣金低于币种最小记账单位');
+ const row={game_id:b.gameId,channel:b.channel,day:b.day,currency:b.currency,source_revision:b.sourceRevision,attributed:b.attributed};if(!await capacity(c,row,b.id))return await fail(409,'缺少已确认到账、报表版本变更或超出剩余收入');
+ await c.query("INSERT INTO game_ops.promotion_commissions(id,agent_id,game_id,channel,day,currency,source_revision,attributed,amount,evidence_ref,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'draft')",[b.id,b.agentId,b.gameId,b.channel,b.day,b.currency,b.sourceRevision,b.attributed,amount,b.evidenceRef.trim()]);await c.query("INSERT INTO game_ops.commission_audit(commission_id,action) VALUES($1,'draft')",[b.id]);
+ }else{
+ const row=(await c.query('SELECT *,day::text,attributed::text FROM game_ops.promotion_commissions WHERE id=$1 FOR UPDATE',[b.id])).rows[0];if(!row)return await fail(404,'记录不存在');
+ const allowed={approved:['draft'],paid:['approved'],void:['draft','approved']};if(!allowed[b.action]?.includes(row.status))return await fail(409,'结算状态不可变更');
+ if(b.action!=='void'&&!await capacity(c,row,b.id))return await fail(409,'收入报表变更或余额不足，先复核');
+ await c.query('UPDATE game_ops.promotion_commissions SET status=$2,payment_ref=$3,updated_at=now() WHERE id=$1',[b.id,b.action,b.action==='paid'?b.paymentRef.trim():null]);await c.query('INSERT INTO game_ops.commission_audit(commission_id,action) VALUES($1,$2)',[b.id,b.action]);
+ }}
+ const filter=admin?'':' WHERE a.user_id=$1',args=admin?[]:[uid];
+ const agents=(await c.query(`SELECT a.user_id::text,u.account_code,a.active,p.code,(SELECT count(*)::int FROM game_ops.player_attributions t WHERE t.agent_id=a.user_id) AS acquired,(SELECT count(*)::int FROM game_ops.player_attributions t WHERE t.agent_id=a.user_id AND EXISTS(SELECT 1 FROM level_sessions l WHERE l.telegram_id=t.telegram_id AND l.completed_at>=t.created_at)) AS valid_players FROM game_ops.agents a JOIN game_ops.users u ON u.id=a.user_id LEFT JOIN game_ops.promotion_codes p ON p.agent_id=a.user_id`+filter+' ORDER BY a.user_id LIMIT 200',args)).rows;
+ const commissions=(await c.query('SELECT id,agent_id::text,game_id,channel,day::text,currency,source_revision,attributed::text,amount::text,status'+(admin?',evidence_ref,payment_ref':'')+' FROM game_ops.promotion_commissions'+(admin?'':' WHERE agent_id=$1')+' ORDER BY created_at DESC LIMIT 300',args)).rows;
+ let telemetry=[];if(admin){synced+=await sync(c);telemetry=(await c.query("SELECT (requested_at AT TIME ZONE 'UTC')::date::text AS day,count(*)::int AS requests,count(*) FILTER(WHERE outcome='completed')::int AS completed,count(*) FILTER(WHERE outcome='failed')::int AS failed FROM admin_ad_events WHERE requested_at>=now()-interval '30 days' GROUP BY 1 ORDER BY 1 DESC")).rows}
+ await c.query('COMMIT');return send(200,{agents,commissions,telemetry,synced,scope:'Telegram verified first-touch; client ad telemetry is not billable revenue',catalog});
+ }catch(e){if(c)await c.query('ROLLBACK').catch(()=>{});return send(e.code==='23505'?409:503,{error:e.code==='23505'?'记录重复或付款凭证已使用':'推广账本暂不可用'})}finally{if(c)c.release()}
+}
+module.exports={handle,attributeNew,valid,validCode,commission,units,SCHEMA};
