@@ -1,0 +1,56 @@
+name: V7 isolated raid acceptance
+on:
+  push:
+    branches: [feat/ant-canvas-v7-integrated-20261126]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  raid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: raid
+          POSTGRES_PASSWORD: raid_test_only
+          POSTGRES_DB: raid_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U raid -d raid_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      RAID_TEST_DATABASE_URL: postgres://raid:raid_test_only@127.0.0.1:5432/raid_test
+    defaults:
+      run:
+        working-directory: telegram-backend
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-package-lock
+      - name: Apply baseline and raid migrations to disposable database
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs'),{Pool}=require('pg');
+          (async()=>{const db=new Pool({connectionString:process.env.RAID_TEST_DATABASE_URL});try{for(const f of fs.readdirSync('sql').filter(f=>/^\d+_.*\.sql$/.test(f)).sort()){await db.query(fs.readFileSync('sql/'+f,'utf8'));console.log('Applied '+f)}}finally{await db.end()}})().catch(e=>{console.error(e);process.exitCode=1});
+          NODE
+      - name: Server tests with actual isolated PostgreSQL
+        run: node --test --test-concurrency=1 tests/*.test.js
+      - name: Install test browser
+        run: |
+          npm install --no-save --no-package-lock playwright
+          npx playwright install chromium --with-deps
+      - name: 12 boss art and offline practice
+        run: node tests/raid-practice-browser.cjs
+      - name: Signed two-player V7 API and reconnect
+        run: node tests/raid-browser.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v7-raid-mobile
+          path: screenshots/*.png

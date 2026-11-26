@@ -1,1 +1,16 @@
-{"name":"ant-canvas-telegram-backend","private":true,"version":"1.0.0","engines":{"node":">=20"},"dependencies":{"pg":"^8.13.1"},"scripts":{"check":"node --check api/index.js && node --test tests/*.test.js"}}
+{
+  "name": "ant-canvas-telegram-backend",
+  "private": true,
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "pg": "^8.13.1",
+    "ws": "^8.18.3"
+  },
+  "scripts": {
+    "check": "node --check api/index.js && node --test tests/*.test.js",
+    "raid:relay": "node raid-relay.js"
+  }
+}

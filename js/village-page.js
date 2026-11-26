@@ -55,11 +55,14 @@ function renderLife(){
  }
  $('life-clock-note').textContent=p.valid?'Local time · daily reset at midnight.':'Device date moved backward. Rewards resume when the date catches up.';
 }
+let guardianClears=[];
 function renderWorld(){
  const p=V.worldPreview(),r=p.regions.find(x=>x.id===p.active),d=new Date(),season=['winter','spring','summer','autumn'][Math.floor(((d.getMonth()+1)%12)/3)],day=Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000),weather=r.id==='snow'?'snow':['clear','clear','rain','breeze'][((day%4)+4)%4];
  const panel=$('world-panel');panel.dataset.region=r.id;panel.dataset.season=season;panel.dataset.weather=weather;
  $('region-title').textContent=r.symbol+' '+r.name;$('world-weather').textContent=({clear:'☀️ Clear',rain:'🌧️ Rain',breeze:'🍃 Breeze',snow:'❄️ Snow'})[weather]+' · '+season;
  $('region-progress').textContent=p.paintings+' paintings · '+p.regions.filter(x=>x.unlocked).length+' / 4 regions unlocked';
+ const guardian={garden:['beetle','Golden Scarab King'],forest:['spider','Abyss Spider Queen'],island:['prism','Rainbow Leviathan'],snow:['frost','Frost Dragon Emperor']}[p.active];
+ const gate=$('world-raid-status'),challenge=$('world-raid-challenge');if(guardian&&gate&&challenge){challenge.href='raid.html?boss='+guardian[0]+'&tier=world';gate.textContent=guardian[1]+(guardianClears.includes(guardian[0])?' · Guardian defeated':' · Practice or raid expedition');}
  const list=$('region-list');list.replaceChildren();
  for(const x of p.regions){const b=document.createElement('button');b.type='button';b.className='region-card'+(x.id===p.active?' active':'');b.disabled=!x.unlocked;b.setAttribute('aria-pressed',String(x.id===p.active));const i=document.createElement('span'),t=document.createElement('b'),s=document.createElement('small');i.textContent=x.symbol;t.textContent=x.name;s.textContent=x.unlocked?x.plots+' / 8 built · '+(x.id===p.active?'Here':'Travel'):'🔒 Clear '+x.unlock+' paintings';b.append(i,t,s);b.onclick=()=>{const z=V.selectRegion(x.id);if(!z.ok){announce(z.error);return}selectedPlot=null;selectedItem=null;removePending=false;announce('Welcome to '+x.name+'!');render()};list.append(b)}
  const relics=$('world-relics');relics.replaceChildren();$('world-relic-count').textContent=p.relics.filter(x=>x.found).length+' / 12 relics found';
@@ -232,4 +235,6 @@ $('world-sound').addEventListener('click',()=>{
 });
 window.AntRegionActivities?.setOnChange(render);window.AntIndustry?.setOnChange(render);
 render();
+async function syncGuardianProgress(){const tg=window.Telegram?.WebApp;if(!tg?.initData)return;try{const res=await fetch('https://ant-canvas-telegram-api.vercel.app/api/raid/progress',{method:'POST',headers:{Authorization:'tma '+tg.initData,'Content-Type':'application/json'},body:'{}',cache:'no-store'});if(!res.ok)return;const data=await res.json();guardianClears=Array.isArray(data.cleared)?data.cleared:[];render()}catch(_){}}
+syncGuardianProgress();window.addEventListener('focus',syncGuardianProgress);
 })();
