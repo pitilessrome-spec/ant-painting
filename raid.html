@@ -1,3 +1,166 @@
-<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>ANT CANVAS · RAID</title><style>
-:root{color-scheme:dark;--gold:#f4d895;--muted:#a6b4c9;--line:#35435b}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% 0,#283756,#101724 60%);color:#eef2fa;font:15px system-ui,sans-serif}main{max-width:560px;margin:auto;padding:20px 15px 70px}h1{font-size:29px;margin:12px 0 4px;color:var(--gold)}h2{font-size:17px;margin:18px 0 9px}p{line-height:1.5}small,.muted{color:var(--muted)}button,input,select{font:inherit;color:inherit;background:#263751;border:1px solid var(--line);border-radius:10px;padding:11px}button{cursor:pointer;font-weight:700}button:disabled{opacity:.4;cursor:not-allowed}button.primary{background:#c6a25b;color:#172030;border-color:#ffe2a2}a{color:var(--gold)}.panel{border:1px solid var(--line);background:#1a2639;border-radius:16px;padding:14px;margin:12px 0}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.cards{display:grid;grid-template-columns:1fr 1fr;gap:8px}.boss-card{text-align:center;padding:12px;background:#22334c}.boss-card[aria-pressed=true]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}canvas{display:block;margin:auto}.hp{height:12px;background:#442d42;border-radius:10px;overflow:hidden}.hp i{display:block;height:100%;background:linear-gradient(90deg,#ffba7e,#d85c87);transition:width .2s}.board{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;align-items:end;min-height:210px;padding:8px;background:#101a29;border-radius:12px}.column{display:flex;flex-direction:column;gap:3px;justify-content:flex-end}.tile{aspect-ratio:1;border-radius:5px;box-shadow:inset 0 2px 2px #fff4,inset 0 -3px 2px #0003;display:grid;place-items:center;font-size:12px}.tile.exposed{outline:2px solid #fff;outline-offset:-2px}.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}.actions button{color:#162030;padding:10px 3px}.team{list-style:none;padding:0}.team li{padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.notice{position:sticky;bottom:10px;padding:10px;background:#293a50;border-radius:10px;min-height:38px}#rank-list{padding-left:22px}#rank-list li{padding:8px 0;border-bottom:1px solid var(--line)}[hidden]{display:none!important}.ant-card{padding:10px;background:#22334c;border-radius:10px;display:flex;flex-direction:column;gap:7px}.ant-card small{font-size:10px}.ant-card button{padding:6px;font-size:11px}.raid-nav{position:fixed;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:#172337f5;padding:9px 5px calc(9px + env(safe-area-inset-bottom));z-index:20;border-top:1px solid #52627d}.raid-nav a{text-align:center;text-decoration:none;font-weight:800;font-size:12px;padding:8px 2px;color:#aebcd1}.raid-nav a[aria-current=page]{color:#ffdb87;background:#ffffff12;border-radius:8px}
-body{background:radial-gradient(ellipse at 50% 0,#384765,#101724 65%)}main{padding-bottom:calc(92px + env(safe-area-inset-bottom))}#arena{height:clamp(240px,60vw,350px)!important;border:2px solid #ad9155;box-shadow:0 8px 28px #0009}.panel{border-color:#89704477;background:linear-gradient(155deg,#26354b,#131b2a);box-shadow:0 5px 20px #0005}.boss-card{min-height:64px;background:linear-gradient(145deg,#334763,#1c283a);border-color:#9e875d55}.boss-card[aria-pressed=true]{background:linear-gradient(145deg,#655331,#2b3141)}button.primary{background:linear-gradient(#ffe3a3,#b9853c);box-shadow:0 3px 0 #69491e}.raid-nav a{min-width:0;font-size:clamp(10px,3vw,13px);white-space:nowrap}.notice{position:static}#tier{width:100%}#create{width:100%;margin-top:14px}</style><script src="https://telegram.org/js/telegram-web-app.js"></script><script src="vendor/three.min.js"></script><script src="js/boss-fx.js"></script><link rel="stylesheet" href="css/game-hud-v6.css?v=20261125-r1"></head><body class="ac-raid"><main><a href="index.html">← ANT CANVAS</a><h1>远征大厅 · ANT RAID</h1><p class="muted">独立副本 · 共享 BOSS 血量 · 服务器结算</p><p id="status" role="status" class="notice">连接服务中…</p><section class="panel"><div id="arena" style="height:220px;position:relative;overflow:hidden;border-radius:12px;background:#1d2d46"><canvas id="portrait" width="240" height="130" style="position:absolute;inset:0;margin:auto"></canvas></div><h2 id="arena-name">深渊蛛后</h2><p id="arena-desc" class="muted">蘑菇森林 · 蛛网封锁与砖块再生</p><p id="preview-note" class="muted">场景预览可浏览；正式联机未开放时无法创建房间，不产生模拟战绩。</p></section><section id="lobby" class="panel"><h2>选择副本规模</h2><select id="tier" aria-label="副本规模"><option value="small">小型远征 · 1–2人</option><option value="medium">精英讨伐 · 1–3人</option><option value="world">世界 BOSS · 1–8人（推荐5人）</option></select><h2>选择 BOSS</h2><div id="bosses" class="cards"></div><button class="primary" id="create" disabled>创建远征房间</button><h2>继续未完成的远征</h2><div id="resume-rooms" class="row"></div><h2>加入好友</h2><div class="row"><input id="code" maxlength="12" placeholder="12位邀请码" aria-label="邀请码"><button id="join" disabled>加入</button></div></section><section id="room" hidden class="panel"><h2 id="room-title"></h2><p id="room-code"></p><div class="row"><button id="invite">邀请好友</button><button id="start" class="primary">进入战斗</button><button id="leave">退出大厅</button></div><div class="hp"><i id="hp"></i></div><p id="hp-text"></p><p id="mechanic" class="muted"></p><p id="clock" class="muted"></p><small id="sync-mode">同步：HTTP 轮询</small><p id="combo" style="color:#f4d895"></p><ul class="team" id="team"></ul><div id="combat" hidden><p id="turns"></p><div id="board" class="board"></div><div id="colors" class="actions"></div><div class="row"><button id="bomb">💣 ×0</button><button id="lightning">⚡ ×0</button></div><p class="muted">选择底部可达颜色；同色连续搬运、弱点和技能增加伤害。每次操作由服务器核算。</p></div><button id="exit" hidden>返回大厅</button></section><section class="panel"><h2>开荒榜</h2><div class="row"><select id="rank-sort"><option value="first">首通日期排行</option><option value="speed">最快用时排行</option></select><select id="rank-tier"><option value="world">世界 BOSS</option><option value="medium">中型副本</option><option value="small">小型副本</option></select></div><div class="row"><select id="rank-boss"><option value="spider">深渊蛛后</option><option value="beetle">黄金甲虫帝王</option><option value="frost">永冬冰霜领主</option><option value="prism">七彩混沌魔神</option></select></div><div class="row"><select id="division"><option value="all">全部队伍</option><option value="solo">单人</option><option value="team">多人</option><option value="under">少于推荐人数</option></select><button id="refresh">刷新榜单</button></div><ol id="rank-list"></ol><h2>我的远征纪念记录</h2><ul id="rewards"></ul><h2>蚂蚁进化 · Q-Ant Evolution</h2><p id="ant-cores" class="muted">正式服务未开放</p><div id="ant-list" class="cards"></div><h2>远征物品仓库</h2><ul id="inventory"></ul><p class="muted">晶核由服务器保管，首次通关后可用于解锁与培养蚂蚁。</p></section></main><nav class="ac-game-nav" aria-label="Game navigation"><a href="index.html" data-nav="play"><i></i><span>Play</span></a><a href="village.html" data-nav="world"><i></i><span>World</span></a><a href="raid.html" data-nav="raid" aria-current="page"><i></i><span>Raid</span></a><a href="village.html?tab=tasks" data-nav="tasks"><i></i><span>Tasks</span></a><a href="collection.html" data-nav="collection"><i></i><span>Collection</span></a></nav><script src="js/raid-scene.js?v=v6rc1"></script><script src="js/raid.js?v=v6rc1"></script><script src="js/raid-announcements.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ANT CANVAS · Raid</title>
+<style>
+  :root{--ink:#5b3a2e;--soft:#8a6a4f;--cream:#fff8ea;--paper:#f6ecd6;--line:#d7bf8f;--leaf:#4f7a3c;--gold:#e9b44c;--red:#e5483b;
+    --c0:#f7a8c0;--c1:#9fd2f2;--c2:#ffd56b;--c3:#a6dc8a}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(#f9f1de,#efe2c3) fixed;color:var(--ink);font:15px "Trebuchet MS","Avenir Next",system-ui,sans-serif}
+  main{max-width:560px;margin:0 auto;padding:12px 12px calc(96px + env(safe-area-inset-bottom))}
+  a{color:var(--leaf)}
+  h1{font-size:22px;margin:6px 2px 0}h2{font-size:16px;margin:14px 2px 8px}
+  .muted{color:var(--soft);font-size:12.5px;margin:4px 2px}
+  .notice{background:var(--cream);border:1.5px solid var(--line);border-radius:12px;padding:8px 10px;font-size:13px;margin:10px 0}
+  .panel{background:var(--cream);border:2px solid var(--line);border-radius:18px;padding:12px;margin:12px 0;box-shadow:0 3px 0 #e0cfa6}
+  button,select,input{font:inherit;color:var(--ink)}
+  button{border:2px solid #b89a6c;background:#fffdf6;border-radius:12px;padding:8px 12px;cursor:pointer;box-shadow:0 2px 0 #cdb383}
+  button:disabled{opacity:.45;cursor:default}
+  button.primary{background:var(--leaf);border-color:#3e6430;color:#fff8ea;box-shadow:0 3px 0 #2f4d25;font-weight:700}
+  button.gold{background:#ffe9a8;border-color:#c99633}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+  .stage{position:relative;border-radius:16px;overflow:hidden;border:2px solid var(--line);background:#e9dfc6}
+  .stage .badges{position:absolute;inset:8px 8px auto;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+  .badge{background:rgba(255,248,234,.93);border:2px solid var(--line);border-radius:12px;padding:5px 9px;box-shadow:0 2px 0 #cdb383}
+  .badge b{display:block;font-size:14px}.badge small{font-size:11px;color:var(--soft)}
+  .badge.tier{background:var(--leaf);border-color:#3e6430;color:#fff8ea;font-weight:700;font-size:11px;align-self:flex-start}
+  .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .seg button{padding:7px 4px;font-size:12.5px}.seg button[aria-pressed=true]{background:#ffe9a8;border-color:#c99633;font-weight:700}
+  .bosses{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .boss-card{text-align:left;padding:8px 10px;border-radius:14px}
+  .boss-card b{display:block;font-size:13.5px}.boss-card small{color:var(--soft);font-size:11.5px}
+  .boss-card[aria-pressed=true]{background:#fff1c2;border-color:#e9b44c;outline:2px solid #e9b44c}
+  .boss-card.locked{opacity:.55}
+  .hp{height:20px;border-radius:11px;background:#e7d6b2;border:2px solid #b89a6c;overflow:hidden;position:relative;margin-top:6px}
+  .hp i{position:absolute;inset:0 auto 0 0;background:linear-gradient(#ff8f7a,#e5483b);border-right:2px solid #b42d2a;transition:width .4s}
+  .hp span{position:absolute;inset:0;text-align:center;font-size:11.5px;line-height:16px;font-weight:700;color:#fff;text-shadow:0 1px 0 #7a2420}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+  .chip{font-size:11.5px;padding:3px 9px;border-radius:999px;background:#fffdf6;border:1.5px solid var(--line);display:inline-flex;align-items:center;gap:5px}
+  .chip .sw{width:10px;height:10px;border-radius:3px;border:1px solid rgba(91,58,46,.4)}
+  .mech{background:#fff1c2;border:2px solid var(--gold);border-radius:12px;padding:7px 10px;font-size:12.5px;font-weight:700;margin:6px 0}
+  .combo{font-size:12.5px;color:#7a5b45;margin:4px 2px}
+  .board{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;padding:8px;border-radius:16px;background:#fbf3e2;border:2px solid var(--line);margin-top:8px}
+  .col{display:flex;flex-direction:column-reverse;gap:4px;justify-content:flex-start;min-height:120px;border-radius:9px;padding:2px}
+  .col.frozen{background:repeating-linear-gradient(135deg,#dff2ff 0 6px,#c4e4fa 6px 12px);outline:2px solid #8fc1e6}
+  .tile{aspect-ratio:1;border-radius:8px;border:2px solid rgba(91,58,46,.32);box-shadow:inset 0 -3px 0 rgba(0,0,0,.12),inset 0 3px 0 rgba(255,255,255,.45);position:relative;display:grid;place-items:center;font-size:12px}
+  .tile.hidden-row{opacity:.55}
+  .tile.exposed{outline:2px solid rgba(91,58,46,.55);outline-offset:1px}
+  .tile.c0{background:var(--c0)}.tile.c1{background:var(--c1)}.tile.c2{background:var(--c2)}.tile.c3{background:var(--c3)}
+  .tile[data-m]::after{position:absolute;inset:0;display:grid;place-items:center;font-size:13px}
+  .tile[data-m=spot]::after{content:"";inset:24%;border-radius:50%;background:radial-gradient(#4a4256,#231f2c);box-shadow:0 0 0 2px rgba(255,214,74,.9),0 0 8px 3px rgba(255,200,60,.8)}
+  .tile[data-m=bud]::after{content:"🌷";filter:saturate(.6)}
+  .tile[data-m=thorn]::after{content:"🌿"}
+  .tile[data-m=toxic]{filter:grayscale(.85) brightness(.85)}.tile[data-m=toxic]::after{content:"☠";font-size:11px;color:#5b2c74}
+  .tile[data-m=glow]{box-shadow:0 0 8px 3px #7fe6ff,inset 0 3px 0 rgba(255,255,255,.5)}.tile[data-m=glow]::after{content:"✦";color:#1c6a8a}
+  .tile[data-m=egg]::after{content:"🥚";font-size:12px}
+  .tile[data-m=ice]{background-image:linear-gradient(135deg,rgba(255,255,255,.75),rgba(200,235,255,.55))}.tile[data-m=ice]::after{content:attr(data-hp);font-weight:800;color:#2a6aa0}
+  .tile[data-m=aurora]{box-shadow:0 0 8px 3px #6fffc8,inset 0 3px 0 rgba(255,255,255,.5)}.tile[data-m=aurora]::after{content:"✧";color:#1f7a5a}
+  .picks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+  .pick{height:48px;border-radius:14px;font-weight:700;font-size:12.5px;border:2px solid rgba(91,58,46,.45)}
+  .pick.weak{outline:3px solid var(--gold);outline-offset:2px}
+  .pick.p0{background:var(--c0)}.pick.p1{background:var(--c1)}.pick.p2{background:var(--c2)}.pick.p3{background:var(--c3)}
+  .team{list-style:none;padding:0;margin:8px 0;display:grid;gap:4px}
+  .team li{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;background:#fffdf6;border:1.5px solid var(--line);border-radius:10px;padding:5px 8px}
+  .team li.me{border-color:var(--gold);background:#fff6d8}
+  .float{position:absolute;left:50%;top:42%;transform:translateX(-50%);font-weight:800;font-size:22px;color:#fff;text-shadow:0 2px 0 #b42d2a,0 0 8px #b42d2a;animation:float 1s ease-out forwards;pointer-events:none}
+  @keyframes float{to{transform:translate(-50%,-50px);opacity:0}}
+  .ants{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ant-card{background:#fffdf6;border:1.5px solid var(--line);border-radius:12px;padding:8px;font-size:12px;display:grid;gap:5px}
+  .ant-card strong{font-size:13px}.ant-card button{padding:5px 8px;font-size:12px}
+  ol,ul{padding-left:20px;font-size:12.5px}
+  input{border:2px solid #b89a6c;border-radius:12px;padding:8px 10px;background:#fffdf6;min-width:0;flex:1}
+  select{border:2px solid #b89a6c;border-radius:12px;padding:7px 8px;background:#fffdf6}
+  .practice-tag{display:inline-block;background:#e6f3fb;border:1.5px solid #8fc1e6;color:#2a6aa0;border-radius:999px;font-size:11px;padding:2px 8px;font-weight:700}
+  [hidden]{display:none!important}
+</style>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="css/game-hud-v6.css?v=20261125-r1">
+</head>
+<body class="ac-raid-v7">
+<main>
+  <a href="index.html">← ANT CANVAS</a>
+  <h1>Raid Expeditions</h1>
+  <p class="muted">Team up against the guardians of the four worlds · shared boss HP · every move checked by the server</p>
+  <p id="status" role="status" aria-live="polite" class="notice">Connecting…</p>
+
+  <section class="panel" aria-label="Boss">
+    <div class="stage">
+      <div id="arena"></div>
+      <div class="badges"><div class="badge"><b id="arena-name">—</b><small id="arena-desc"></small></div><div class="badge tier" id="tier-badge">WORLD BOSS</div></div>
+      <div id="floats"></div>
+    </div>
+    <p id="boss-tip" class="muted"></p>
+  </section>
+
+  <section id="lobby" class="panel">
+    <h2>Raid size</h2>
+    <div class="seg" id="tiers">
+      <button type="button" data-tier="small">Small raid<br><small>1–2 players</small></button>
+      <button type="button" data-tier="medium">Elite hunt<br><small>1–3 players</small></button>
+      <button type="button" data-tier="world">World boss<br><small>1–8 · best with 5</small></button>
+    </div>
+    <h2>Choose a boss</h2>
+    <div id="bosses" class="bosses"></div>
+    <div class="row">
+      <button class="primary" id="create" disabled>Create raid room</button>
+      <button class="gold" id="practice">Practice offline</button>
+    </div>
+    <p class="muted">Practice plays the real raid rules on this device. No rewards, no leaderboard.</p>
+    <h2>Continue a raid</h2>
+    <div id="resume-rooms" class="row"><small class="muted">Sign in through Telegram to see your rooms.</small></div>
+    <h2>Join a friend</h2>
+    <div class="row"><input id="code" maxlength="12" placeholder="12-character invite code" aria-label="Invite code"><button id="join" disabled>Join</button></div>
+  </section>
+
+  <section id="room" hidden class="panel">
+    <h2 id="room-title"></h2>
+    <p id="room-code" class="muted"></p>
+    <div class="row"><button id="invite">Invite friends</button><button id="start" class="primary">Start the fight</button><button id="leave">Leave lobby</button></div>
+    <div class="hp"><i id="hp"></i><span id="hp-text"></span></div>
+    <div class="chips" id="chips"></div>
+    <div class="mech" id="mechanic" hidden></div>
+    <p class="combo" id="combo"></p>
+    <ul class="team" id="team"></ul>
+    <div id="combat" hidden>
+      <div class="chips"><span class="chip" id="turns"></span><span class="chip" id="clock"></span><span class="chip" id="sync-mode">Sync: polling</span></div>
+      <div id="board" class="board" aria-label="Your board"></div>
+      <div id="colors" class="picks"></div>
+      <div class="row"><button id="bomb">💣 ×0</button><button id="lightning">⚡ ×0</button></div>
+      <p class="muted">Pick a colour showing at the bottom of a column. Your ants carry those bricks away. The boss's weak colour deals ×5; a teammate following up with the next colour breaks a ward.</p>
+    </div>
+    <div class="row"><button id="exit" hidden>Back to lobby</button></div>
+  </section>
+
+  <section class="panel" id="meta">
+    <h2>First-clear board</h2>
+    <div class="row">
+      <select id="rank-sort"><option value="first">First clear</option><option value="speed">Fastest</option></select>
+      <select id="rank-tier"><option value="world">World boss</option><option value="medium">Elite hunt</option><option value="small">Small raid</option></select>
+      <select id="rank-boss"><option value="beetle">Storybook Garden</option><option value="spider">Mushroom Forest</option><option value="prism">Coral Island</option><option value="frost">Snowlight Valley</option></select>
+      <select id="division"><option value="all">All teams</option><option value="solo">Solo</option><option value="team">Teams</option><option value="under">Under recommended size</option></select>
+      <button id="refresh">Refresh</button>
+    </div>
+    <ol id="rank-list"></ol>
+    <h2>My raid trophies</h2>
+    <ul id="rewards"></ul>
+    <h2>Ant evolution</h2>
+    <p id="ant-cores" class="muted">Available once the raid service is open.</p>
+    <div id="ant-list" class="ants"></div>
+    <h2>Raid storage</h2>
+    <ul id="inventory"></ul>
+    <p class="muted">Evolution cores are kept by the server. Spend them to unlock and train ant species.</p>
+  </section>
+</main>
+<nav class="ac-game-nav" aria-label="Game navigation"><a href="index.html" data-nav="play"><i></i><span>Play</span></a><a href="village.html" data-nav="world"><i></i><span>World</span></a><a href="raid.html" data-nav="raid" aria-current="page"><i></i><span>Raid</span></a><a href="village.html?tab=tasks" data-nav="tasks"><i></i><span>Tasks</span></a><a href="collection.html" data-nav="collection"><i></i><span>Collection</span></a></nav>
+<script src="js/boss-art.js?v=v7-1"></script>
+<script src="js/boss-art-garden.js?v=v7-1"></script>
+<script src="js/boss-art-forest.js?v=v7-1"></script>
+<script src="js/boss-art-coral.js?v=v7-1"></script>
+<script src="js/boss-art-snow.js?v=v7-1"></script>
+<script src="js/raid-practice-engine.js?v=v7-1"></script>
+<script src="js/raid.js?v=v7-1"></script>
+<script src="js/raid-announcements.js?v=v7-1"></script>
+</body>
+</html>
