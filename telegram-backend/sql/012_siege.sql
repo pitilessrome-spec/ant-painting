@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS siege_rooms(id uuid PRIMARY KEY, code text UNIQUE NOT NULL, owner_id bigint NOT NULL REFERENCES players(telegram_id), state jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
